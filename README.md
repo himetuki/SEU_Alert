@@ -40,7 +40,7 @@
 ## 当前状态（2026-10-25）
 
 - **P0+P1 代码已落地**：OneBot 反向 WS 服务端 / 预筛链（含 ADR-008 顺序回归）/ 假分类器 / 订阅匹配 / **文件分发（outbox/<用户QQ>/）** / bot 命令 / 主管道装配；**58 项测试全绿**（含 A3/A5 端到端断言）
-- **NapCat v4.18.41 下载中**（~85%），完成后解压到 `napcat/`；然后按 runbook 扫码登录 → 冒烟 → 跑 `main.py` 看真实群消息进 outbox
+- **NapCat v4.18.41 已解压到 `napcat/`**（Node 运行时自带；本机 QQ NT 在 项目所在盘，启动器可找到）。待用户操作：运行 `napcat\napcat.bat` → 备用机扫码登录小号 → 配反向 WS（模板在 `config/napcat-onebot11-template.json`，详见 runbook）
 - 技术栈：Python 3.13 venv（项目内）+ 自写薄 OneBot 客户端 + SQLite（ADR-020）
 
 ## 修订记录

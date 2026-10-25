@@ -20,3 +20,6 @@ napcat/
 .idea/
 Thumbs.db
 desktop.ini
+
+# ---- 用户其他项目目录（勿入版本库）----
+seu-projects-test/
