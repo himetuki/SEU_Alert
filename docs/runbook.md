@@ -15,27 +15,27 @@ set PIP_CACHE_DIR=%CD%\.pipcache
 
 > Windows 控制台中文输出乱码时，先 `set PYTHONIOENCODING=utf-8`。
 
-## 1. NapCat 安装与配置（待用户操作）
+## 1. NapCat 安装与配置（解压已完成 ✅，待用户运行/登录/配置）
 
-**安装**：`napcat/NapCat.Shell.Windows.Node.zip` 已下载（v4.18.41，Node 运行时自带，无需装 Node）。解压到 `napcat/`，运行启动器（`NapCat.Shell.Windows.Node.bat` 或解压出的 launcher）。
+**已就绪**：NapCat v4.18.41（Node 运行时自带，无需装 Node）已解压到 `napcat/`：
 
-**配置 OneBot 11 反向 WS**（两种方式任选）：
+- 启动器：`napcat\napcat.bat`（顶层）/ `napcat\napcat\launcher.bat`
+- 本机已装 QQ NT：`<QQ安装目录>`（启动器从注册表能找到，装到非系统盘）
+- OneBot 反向 WS 配置模板：`config\napcat-onebot11-template.json`（见下）
 
-- **WebUI**（推荐）：启动后浏览器开 `http://127.0.0.1:6099` → OneBot 11 配置 → 新增**反向 WebSocket 客户端**：
-  - URL：`ws://127.0.0.1:3001`
-  - Token：与 `.env` 里 `ONEBOT_TOKEN` 一致（改了任一边就两边一起改）
-  - 消息格式：array
-- **配置文件**：`napcat/config/onebot11_<你的QQ号>.json`，`network.websocketClients` 里加：
-  ```json
-  { "enable": true, "name": "qq-relay", "url": "ws://127.0.0.1:3001",
-    "messagePostFormat": "array", "reportSelfMessage": false,
-    "reconnectInterval": 3000, "token": "与 .env 一致" }
-  ```
+**运行**：双击 `napcat\napcat.bat`（或在其目录开终端运行）。首次启动会拉起 QQ 登录窗。
 
 **扫码登录（关键，只能你来）**：
 
 - 用**小号**，**备用机**扫码（小号扫码会把该号手机 QQ 顶掉线；别用主号、别用刚注册的号）
 - 登录成功后 NapCat 会自动连出反向 WS 到我们的 `127.0.0.1:3001`
+
+**配置 OneBot 11 反向 WS**（两种方式任选，推荐先试 WebUI）：
+
+- **WebUI**：启动后浏览器开 `http://127.0.0.1:6099` → OneBot 11 配置 → 新增**反向 WebSocket 客户端**：URL `ws://127.0.0.1:3001`、消息格式 array、Token 留空
+- **配置文件**：登录后 NapCat 会生成 `napcat\napcat\config\onebot11_<你的QQ号>.json`，把 `config\napcat-onebot11-template.json` 的内容合并进去（websocketClients 数组）
+
+**Token 现状**：项目当前**没有 .env**（创建被安全策略拦截，需你自行 `copy .env.example .env`）→ 服务端 token 默认为空 → NapCat 侧 Token 也留空即可；等你建了 .env 并设了 `ONEBOT_TOKEN`，两边改成同一个值。
 
 ## 2. 冒烟（验收 A1）
 
