@@ -59,6 +59,24 @@ set PIP_CACHE_DIR=%CD%\.pipcache
 | 中文乱码 | `set PYTHONIOENCODING=utf-8` 后再运行 |
 | 事件收得到但没有群消息 | 只解析 `message_type=group` 的事件；私聊/通知按设计忽略（见 onebot.py） |
 
-## 4. P1 预告（冒烟通过后）
+## 4. P1 主管道（冒烟通过后）
 
-管道贯通：预筛链（发送者过滤→去重→关键词）→ 假分类器 → 订阅匹配 → **文件分发**（`data/outbox/<用户QQ>/*.txt`）。届时新增 `main.py` 装配启动，冒烟保持独立可跑。
+```bash
+.venv\Scripts\python -m qq_relay.main --seconds 300     # 5 分钟观察
+.venv\Scripts\python -m qq_relay.main --forever         # 持续跑
+```
+
+**会发生什么**：
+
+- 群消息 → 预筛链（发送者过滤[默认关] → 去重 → 关键词）→ 假分类器 → 订阅匹配 → **写文件**
+- 每条推送落到 `data/outbox/<用户QQ>/<时间戳>_<类别>_<事件号>.txt`；低紧急度进 `digest-<日期>.txt`
+- 同一条通知在多个群出现只分类一次（fan-in），只给新命中群的用户补文件
+- 私聊 bot 可下命令：`/sub 群 <群名|all> 类别 <活动 通知 …>`、`/sub list`、`/unsub`、`/mute 23:00-07:00`、`/digest on|off`；回复"不感兴趣"记录负反馈
+
+**检查点**：往测试群贴一条含"作业/截止"的通知 → 30 秒内 `data/outbox/<你的QQ>/` 出现 txt；灌水群不应产生任何新文件（验收 A3/A5）。
+
+**当前订阅用户**：编辑 `config/subscriptions.yml` 或让用户私聊发 `/sub`（双通道同一份数据，ADR-018）。
+
+## 5. P2 预告（P1 真实群验证后）
+
+JEV 分类树替换假分类器（`CLASSIFIER=tree`）：连通性测试先行（禁思考参数）→ JEV 客户端（队列/退避/缓存）→ L4 小模型提取 → 金标准 harness 校准。

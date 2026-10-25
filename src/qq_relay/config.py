@@ -23,6 +23,12 @@ GROUP_KINDS = ("course", "grade", "cadre", "class", "program", "club", "other")
 SCOPES = ("course", "grade", "class", "school")
 FILTER_MODES = ("off", "whitelist", "blacklist")
 
+# 通用预筛词（与群画像词取并集）；groups.yml 的 prefilter_generic 可覆盖
+DEFAULT_GENERIC_WORDS: tuple[str, ...] = (
+    "通知", "请", "截止", "报名", "提交", "收到请回复", "DDL", "ddl",
+    "作业", "考试", "讲座", "竞赛", "收集", "填写", "活动",
+)
+
 
 class ConfigError(Exception):
     """配置缺失或非法——启动期直接失败，不带病运行。"""
@@ -118,6 +124,13 @@ class SenderFilter:
     def from_dict(cls, d: Optional[dict], gid: str) -> "SenderFilter":
         d = d or {}
         mode = d.get("mode", "off")
+        if isinstance(mode, bool):
+            # YAML 1.1 会把 off/on 解析成布尔——给出明确提示而不是 cryptic 报错
+            if mode:
+                raise ConfigError(
+                    f"群 {gid} sender_filter.mode：YAML 把 on/off 解析成了布尔值，"
+                    f'请给 mode 加引号（mode: "off" / "whitelist" / "blacklist"）')
+            mode = "off"
         if mode not in FILTER_MODES:
             raise ConfigError(f"群 {gid} sender_filter.mode 非法: {mode!r}")
         roles = d.get("roles") or {}
@@ -152,6 +165,7 @@ class GroupProfile:
 class GroupsConfig:
     groups: dict[str, GroupProfile]
     role_prior: dict[str, tuple[str, ...]]
+    generic_words: tuple[str, ...] = DEFAULT_GENERIC_WORDS
 
     def profile_of(self, group_id: str) -> Optional[GroupProfile]:
         return self.groups.get(group_id)
@@ -202,7 +216,9 @@ def load_groups(path: Path) -> GroupsConfig:
             if bad:
                 raise ConfigError(f"role_prior[{role}] 含未知类别: {bad}")
         role_prior[str(role)] = cats_t
-    return GroupsConfig(groups=groups, role_prior=role_prior)
+    generic = raw.get("prefilter_generic")
+    generic_words = tuple(str(w) for w in generic) if generic else DEFAULT_GENERIC_WORDS
+    return GroupsConfig(groups=groups, role_prior=role_prior, generic_words=generic_words)
 
 
 # ---------------- tree.yml ----------------

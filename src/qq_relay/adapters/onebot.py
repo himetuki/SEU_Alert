@@ -12,12 +12,24 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from dataclasses import dataclass
 from typing import Any, AsyncIterator, Callable, Optional
 from uuid import uuid4
 
 import websockets
 
 from ..contracts import RawEvent
+
+
+@dataclass(frozen=True)
+class PrivateMsg:
+    """私聊消息（bot 命令入口）。"""
+
+    user_id: str
+    text: str
+    msg_id: str
+    ts: int
+
 
 # OneBot 11 消息段 → 纯文本
 def _segment_text(message: Any) -> str:
@@ -41,11 +53,18 @@ def _is_at_all(message: Any) -> bool:
     return False
 
 
+def _is_self(payload: dict) -> bool:
+    sender = payload.get("sender") or {}
+    return str(sender.get("user_id", "")) == str(payload.get("self_id", "")) and bool(payload.get("self_id"))
+
+
 def parse_group_message(payload: dict) -> Optional[RawEvent]:
-    """OneBot 11 群消息事件 → RawEvent；非群消息 / 空文本返回 None。"""
+    """OneBot 11 群消息事件 → RawEvent；非群消息 / 空文本 / 机器人自身回声返回 None。"""
     if payload.get("post_type") != "message":
         return None
     if payload.get("message_type") != "group":
+        return None
+    if _is_self(payload):
         return None
     sender = payload.get("sender") or {}
     text = _segment_text(payload.get("message"))
@@ -64,6 +83,26 @@ def parse_group_message(payload: dict) -> Optional[RawEvent]:
     )
 
 
+def parse_private_message(payload: dict) -> Optional[PrivateMsg]:
+    """OneBot 11 私聊消息事件 → PrivateMsg；非私聊 / 空文本 / 自身回声返回 None。"""
+    if payload.get("post_type") != "message":
+        return None
+    if payload.get("message_type") != "private":
+        return None
+    if _is_self(payload):
+        return None
+    sender = payload.get("sender") or {}
+    text = _segment_text(payload.get("message"))
+    if not text.strip():
+        return None
+    return PrivateMsg(
+        user_id=str(sender.get("user_id", "")),
+        text=text,
+        msg_id=str(payload.get("message_id", "")),
+        ts=int(payload.get("time") or time.time()),
+    )
+
+
 def _auth_header(ws: Any) -> Optional[str]:
     """兼容 websockets 新旧实现的请求头读取。"""
     req = getattr(ws, "request", None)
@@ -75,7 +114,8 @@ def _auth_header(ws: Any) -> Optional[str]:
 
 
 class OneBotServer:
-    """反向 WS 服务端：NapCat 连入 → 事件进队列；action 经同一连接调用。"""
+    """反向 WS 服务端：NapCat 连入 → 群消息进 events 队列 / 私聊进 private 队列；
+    action 经同一连接调用。"""
 
     def __init__(
         self,
@@ -89,10 +129,11 @@ class OneBotServer:
         self._token = token
         self._on_event = on_event
         self._queue: asyncio.Queue[RawEvent] = asyncio.Queue()
+        self._pqueue: asyncio.Queue[PrivateMsg] = asyncio.Queue()
         self._conn: Any = None                # 当前反向连接（action 出口）
         self._pending: dict[str, asyncio.Future] = {}
         self._server: Any = None
-        self.stats = {"connected": 0, "events": 0, "group_msgs": 0}
+        self.stats = {"connected": 0, "events": 0, "group_msgs": 0, "private_msgs": 0}
 
     async def start(self) -> None:
         self._server = await websockets.serve(self._handler, self._host, self._port)
@@ -146,10 +187,19 @@ class OneBotServer:
         if ev is not None:
             self.stats["group_msgs"] += 1
             await self._queue.put(ev)
+            return
+        pm = parse_private_message(payload)
+        if pm is not None:
+            self.stats["private_msgs"] += 1
+            await self._pqueue.put(pm)
 
     async def events(self) -> AsyncIterator[RawEvent]:
         while True:
             yield await self._queue.get()
+
+    async def private_messages(self) -> AsyncIterator[PrivateMsg]:
+        while True:
+            yield await self._pqueue.get()
 
     async def call_action(self, action: str, params: Optional[dict] = None, timeout: float = 10.0) -> dict:
         """通过当前反向连接调用 OneBot action（真实推送期使用；测试期用不到）。"""
