@@ -1,0 +1,39 @@
+# 分类树（tree.yml）——题干与阈值占位，P4 用金标准集校准。
+# 9 类定义与完整题干见 docs/classification.md。
+
+root:                                  # L2 · JEV 根调用
+  call: jev
+  questions: [is_info, cat, cat2, urg, has_ddl, action]
+  drop_if: { is_info_below: 0.6, cat_in: [chat] }
+  state_max_chars: 1500                # 自行截断，防上游 422
+
+branches:                              # L3 · 按 cat 条件触发（先实现 homework/exam）
+  - when: { cat: [homework, exam] }
+    questions: [channel, exam_type]    # exam_type 仅 exam；画像已绑课程则无 course_noul
+    course_noul_when: "画像未绑定课程"
+  - when: { cat: [competition] }
+    questions: [reg_ddl, final_ddl, team]
+  - when: { cat: [research] }
+    questions: [stage]                 # 立项/选题/开题/中期/结题/分数
+  - when: { cat: [exchange] }
+    questions: [program_type, eligibility]
+  - when: { cat: [lecture] }
+    questions: [format, signup]
+  - when: { cat: [task] }
+    questions: [form_channel, scope]
+  - when: { cat: [notice] }
+    questions: [scope]
+
+extract:                               # L4 · Chat 小模型，按需触发
+  trigger: "该字段规则未拿到 ∧ has_ddl(或类别需要) ∧ len<=1500"
+  call: chat                           # neohorse-1-9b，禁思考参数（ADR-017）
+  fields:
+    homework: [deadline]
+    exam: [exam_time]
+    competition: [deadlines(reg, final)]
+    research: [deadline]
+    exchange: [deadline]
+    lecture: [time, place]
+    task: [deadline]
+    notice: []
+  fallback: "重试1次 → 规则结果 → 见原文 + low_conf 进复核队列"
