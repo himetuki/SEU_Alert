@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qq-relay"
+version = "0.1.0"
+description = "校内个性化信息推送：QQ 群消息 → 画像+预筛+JEV 分类树 → 按订阅分发（测试期文件分发）"
+requires-python = ">=3.11"
+
+[tool.setuptools.packages.find]
+include = ["qq_relay*"]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

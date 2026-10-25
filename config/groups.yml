@@ -1,0 +1,38 @@
+# 群画像 + 发送者过滤（groups.yml）
+# 绑定用 group_id（改名/换届不失效）；name 只是标签。
+# 字段口径见 docs/config.md；新群 onboarding：自动猜测 + 人确认（P3）。
+
+groups:
+  "123456789":                        # ← 换成真实群号（P0 冒烟后从日志里拿）
+    name: 马原群
+    kind: course                      # course | grade | cadre | class | program | club | other
+    course: 马原
+    scope: course                     # course | grade | class | school
+    prefilter: [作业, DDL, 截止, 考试, 范围, 提交, 大作业]
+    default_cats: [homework, exam]
+    roles: {}                         # user_id → 角色，如 "10001": { role: 课程老师, note: 王老师 }
+    sender_filter:
+      mode: off                       # off | whitelist | blacklist；默认 off（ADR-007）
+      whitelist: []
+      blacklist: []
+      roles: { allow: [], deny: [] }
+      dry_run: false
+      log_filtered: true
+
+  "987654321":
+    name: 2024级年级群
+    kind: grade
+    scope: grade
+    prefilter: [竞赛, 报名, 收集, 填写, 活动, 大会, 通知]
+    default_cats: [competition, task, lecture, notice]
+    roles: {}
+    sender_filter: { mode: off, whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+
+# 角色 → 类别先验（用于 state 上下文、L3 分支先验、默认 urg；不替代 JEV 内容判断）
+role_prior:
+  课程老师:   [homework, exam]
+  辅导员:     [notice, task]
+  教务处老师: [exam, notice]
+  班干部:     [task, lecture]
+  课代表:     [homework, task]
+  unknown:    [全部]

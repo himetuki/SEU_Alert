@@ -1,0 +1,21 @@
+# ---- 依赖 ----
+.venv/
+.pipcache/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# ---- 运行产物（SQLite / outbox / 日志）----
+data/
+
+# ---- 第三方程序（NapCat 解包目录，重新下载即可）----
+napcat/
+
+# ---- 密钥与环境 ----
+.env
+
+# ---- 编辑器/系统 ----
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
