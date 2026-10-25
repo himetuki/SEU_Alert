@@ -4,6 +4,7 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+*.egg-info/
 
 # ---- 运行产物（SQLite / outbox / 日志）----
 data/
