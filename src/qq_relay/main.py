@@ -13,16 +13,33 @@ import asyncio
 import signal
 
 from .adapters.onebot import OneBotServer
+from .adapters.web import SCANNERS, WebPoller, WebSource
 from .botcmd import handle_private
 from .config import (
     ConfigError,
     Settings,
     load_groups,
     load_subscriptions,
+    load_web_sources,
 )
 from .deliver.file import FileDeliverer
 from .pipeline.runner import Runner
 from .store import db as store_db
+from .store import queries
+
+
+async def _spawn_web_poller(src, conn, runner) -> "asyncio.Task":
+    """每个 web 源一个轮询任务：首次 backfill，之后增量（web_seen 持久化）。"""
+    seen = await queries.load_web_seen(conn, src.id)
+    poller = WebPoller(
+        source=WebSource(id=src.id, kind=src.kind, name=src.name,
+                         root=src.root, interval=src.interval),
+        scanner=SCANNERS[src.kind],
+        seen=seen,
+        on_notice=lambda ev: runner.handle_event(ev),
+        mark_seen=lambda key: queries.mark_web_seen(conn, src.id, key),
+    )
+    return asyncio.create_task(poller.run_forever())
 
 
 async def amain(seconds: int | None) -> int:
@@ -41,14 +58,21 @@ async def amain(seconds: int | None) -> int:
     conn = await store_db.connect(s)
     await store_db.init_schema(conn)
 
-    runner = Runner(s, groups, subs, FileDeliverer(s.outbox_dir), conn)
+    runner = Runner(s, groups, subs,
+                    FileDeliverer(s.outbox_dir,
+                                  group_names={gid: g.name for gid, g in groups.groups.items()}),
+                    conn)
     await runner.restore_dedup()
+
+    web_cfg = load_web_sources(s.config_dir / "web-sources.yml")
+    web_tasks = [await _spawn_web_poller(src, conn, runner) for src in web_cfg.sources]
 
     server = OneBotServer(s.onebot_host, s.onebot_port, s.onebot_token)
     await server.start()
     print(f"[main] 反向 WS 监听 ws://{s.onebot_host}:{s.onebot_port}，等 NapCat 连入")
     print(f"[main] 分发模式=file → {s.outbox_dir}/<用户QQ>/；分类器=stub")
-    print(f"[main] 已加载画像群 {len(groups.groups)} 个，订阅用户 {len(subs.subs)} 个")
+    print(f"[main] 已加载画像群 {len(groups.groups)} 个，订阅用户 {len(subs.subs)} 个，"
+          f"web 采集源 {len(web_cfg.sources)} 个")
 
     stop = asyncio.Event()
     loop = asyncio.get_running_loop()
@@ -90,6 +114,7 @@ async def amain(seconds: int | None) -> int:
                 warned = False
 
     tasks = [asyncio.create_task(c) for c in (consume_group(), consume_private(), watchdog())]
+    tasks.extend(web_tasks)
     try:
         if seconds:
             await asyncio.wait_for(stop.wait(), timeout=seconds)

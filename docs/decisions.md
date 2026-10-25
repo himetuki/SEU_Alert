@@ -150,3 +150,11 @@
 - **决定**：deliver 层可插拔（`DELIVER_MODE=file|qq`）：测试期默认 `file`——`data/outbox/<用户QQ>/` 下每条推送一个 txt（命名 `<时间戳>_<cat>_<事件短id>.txt`，Digest 写 `digest-<date>.txt`），文案与 QQ 推送同模板；真实 QQ 推送（deliver/qq.py）后置，试点审批后再开。
 - **理由**：零风控零打扰；产物可直接检查；模板先行保证日后切 QQ 只是换出口。
 - **后果**：acceptance A3-A5 口径改为文件断言；"不感兴趣"负反馈在文件模式不可用（改由管理员直接标注 labels）；outbox 与 data/ 全部 gitignore。
+
+## ADR-022 SEU 项目接入：消费输出库，不重写爬虫
+
+- **背景**：用户已有两个验证通过的东南大学网站项目（seu-projects-test/ 下）：**SEU-Monitor**（Go，教务处六栏目监控，CAS 认证 + zju-connect VPN + 飞书推送，归档到 `web/教务处/<栏目>/<标题--ID>/{meta.json,text.md,attachments/}`）和 **SEUdaily**（TS/Python 校园助手，网页库 `web-files/metadata/<sha>.json` + `files/<host>/<section>/<notice>/<sha>.md`，监控 jwc/cse/news 三站）。本项目需要学校网站通知源（原 P6 规划）。
+- **决定**：**消费两个项目的输出库**，在本项目内实现 web 采集适配器（`adapters/web/`）：`seu_monitor` 扫归档目录、`seudaily` 扫网页库，统一转 RawEvent（source=web_crawl，合成群 = 站点级 `web-jwc` / `web-cse`），进同一条分类树与订阅匹配。**不重写、不 fork 爬虫逻辑**；两个项目的更新互不影响。
+- **理由**：爬虫（CAS 登录、反爬、VPN、HTML 解析）是他们已验证的核心资产，重写=双倍维护；输出库是稳定接口；群=站点级足够订阅（栏目级细分留作后续）；SEUdaily 与 SEU-Monitor 在教务处重叠的部分由内容去重自动合并（fan-in）。
+- **被否方案**：fork/内嵌爬虫代码（维护分叉）；webhook 接收（SEU-Monitor 只推飞书，格式不适合当数据源）。
+- **后果**：web-sources.yml 配置 root 与间隔；首次扫描全量 backfill，之后增量（web_seen 表）；SEUdaily metadata 无发布日期 → ts 用文件 mtime（抓取时间）；未配画像的站点通知会被通用词预筛挡掉（漏检可控，配画像即恢复）；SEU-Monitor 在 Linux/WSL 跑监控，Windows 侧读其归档（root 可指向 /mnt/<盘> 或 \\wsl.localhost）。

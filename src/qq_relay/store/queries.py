@@ -140,3 +140,19 @@ async def recent_filtered_counts(conn: aiosqlite.Connection,
         (since_ts,),
     )).fetchall()
     return {r["stage"]: r["n"] for r in rows}
+
+
+async def load_web_seen(conn: aiosqlite.Connection, source_id: str) -> set[str]:
+    rows = await (await conn.execute(
+        "SELECT notice_key FROM web_seen WHERE source_id=?", (source_id,)
+    )).fetchall()
+    return {r["notice_key"] for r in rows}
+
+
+async def mark_web_seen(conn: aiosqlite.Connection, source_id: str,
+                        notice_key: str) -> None:
+    await conn.execute(
+        "INSERT OR IGNORE INTO web_seen (source_id, notice_key, first_seen) VALUES (?,?,?)",
+        (source_id, notice_key, int(time.time())),
+    )
+    await conn.commit()

@@ -28,6 +28,24 @@ groups:
     roles: {}
     sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
 
+  "web-jwc":                          # 教务处（SEU-Monitor 归档 + SEUdaily jwc 站，内容去重自动合并）
+    name: 教务处（jwc.seu.edu.cn）
+    kind: web
+    scope: school
+    prefilter: [通知, 报名, 申请, 截止, 公示, 选拔, 考试, 讲座, 竞赛, 选课, 成绩, 毕业, 答辩, 补考]
+    default_cats: [notice, exam, lecture, competition, task, exchange]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+
+  "web-cse":                          # 计软智学院（SEUdaily cse 站）
+    name: 计软智学院（cse.seu.edu.cn）
+    kind: web
+    scope: school
+    prefilter: [通知, 公示, 报名, 截止, 答辩, 免试, 招聘, 讲座, 竞赛, 科研, 转专业]
+    default_cats: [notice, task, lecture, competition, research]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+
 # 角色 → 类别先验（用于 state 上下文、L3 分支先验、默认 urg；不替代 JEV 内容判断）
 role_prior:
   课程老师:   [homework, exam]

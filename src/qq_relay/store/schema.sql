@@ -118,3 +118,10 @@ CREATE TABLE IF NOT EXISTS filtered_log (    -- 预筛丢弃记录（可审计�
   created_at  INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_filtered_stage ON filtered_log(stage, created_at);
+
+CREATE TABLE IF NOT EXISTS web_seen (     -- web 采集源已见通知（重启不重复入队）
+  source_id  TEXT NOT NULL,
+  notice_key TEXT NOT NULL,
+  first_seen INTEGER NOT NULL,
+  PRIMARY KEY (source_id, notice_key)
+);

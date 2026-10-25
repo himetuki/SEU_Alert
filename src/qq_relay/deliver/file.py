@@ -17,8 +17,15 @@ _USER_NOTE = "_说明.txt"
 
 
 class FileDeliverer:
-    def __init__(self, outbox_dir: Path) -> None:
+    """测试期分发：data/outbox/<用户QQ>/ 一个文件夹代表一个用户（ADR-021）。
+
+    group_names：群 id → 群名 的映射（推送文案显示群名而非 id）；缺省显示 id。
+    """
+
+    def __init__(self, outbox_dir: Path,
+                 group_names: dict[str, str] | None = None) -> None:
         self.outbox_dir = Path(outbox_dir)
+        self.group_names = dict(group_names or {})
 
     def _ensure_user_dir(self, user_dir: Path) -> None:
         user_dir.mkdir(parents=True, exist_ok=True)
@@ -33,7 +40,7 @@ class FileDeliverer:
     async def deliver(self, user_qq: str, item: ClassifiedEvent, kind: str) -> str:
         user_dir = self.outbox_dir / str(user_qq)
         self._ensure_user_dir(user_dir)
-        text = render_push(item)
+        text = render_push(item, self.group_names)
         if kind == "digest":
             path = user_dir / f"digest-{datetime.now():%Y%m%d}.txt"
             with path.open("a", encoding="utf-8") as f:

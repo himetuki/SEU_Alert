@@ -1,6 +1,6 @@
 # 架构总览
 
-> 版本 v0.1 · 2026-10-25 · 本文是架构的唯一权威描述
+> 版本 v0.5 · 2026-10-25 · 本文是架构的唯一权威描述
 
 ## 设计原则（一句话）
 
@@ -52,6 +52,18 @@ graph TB
 | L5 匹配分发 | 规则（SQLite） | 群 × cat/cat2 × 关键词 × 免打扰 → 即时推 / Digest | 免费 |
 
 各层细节见 [classification.md](classification.md)，配置 schema 见 [config.md](config.md)。
+
+## 采集层（入口）
+
+| 源 | 状态 | 说明 |
+|---|---|---|
+| QQ 群消息 | ✅ 已落地 | OneBot 11 反向 WS（NapCat），`adapters/onebot.py` |
+| **SEU-Monitor 归档库** | ✅ 已落地 | 教务处六栏目，`adapters/web/seu_monitor.py`，群 = `web-jwc`（ADR-022） |
+| **SEUdaily 网页库** | ✅ 已落地 | jwc/cse 等站，`adapters/web/seudaily.py`，群 = `web-cse` 等 |
+| 用户转发上报（学习通/雨课堂） | 后续 | 私聊转发 → RawEvent，接口已预留 |
+| 其他学校网站 | 后续 | 新 adapter 实现 Adapter 协议即可 |
+
+web 源轮询：首次全量 backfill，之后增量（`web_seen` 表）；与 QQ 消息共用分类树，跨源同内容由去重自动合并（fan-in）。
 
 ## 数据契约
 
