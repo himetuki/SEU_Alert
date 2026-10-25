@@ -17,7 +17,7 @@ groups:
       "10001": { role: 课程老师, note: 王老师 }
       "10003": { role: 课代表,   note: 小陈 }
     sender_filter:                    # 可选有损过滤器：默认 off，四原则见 classification.md
-      mode: off                       # off | whitelist | blacklist
+      mode: "off"                     # off | whitelist | blacklist；YAML 会把 off/on 解析成布尔，必须加引号
       whitelist: []                   # user_id 列表
       blacklist: []
       roles: { allow: [], deny: [] }  # 角色表达（复用上面的角色表），比 id 耐换届

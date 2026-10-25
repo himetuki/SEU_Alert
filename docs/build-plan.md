@@ -55,26 +55,28 @@ P2 与 P3 无相互依赖，可并行。关键路径：P0→P1→P2→P4→P5。
 
 **目标**：不依赖任何模型，把"群消息 → 分类 → 匹配 → 分发"整条管道跑通（测试期分发 = 写文件，ADR-021），并用规则假分类器产生逼真流量。
 
-**步骤**：
+**步骤**（✅ = 已落地，2026-10-25）：
 
-1. `src/qq_relay/adapters/onebot.py`：反向 WS **服务端**（NapCat 来连我们；重连由 NapCat 侧负责）、事件解析（message/notice/request）、action 封装（`send_private_msg` 等，真实推送期才用）
-2. `src/qq_relay/adapters/base.py`：RawEvent 归一（source / group / sender / text / ts / at_all）
-3. `src/qq_relay/pipeline/prefilter.py`：**发送者过滤（默认 off）→ 内容去重 → 关键词预筛（通用词 ∪ 画像词）**，顺序严格遵守（ADR-008）
-4. `src/qq_relay/pipeline/classifier_stub.py`：关键词规则假分类器 → ClassifiedEvent（只用于打通管道与制造流量）
-5. `src/qq_relay/pipeline/matcher.py`：订阅匹配（群 × cat/cat2 × 关键词 × 免打扰，OR 语义）
-6. `src/qq_relay/deliver/file.py`：测试期分发——`data/outbox/<用户QQ>/` 下每条推送一个 txt（Digest 写 `digest-<date>.txt`），文案与 QQ 推送同模板；`deliver/qq.py`（真实私聊推送）后置
-7. `src/qq_relay/store/db.py`：events / items / deliveries 落库
-8. `src/qq_relay/botcmd.py`：`/sub /unsub /sub list /mute /digest` + "不感兴趣"负反馈（真实推送期启用）
-9. `src/qq_relay/main.py`：装配启动 + 进程存活看门狗 stub
+1. ✅ `src/qq_relay/adapters/onebot.py`：反向 WS **服务端**（NapCat 来连我们；重连由 NapCat 侧负责）、事件解析（群消息 + 私聊 + action 调用 + token 鉴权 + 自身回声过滤）
+2. ✅ `src/qq_relay/adapters/base.py` + `contracts.py`：RawEvent 归一 + ClassifiedEvent 契约（P0 已建）
+3. ✅ `src/qq_relay/pipeline/prefilter.py`：**发送者过滤（默认 off）→ 内容去重 → 关键词预筛（通用词 ∪ 画像词）**，顺序严格遵守（ADR-008）
+4. ✅ `src/qq_relay/pipeline/classifier_stub.py`：关键词规则假分类器 → ClassifiedEvent（只用于打通管道与制造流量）
+5. ✅ `src/qq_relay/pipeline/matcher.py`：订阅匹配（群 × cat/cat2 × 关键词 × 免打扰，OR 语义，跨午夜免打扰）
+6. ✅ `src/qq_relay/deliver/base.py` + `file.py`：测试期分发——`data/outbox/<用户QQ>/` 下每条推送一个 txt（Digest 写 `digest-<date>.txt`，重名加序号防覆盖），文案与 QQ 推送同模板；`deliver/qq.py` 后置
+7. ✅ `src/qq_relay/store/queries.py`：events / items / deliveries / filtered_log / labels / 去重映射 读写
+8. ✅ `src/qq_relay/botcmd.py`：`/sub /unsub /sub list /mute /digest` + 负反馈（原子写 subscriptions.yml）
+9. ✅ `src/qq_relay/main.py`：装配启动 + 看门狗 stub（NapCat 掉线告警）
+10. ✅ `src/qq_relay/pipeline/runner.py`：管道编排 + **fan-in**（同通知多群只分类一次，新群命中用户才补收）
 
 **方案要点**：
 
 - **先假分类器是刻意的**：管道正确性（顺序 bug、去重 fan-in、防抖合并、匹配语义）不依赖模型质量，两边可分别调试；P2 只换分类器实现，契约不变（RawEvent → ClassifiedEvent）
-- **顺序 bug 必须有单元测试**：构造"A 群黑名单发送者的拷贝先到、B 群同内容后到"场景，断言 B 群拷贝不被误去重（ADR-008 的回归测试）
-- 测试期零真实推送：所有"推送"断言都落在 outbox 文件上（ADR-021），出问题直接删文件重来；真实推送的限速队列在 deliver/qq.py 里做
+- **顺序 bug 必须有单元测试**：已落地——`test_prefilter.py::TestOrderRegressionADR008` 与 `test_runner.py::test_adr008_sender_filter_no_dedup_poison` 双重钉死
+- 测试期零真实推送：所有"推送"断言都落在 outbox 文件上（ADR-021）；真实推送的限速队列在 deliver/qq.py 里做
 
-**出口**：验收 A3（合成通知 30s 内 outbox/<主号QQ>/ 出现对应 txt）、A5（假分类器下灌水零新增文件）。
-**回滚**：关推送开关即静默只记录。
+**出口状态**：58 项测试全绿（含 A3/A5 端到端断言：合成通知 → outbox 出文件；灌水 → 零文件；fan-in 不重发；重启后去重不丢）；**真实群验证待 NapCat 扫码登录后跑**（A1 通过即 P0/P1 合并出口达标）。
+**踩坑记录**：YAML 1.1 把 `mode: off` 解析成布尔 `False`——加载器已加明确报错提示，配置里一律给 mode 加引号。
+**回滚**：git 回退；关即时推送改 `instant_min_urg` 或 `DELIVER_MODE` 留文件但走 digest。
 
 ---
 
@@ -85,12 +87,12 @@ P2 与 P3 无相互依赖，可并行。关键路径：P0→P1→P2→P4→P5。
 **步骤**：
 
 1. **连通性测试先行**（ADR-017）：chat 客户端最小请求（空 system + 一条 user、无 reasoning 字段）验证 200；JEV 最小 `/v1/decision`（一道 noul）验证。**不过就不往下走**
-2. `pipeline/jev.py`：有界并发队列（默认并发 2-4）+ 指数退避（429）+ traceId 留档 + state 截断 1500 字 + 内容 hash 缓存 + 超时幂等（不无条件重试）
-3. `pipeline/chat_client.py`（L4）：Chat Completion、JSON 输出契约、回落链（重试 1 次 → 正则 → 见原文 + low_conf）
-4. `pipeline/tree.py`：按 tree.yml 驱动——根调用 6 题 → drop_if → 分支（**先实现 homework/exam**）→ 提取触发器（**正则先行**：dateparser/chrono）→ ClassifiedEvent
-5. `config/groups.yml` + `config/tree.yml` 初稿落盘（题干、画像示例、阈值占位）
+2. `src/qq_relay/pipeline/jev.py`：有界并发队列（默认并发 2-4）+ 指数退避（429）+ traceId 留档 + state 截断 1500 字 + 内容 hash 缓存 + 超时幂等（不无条件重试）
+3. `src/qq_relay/pipeline/chat_client.py`（L4）：Chat Completion、JSON 输出契约、回落链（重试 1 次 → 正则 → 见原文 + low_conf）
+4. `src/qq_relay/pipeline/tree.py`：按 tree.yml 驱动——根调用 6 题 → drop_if → 分支（**先实现 homework/exam**）→ 提取触发器（**正则先行**：dateparser/chrono）→ ClassifiedEvent
+5. `config/groups.yml` + `config/tree.yml` 初稿落盘（题干、画像示例、阈值占位）——✅ 已落盘（P0/P1）
 6. 金标准 harness：`goldset.jsonl` 加载 → 跑树 → 混淆矩阵 + 每类 P/R + low_conf 清单 + L4 触发率 + 调用/token 统计报表
-7. 单元测试：分类器契约（字段完整）、降级链（模拟非法 JSON → 重试 → 兜底）、缓存命中、预筛顺序（P1 带入）
+7. 单元测试：分类器契约（字段完整）、降级链（模拟非法 JSON → 重试 → 兜底）、缓存命中、预筛顺序（P1 已带入）
 
 **方案要点**：
 
