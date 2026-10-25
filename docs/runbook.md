@@ -77,6 +77,22 @@ set PIP_CACHE_DIR=%CD%\.pipcache
 
 **当前订阅用户**：编辑 `config/subscriptions.yml` 或让用户私聊发 `/sub`（双通道同一份数据，ADR-018）。
 
-## 5. P2 预告（P1 真实群验证后）
+## 5. web 采集源（SEU-Monitor / SEUdaily，ADR-022）
+
+两个源已在 `config/web-sources.yml` 配好，`python -m qq_relay.main` 启动时自动开始轮询（首次全量 backfill，之后每 15 分钟增量）。
+
+- **SEUdaily 网页库**（已就绪）：`seu-projects-test/SEUdaily/.seudaily/web-files` 里已有的通知会自动流入（已验证：免试公示通知 → Digest 文件）。库会随你使用 SEUdaily 增长，新增自动接入。
+- **SEU-Monitor 归档库**（待跑一次真实扫描）：目前 `store/` 里只有 dry-run 的空记录。SEU-Monitor 是 Linux 程序，在 **WSL** 里跑一次真实扫描填充归档（`--data-dir` 指到项目内的 store，Windows 侧直接读）：
+
+  ```bash
+  # WSL Ubuntu 内（项目所在盘挂载在 /mnt/<盘>）
+  cd <项目根>/seu-projects-test/SEU-Monitor
+  ./monitor --once --data-dir <项目根>/seu-projects-test/SEU-Monitor/store
+  ```
+
+  扫描完成后 `store/web/教务处/<栏目>/<标题--ID>/{meta.json,text.md}` 出现，本项目下轮轮询即接入。之后可在 WSL 里用 systemd timer 定时跑（参考 SEU-Monitor README），或先手动 `--once`。
+- **教务处双源重叠**：SEUdaily 也监控 jwc 站，与 SEU-Monitor 重复的通知由内容去重自动合并（一条 item、两个来源群）。
+
+## 6. P2 预告（P1 真实群验证后）
 
 JEV 分类树替换假分类器（`CLASSIFIER=tree`）：连通性测试先行（禁思考参数）→ JEV 客户端（队列/退避/缓存）→ L4 小模型提取 → 金标准 harness 校准。

@@ -109,6 +109,24 @@ subscriptions:
 
 **分发粒度前提**：bot 只能分发它所在的群。要覆盖某课程群，bot 得先被拉进那个群——这是人的事务，不是技术能解决的。
 
+## Web 采集源（web-sources.yml）
+
+```yaml
+sources:
+  - id: seu-monitor
+    kind: seu_monitor            # SEU-Monitor（Go）归档库：web/教务处/<栏目>/<标题--ID>/
+    name: 教务处通知（SEU-Monitor）
+    root: seu-projects-test/SEU-Monitor/store     # 相对项目根；绝对路径亦可
+    interval: 900                # 秒，≥60
+  - id: seudaily
+    kind: seudaily               # SEUdaily 网页库：metadata/*.json + files/<host>/<section>/<notice>/*.md
+    name: SEUdaily 网页库
+    root: seu-projects-test/SEUdaily/.seudaily/web-files
+    interval: 900
+```
+
+语义（ADR-022）：首次扫描全量 backfill，之后增量；`web_seen` 表持久化已见 key；扫描失败只记日志不拖垮管道。web 群是**站点级**合成群（`web-jwc` / `web-cse`，kind=web、scope=school），订阅与普通群一致（`/sub 群 教务处 类别 通知 考试`）。SEUdaily 的 metadata 无发布日期，ts 用抓取时间（文件 mtime）。SEU-Monitor 在 Linux/WSL 跑监控，root 可指向 `/mnt/<盘>/...`（WSL 内）或 `\\wsl.localhost\...`。
+
 ## bot 命令表
 
 | 命令 | 作用 |

@@ -19,9 +19,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 CATS = ("homework", "exam", "competition", "research", "exchange", "lecture", "task", "notice", "chat")
 ACTIONS = ("submit", "signup", "attend", "know")
-GROUP_KINDS = ("course", "grade", "cadre", "class", "program", "club", "other")
+GROUP_KINDS = ("course", "grade", "cadre", "class", "program", "club", "web", "other")
 SCOPES = ("course", "grade", "class", "school")
 FILTER_MODES = ("off", "whitelist", "blacklist")
+WEB_KINDS = ("seu_monitor", "seudaily")
 
 # 通用预筛词（与群画像词取并集）；groups.yml 的 prefilter_generic 可覆盖
 DEFAULT_GENERIC_WORDS: tuple[str, ...] = (
@@ -319,3 +320,44 @@ def load_subscriptions(path: Path) -> SubscriptionsConfig:
             digest=bool(s.get("digest", True)),
         )
     return SubscriptionsConfig(subs=subs)
+
+
+# ---------------- web-sources.yml ----------------
+
+
+@dataclass(frozen=True)
+class WebSourceCfg:
+    id: str
+    kind: str                # seu_monitor | seudaily
+    name: str
+    root: Path
+    interval: int = 900
+
+
+@dataclass(frozen=True)
+class WebSourcesConfig:
+    sources: tuple[WebSourceCfg, ...]
+
+
+def load_web_sources(path: Path) -> WebSourcesConfig:
+    raw = load_yaml(path)
+    sources: list[WebSourceCfg] = []
+    seen_ids: set[str] = set()
+    for s in raw.get("sources") or []:
+        s = s or {}
+        sid = str(s.get("id", "")).strip()
+        kind = str(s.get("kind", "")).strip()
+        if not sid or sid in seen_ids:
+            raise ConfigError(f"web-sources: id 缺失或重复: {sid!r}")
+        if kind not in WEB_KINDS:
+            raise ConfigError(f"web-sources: {sid} kind 非法: {kind!r}（可选 {WEB_KINDS}）")
+        root_raw = Path(str(s.get("root", "")))
+        root = root_raw if root_raw.is_absolute() else (PROJECT_ROOT / root_raw)
+        interval = int(s.get("interval", 900))
+        if interval < 60:
+            raise ConfigError(f"web-sources: {sid} interval 不得小于 60 秒")
+        seen_ids.add(sid)
+        sources.append(WebSourceCfg(id=sid, kind=kind,
+                                    name=str(s.get("name") or sid),
+                                    root=root, interval=interval))
+    return WebSourcesConfig(sources=tuple(sources))

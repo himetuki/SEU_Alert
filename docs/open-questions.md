@@ -28,6 +28,7 @@
 
 ## 当前进度
 
-- **设计文档 v0.2 完备**：architecture / classification / config / decisions(ADR-001~020) / acceptance / build-plan
-- **搭建规划已定稿**（docs/build-plan.md，P0→P5），等待用户审阅
-- 审阅通过后从 **P0 环境与冒烟** 开工
+- **设计文档 v0.5 完备**：architecture / classification / config / decisions(ADR-001~022) / acceptance / build-plan / runbook
+- **代码进度**：P0（NapCat+OneBot+冒烟）✅、P1（预筛链/假分类器/匹配/文件分发/bot 命令）✅ 65 测试；**P6 的 web 采集提前落地**（SEU-Monitor + SEUdaily 输出库，ADR-022）
+- **待用户操作**：① NapCat 扫码登录 + 反向 WS 配置（runbook 第 1 节）→ 跑冒烟过 A1 → 跑 main.py 看真实群消息入 outbox；② WSL 里跑一次 SEU-Monitor 真实扫描填充归档（runbook 第 5 节）
+- **下一步**：P2 模型接入（JEV 分类树替换假分类器 + 金标准 harness）

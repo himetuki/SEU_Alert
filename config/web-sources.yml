@@ -1,0 +1,15 @@
+# Web 采集源（ADR-022：消费 SEU-Monitor / SEUdaily 的输出库，不重写爬虫）
+# root 相对项目根解析；首次扫描全量 backfill，之后增量（web_seen 表去重）。
+
+sources:
+  - id: seu-monitor
+    kind: seu_monitor            # SEU-Monitor（Go）归档库：web/教务处/<栏目>/<标题--ID>/
+    name: 教务处通知（SEU-Monitor）
+    root: seu-projects-test/SEU-Monitor/store
+    interval: 900                # 秒；≥60。真实部署在 Linux 跑监控，root 改 ~/.local/share/seu-monitor
+
+  - id: seudaily
+    kind: seudaily               # SEUdaily 网页库：metadata/*.json + files/<host>/<section>/<notice>/*.md
+    name: SEUdaily 网页库
+    root: seu-projects-test/SEUdaily/.seudaily/web-files
+    interval: 900

@@ -48,6 +48,22 @@ groups:
     prefilter: []
     roles: {}
     sender_filter: { mode: blacklist, blacklist: ["999"], roles: { allow: [], deny: [] }, dry_run: true, log_filtered: true }
+  "web-jwc":
+    name: 教务处（jwc.seu.edu.cn）
+    kind: web
+    scope: school
+    prefilter: [通知, 报名, 申请, 截止, 公示, 选拔, 考试, 讲座, 竞赛, 选课, 成绩, 毕业, 答辩, 补考]
+    default_cats: [notice, exam, lecture, competition, task, exchange]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-cse":
+    name: 计软智学院（cse.seu.edu.cn）
+    kind: web
+    scope: school
+    prefilter: [通知, 公示, 报名, 截止, 答辩, 免推, 免试, 招聘, 讲座, 竞赛, 科研, 转专业]
+    default_cats: [notice, task, lecture, competition, research]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
 role_prior:
   课程老师: [homework, exam]
   unknown: [全部]

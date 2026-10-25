@@ -20,13 +20,15 @@ ACTION_ZH = {"submit": "需要提交", "signup": "需要报名", "attend": "需�
 _RAW_MAX = 300
 
 
-def render_push(item: ClassifiedEvent) -> str:
+def render_push(item: ClassifiedEvent,
+                group_names: dict[str, str] | None = None) -> str:
     cat_zh = CAT_ZH.get(item.cat, item.cat)
     title = f"{cat_zh}" if item.cat2 == item.cat else f"{cat_zh}+{CAT_ZH.get(item.cat2, item.cat2)}"
+    names = [((group_names or {}).get(g) or g) for g in item.groups]
     lines = [
         f"【{title}】 紧急度 {item.urg}/3 · {ACTION_ZH.get(item.action, item.action)}",
         f"课程：{item.course or '—'}    截止：{item.deadline or '见原文'}    渠道：{item.channel or '—'}",
-        f"来源群：{'、'.join(item.groups)}",
+        f"来源群：{'、'.join(names)}",
         "─" * 46,
         item.raw_text[:_RAW_MAX] + ("…" if len(item.raw_text) > _RAW_MAX else ""),
         "─" * 46,

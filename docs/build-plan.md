@@ -168,14 +168,15 @@ P2 与 P3 无相互依赖，可并行。关键路径：P0→P1→P2→P4→P5。
 
 ---
 
-## P6 后续流程（本期之后，接口已预留）
+## P6 后续流程（部分提前落地）
 
-不在本期范围，但 RawEvent 契约已定义，接入不动管道：
-
-- 学校网站爬虫 adapter（教务处/学院/图书馆，RSS 优先）
-- 用户转发上报 adapter（学习通/雨课堂消息转发给 bot）
-- 微信分发（WxPusher 类服务）
-- Digest 完善（时间点、周报）
+| 项 | 状态 |
+|---|---|
+| **学校网站采集（SEU-Monitor + SEUdaily 输出库）** | ✅ **已提前落地**（ADR-022）：`adapters/web/` 双扫描器 + web-sources.yml + web-jwc/web-cse 画像；首次 backfill 已通（SEUdaily 库真实通知入管道） |
+| 用户转发上报 adapter（学习通/雨课堂消息转发给 bot） | 待做：私聊转发 → RawEvent，接口已预留 |
+| 微信分发（WxPusher 类服务） | 待做 |
+| Digest 完善（时间点、周报） | 待做 |
+| web 群栏目级细分（按栏目订阅） | 待做，当前站点级足够 |
 
 ---
 
