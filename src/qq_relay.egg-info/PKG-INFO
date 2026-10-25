@@ -1,5 +1,0 @@
-Metadata-Version: 2.4
-Name: qq-relay
-Version: 0.1.0
-Summary: 校内个性化信息推送：QQ 群消息 → 画像+预筛+JEV 分类树 → 按订阅分发（测试期文件分发）
-Requires-Python: >=3.11
