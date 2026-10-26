@@ -47,6 +47,279 @@ groups:
     sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
 
 # 角色 → 类别先验（用于 state 上下文、L3 分支先验、默认 urg；不替代 JEV 内容判断）
+  "web-smjgs":
+    name: 东南大学—蒙纳士大学国际学院（苏州）
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-srjgs":
+    name: 东南大学雷恩研究生学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-tc":
+    name: 交通学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-ai":
+    name: 人工智能学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-rwxy":
+    name: 人文学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-ins":
+    name: 仪器科学与工程学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-tyx":
+    name: 体育系
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-radio":
+    name: 信息科学与工程学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-sph":
+    name: 公共卫生学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-med":
+    name: 医学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-wjx":
+    name: 吴健雄学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-gjzygcs":
+    name: 国家卓越工程师学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-civil":
+    name: 土木工程学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-sfl":
+    name: 外国语学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-arch":
+    name: 建筑学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-xsxy":
+    name: 新生学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-me":
+    name: 机械工程学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-smse":
+    name: 材料科学与工程学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-law":
+    name: 法学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-cis":
+    name: 海外教育学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-physics":
+    name: 物理学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-ils":
+    name: 生命科学与技术学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-electronic":
+    name: 电子科学与工程学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-ee":
+    name: 电气工程学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-em":
+    name: 经济管理学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-stat":
+    name: 统计与数据科学学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-cyber":
+    name: 网络空间安全学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-automation":
+    name: 自动化学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-arts":
+    name: 艺术学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-cs":
+    name: 计算机科学与工程学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-cose":
+    name: 软件学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-ic":
+    name: 集成电路学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-marxism":
+    name: 马克思主义学院
+    kind: web
+    scope: school
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,招聘,科研]
+    default_cats: [notice, task, lecture, competition, exam]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-labor":
+    name: 劳动教育课程平台
+    kind: web
+    scope: school
+    prefilter: [选课, 报名, 新增课程, 劳动教育, 余量, 截止]
+    default_cats: [task, lecture]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+
 role_prior:
   课程老师:   [homework, exam]
   辅导员:     [notice, task]
@@ -54,3 +327,5 @@ role_prior:
   班干部:     [task, lecture]
   课代表:     [homework, task]
   unknown:    [全部]
+
+# ---- 各学院站点画像（ADR-024，scripts/gen_colleges_yml.py 生成）----

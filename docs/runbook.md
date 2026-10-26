@@ -117,3 +117,9 @@ set PIP_CACHE_DIR=%CD%\.pipcache
 ## 8. P2 预告（真实群验证后）
 
 JEV 分类树替换假分类器（`CLASSIFIER=tree`）：连通性测试先行（禁思考参数）→ JEV 客户端（队列/退避/缓存）→ L4 小模型提取 → 金标准 harness 校准。
+
+## 9. 全院系采集与劳动教育（ADR-024）
+
+- **33 个学院**：`config/colleges.yml`（官网院系设置页自动发现）；`seu-colleges` 源 30 分钟一轮，首次全量 backfill。学院缺 4 个（chem/math/futuretech/bme 首页未发现列表页），发现后往 colleges.yml 加一条即可。订阅：`/sub 群 建筑学院 类别 通知 讲座`
+- **劳动教育**：`labor` 源 5 分钟一轮。会话二选一——`.env` 填 `LABOR_USERNAME/LABOR_PASSWORD`（CAS 自动登录，需短信/验证码时跳过本轮并告警）或 `LABOR_COOKIES`（浏览器导出的 cookie JSON）。筛选（校区白名单/类别黑名单）在 `config/labor.yml`
+- 非校内网时劳动教育源会连续失败——只记日志不拖垮管道；回校内网自动恢复

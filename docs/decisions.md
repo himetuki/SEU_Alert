@@ -170,3 +170,14 @@
 - **理由**：计划书已注册公众号并实测 PushPlus，产品与增长层是既成方向；引擎层复用我方已落地的采集/分类/订阅资产，并补齐其方案里最重的“临期强提醒”与“投稿提取”缺口；网站采集可直接自动化计划书中“人工维护全校讲座/教务事件”的工作。
 - **被否方案**：另起独立产品线（与计划书内耗）；bot 作为产品主通道（封号与隐私风险，负责人明确回避）。
 - **后果**：引擎侧新增三能力（PushPlus 分发、deadline 提醒调度、用户投稿通道）+ 两数据层复用（labels/votes 核验、课程别名词典）；H5 看板由计划书前端负责，引擎提供数据导出。工作项列入 build-plan P7。
+
+## ADR-024 全院系覆盖 + 劳动教育推送器源码接入
+
+- **背景**：① SEUdaily 只监控计软智学院（cse）一个学院站点，计划书要求覆盖**东南大学全部学院**并按学院订阅；② 用户已有项目 SEU-Labor-Course-Pusher（Rust+WebView2，监控劳动教育平台新课 + PushPlus 推送，仓库 zz6zz666/SEU-Labor-Course-Pusher，已克隆至 seu-projects-test/），要求**只用其源码、不接打包 exe**；当前非校内网，不测试连通性，保证可用即可。
+- **决定**：
+  1. **全院系**：从东南大学官网院系设置页自动发现 **33 个学院**通知列表页（WebPlus CMS `/<id>/list.htm`，scripts/discover_colleges.py），落 `config/colleges.yml`；新增 `seu_colleges` 异步扫描器（列表解析 + 文章页 arti_title/arti_update/wp_articlecontent 提取 + 页脚截断）；每学院一个 `web-<key>` 画像群，订阅粒度 = 学院 × 类别。chem/math/futuretech/bme 四院首页未发现列表页，留配置位后续补。
+  2. **劳动教育**：移植 Rust 源码三块到 `adapters/web/labor.py`——`site.rs` 课程表解析（table#c_app_page_index_XuanKe_table、列偏移探测、td-data、已满/已截止）、`watcher.rs` 的 diff 语义（unique_id=课程名|时间，由 web_seen 承担）、`login.rs` 的 CAS 无浏览器登录（探测验证码 → RSA 公钥加密密码 → casLogin → 票据兑换）；会话优先 cookie（env/文件），CAS 自动登录兜底，需短信/验证码时 NeedManual 跳过本轮并告警。**推送复用本项目 deliver 层**（PushPlus/file/qq），不用其 exe。
+  3. WebPoller 的 scanner 支持异步（文件扫描器同步、学院/劳动教育异步）。
+- **理由**：学院站与教务处同构（WebPlus），直采可控且与另两源互补；劳动教育的登录/解析是验证过的资产，移植优于重写；新课程通知天然接入分类与订阅（web-labor 群）。
+- **被否方案**：改 SEUdaily 的 notice_categories.json 让它爬全院系（其抓取由助手使用时触发、非定时，不满足"监控"）；接 exe（违反用户要求且无法融入管道）。
+- **后果**：web 采集源增至 4 个；groups.yml +34 画像（33 学院 + web-labor）；新增依赖 cryptography（RSA）；测试 95 项（含真实页面夹具与 CAS 全流程 mock）；劳动教育会话走 .env（LABOR_USERNAME/PASSWORD 或 LABOR_COOKIES）。

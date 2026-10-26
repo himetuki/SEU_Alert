@@ -127,6 +127,28 @@ sources:
 
 语义（ADR-022）：首次扫描全量 backfill，之后增量；`web_seen` 表持久化已见 key；扫描失败只记日志不拖垮管道。web 群是**站点级**合成群（`web-jwc` / `web-cse`，kind=web、scope=school），订阅与普通群一致（`/sub 群 教务处 类别 通知 考试`）。SEUdaily 的 metadata 无发布日期，ts 用抓取时间（文件 mtime）。SEU-Monitor 在 Linux/WSL 跑监控，root 可指向 `/mnt/<盘>/...`（WSL 内）或 `\\wsl.localhost\...`。
 
+## 学院采集（colleges.yml，ADR-024）
+
+```yaml
+colleges:
+  - key: arch                  # 群 = web-arch；groups.yml 有同名画像
+    name: 建筑学院
+    list: https://arch.seu.edu.cn/9126/list.htm    # WebPlus 列表页
+    prefilter: [通知, 公告, 报名, ...]             # 画像预筛词
+```
+
+33 个学院由 `scripts/discover_colleges.py` 从官网院系设置页自动发现生成；每学院每轮最多抓 12 篇文章（增量轮只新增）。未覆盖的学院往该文件加一条即可，无需改代码。
+
+## 劳动教育（labor.yml + .env，ADR-024）
+
+```yaml
+filters:
+  location_whitelist: []     # 地点子串白名单（如 ["九龙湖"]），空=不限
+  category_blacklist: []     # 类别精确黑名单
+```
+
+会话（.env，二选一）：`LABOR_USERNAME` + `LABOR_PASSWORD`（CAS 自动登录：探测验证码→RSA 加密→casLogin→票据兑换；需短信/验证码时跳过本轮并告警）或 `LABOR_COOKIES`（JSON / `k=v; k=v`）/ `LABOR_COOKIE_FILE`。课程表解析与 diff 移植自 SEU-Labor-Course-Pusher（Rust）源码；**新课程 → web-labor 群 → 分类树 → 订阅分发**（含临期提醒）。非校内网期间该源连续失败只记日志。
+
 ## bot 命令表
 
 | 命令 | 作用 |
