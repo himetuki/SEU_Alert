@@ -1,0 +1,6 @@
+# 劳动教育课程监控（ADR-024，移植 SEU-Labor-Course-Pusher 源码逻辑）
+# 会话：.env 提供 LABOR_COOKIES（JSON 或 "k=v; k=v"）或 LABOR_USERNAME/LABOR_PASSWORD
+# （CAS 自动登录；需短信/验证码时跳过本轮并告警，不静默失败）。
+filters:
+  location_whitelist: []     # 地点子串白名单（如 ["九龙湖"]），空=不限
+  category_blacklist: []     # 类别精确黑名单

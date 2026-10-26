@@ -80,9 +80,13 @@ class WebPoller:
     async def poll_once(self) -> int:
         """扫描一轮，把新通知交给 on_notice 并标记 seen。返回新增条数。
 
-        on_notice / mark_seen 兼容同步函数与协程函数。
+        scanner / on_notice / mark_seen 均兼容同步函数与协程函数
+        （文件扫描器同步，学院/劳动教育扫描器异步）。
         """
-        notices = list(self.scanner(self.source.root))
+        notices = self.scanner(self.source.root)
+        if inspect.isawaitable(notices):
+            notices = await notices
+        notices = list(notices)
         new = 0
         for n in notices:
             if n.key in self.seen:
@@ -105,8 +109,8 @@ class WebPoller:
             try:
                 new = await self.poll_once()
                 if first:
-                    print(f"[web:{self.source.id}] 首次扫描 {len(list(self.scanner(self.source.root)))} 条，"
-                          f"新增 {new} 条（root={self.source.root}）")
+                    print(f"[web:{self.source.id}] 首次扫描 {self.stats['new']} 条新增"
+                          f"（root={self.source.root}）")
                     first = False
             except Exception as e:               # 扫描失败不拖垮主管道
                 self.stats["errors"] += 1

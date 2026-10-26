@@ -61,6 +61,8 @@ graph TB
 | **SEU-Monitor 归档库** | ✅ 已落地 | 教务处六栏目，`adapters/web/seu_monitor.py`，群 = `web-jwc`（ADR-022） |
 | **SEUdaily 网页库** | ✅ 已落地 | jwc/cse 等站，`adapters/web/seudaily.py`，群 = `web-cse` 等 |
 | **用户投稿** | ✅ 已落地（内部） | 公众号/私聊转发/拍图的引擎侧入口，`adapters/user_report.py`；提取栈见下 |
+| **各学院官网（33 院系）** | ✅ 已落地 | `adapters/web/seu_colleges.py` 直采（WebPlus，config/colleges.yml），群 = `web-<学院>`（ADR-024） |
+| **劳动教育课程平台** | ✅ 已落地（未联网验证） | `adapters/web/labor.py`，移植 SEU-Labor-Course-Pusher 源码（CAS 登录+课程表解析），群 = `web-labor`（ADR-024） |
 | 其他学校网站 | 后续 | 新 adapter 实现 Adapter 协议即可 |
 
 web 源轮询：首次全量 backfill，之后增量（`web_seen` 表）；与 QQ 消息共用分类树，跨源同内容由去重自动合并（fan-in）。

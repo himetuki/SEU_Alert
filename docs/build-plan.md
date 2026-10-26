@@ -181,6 +181,17 @@ P2 与 P3 无相互依赖，可并行。关键路径：P0→P1→P2→P4→P5。
 
 **待前端（计划书团队）**：公众号收发 → 调 intake；H5 看板 → 读 items/subs 数据导出；PushPlus 绑定 → 写 users.pushplus_token。
 
+## P8 全院系覆盖与劳动教育接入（ADR-024，2026-10-26 落地）
+
+| 项 | 状态 |
+|---|---|
+| 学院自动发现（scripts/discover_colleges.py） | ✅ 官网院系设置页 → 33/37 个学院通知列表页（chem/math/futuretech/bme 未发现，留配置位） |
+| `adapters/web/seu_colleges.py` | ✅ WebPlus 列表+文章解析（真实页面夹具）；`config/colleges.yml`；每学院每轮 ≤12 篇 |
+| 学院画像群 | ✅ groups.yml +34（33 学院 + web-labor）；订阅粒度 = 学院 × 类别 |
+| `adapters/web/labor.py`（移植 SEU-Labor-Course-Pusher 源码） | ✅ site.rs 课程表解析 + login.rs CAS 登录（RSA/cryptography）+ watcher diff 语义；cookie/CAS 双会话；**未联网验证** |
+| WebPoller 异步 scanner | ✅ 文件扫描器同步、学院/劳动教育异步 |
+| 测试 | ✅ 95 项（真实页面夹具 + CAS 全流程 mock + RSA roundtrip） |
+
 ---
 
 ## P6 后续流程（部分提前落地）

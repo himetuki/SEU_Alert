@@ -1,0 +1,138 @@
+# 东南大学各学院通知采集配置（ADR-024：全院系覆盖 + 按学院订阅）
+# 来源：东南大学官网院系设置页自动发现（scripts/discover_colleges.py，2026-10-26）
+# 未发现列表页的学院（chem/math/futuretech/bme）暂缺，发现后手动补一条即可。
+# 字段：key=群后缀（web-<key>） name=学院名 list=通知列表页 prefilter=画像预筛词
+
+colleges:
+  - key: smjgs
+    name: 东南大学—蒙纳士大学国际学院（苏州）
+    list: https://smjgs.seu.edu.cn/8446/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: srjgs
+    name: 东南大学雷恩研究生学院
+    list: https://srjgs.seu.edu.cn/69890/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: tc
+    name: 交通学院
+    list: https://tc.seu.edu.cn/846/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: ai
+    name: 人工智能学院
+    list: https://ai.seu.edu.cn/49469/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: rwxy
+    name: 人文学院
+    list: https://rwxy.seu.edu.cn/tzgg/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: ins
+    name: 仪器科学与工程学院
+    list: https://ins.seu.edu.cn/45088/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: tyx
+    name: 体育系
+    list: https://tyx.seu.edu.cn/2191/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: radio
+    name: 信息科学与工程学院
+    list: https://radio.seu.edu.cn/zqkh/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: sph
+    name: 公共卫生学院
+    list: https://sph.seu.edu.cn/15701/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: med
+    name: 医学院
+    list: https://med.seu.edu.cn/8756/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: wjx
+    name: 吴健雄学院
+    list: https://wjx.seu.edu.cn/21384/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: gjzygcs
+    name: 国家卓越工程师学院
+    list: https://gjzygcs.seu.edu.cn/50331/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: civil
+    name: 土木工程学院
+    list: https://civil.seu.edu.cn/tzgg/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: sfl
+    name: 外国语学院
+    list: https://sfl.seu.edu.cn/9858/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: arch
+    name: 建筑学院
+    list: https://arch.seu.edu.cn/9126/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: xsxy
+    name: 新生学院
+    list: https://xsxy.seu.edu.cn/57149/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: me
+    name: 机械工程学院
+    list: https://me.seu.edu.cn/1382/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: smse
+    name: 材料科学与工程学院
+    list: https://smse.seu.edu.cn/tzgg/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: law
+    name: 法学院
+    list: https://law.seu.edu.cn/9157/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: cis
+    name: 海外教育学院
+    list: https://cis.seu.edu.cn/14347/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: physics
+    name: 物理学院
+    list: http://physics.seu.edu.cn/23138/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: ils
+    name: 生命科学与技术学院
+    list: https://ils.seu.edu.cn/tzgg_42701/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: electronic
+    name: 电子科学与工程学院
+    list: https://electronic.seu.edu.cn/23231/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: ee
+    name: 电气工程学院
+    list: https://ee.seu.edu.cn/25272/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: em
+    name: 经济管理学院
+    list: https://em.seu.edu.cn/57512/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: stat
+    name: 统计与数据科学学院
+    list: https://stat.seu.edu.cn/61132/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: cyber
+    name: 网络空间安全学院
+    list: https://cyber.seu.edu.cn/20204/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: automation
+    name: 自动化学院
+    list: https://automation.seu.edu.cn/32617/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: arts
+    name: 艺术学院
+    list: https://arts.seu.edu.cn/69727/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: cs
+    name: 计算机科学与工程学院
+    list: https://cs.seu.edu.cn/49469/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: cose
+    name: 软件学院
+    list: https://cose.seu.edu.cn/49469/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: ic
+    name: 集成电路学院
+    list: https://ic.seu.edu.cn/47787/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
+  - key: marxism
+    name: 马克思主义学院
+    list: https://marxism.seu.edu.cn/23305/list.htm
+    prefilter: [通知,公告,报名,截止,公示,选拔,考试,讲座,竞赛,提交,答辩,免试,成绩,调课,选课,公示,招聘,科研]
