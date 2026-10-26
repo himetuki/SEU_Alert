@@ -63,6 +63,8 @@ graph TB
 | **用户投稿** | ✅ 已落地（内部） | 公众号/私聊转发/拍图的引擎侧入口，`adapters/user_report.py`；提取栈见下 |
 | **各学院官网（33 院系）** | ✅ 已落地 | `adapters/web/seu_colleges.py` 直采（WebPlus，config/colleges.yml），群 = `web-<学院>`（ADR-024） |
 | **劳动教育课程平台** | ✅ 已落地（未联网验证） | `adapters/web/labor.py`，移植 SEU-Labor-Course-Pusher 源码（CAS 登录+课程表解析），群 = `web-labor`（ADR-024） |
+| **公众号文章（多账号）** | ✅ 已落地 | `adapters/web/wechat_mp.py`：免登录（搜狗发现+mp 公开正文）+ 大/小模型代读汇总讲座字段，群 = `web-mp-<key>`（ADR-025） |
+| **人文讲座预约系统** | ✅ 已落地（未联网验证） | `adapters/web/seu_lectures.py`：移植 seu-lecture-cli **仅监控**（不预约不抢票），群 = `web-lecture`（ADR-025） |
 | 其他学校网站 | 后续 | 新 adapter 实现 Adapter 协议即可 |
 
 web 源轮询：首次全量 backfill，之后增量（`web_seen` 表）；与 QQ 消息共用分类树，跨源同内容由去重自动合并（fan-in）。

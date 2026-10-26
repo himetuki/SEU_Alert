@@ -319,6 +319,22 @@ groups:
     default_cats: [task, lecture]
     roles: {}
     sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-mp-wzjy":
+    name: 东南大学文化素质教育中心（公众号）
+    kind: web
+    scope: school
+    prefilter: [讲座, 活动, 报名, 预约, 素质, 通知, 时间, 地点, 工作台]
+    default_cats: [lecture, task, notice]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
+  "web-lecture":
+    name: 人文讲座（预约系统监控）
+    kind: web
+    scope: school
+    prefilter: [讲座, 预约, 人文, 素质, 时间, 地点, 开放, 余量]
+    default_cats: [lecture, task]
+    roles: {}
+    sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
 
 role_prior:
   课程老师:   [homework, exam]
@@ -329,3 +345,4 @@ role_prior:
   unknown:    [全部]
 
 # ---- 各学院站点画像（ADR-024，scripts/gen_colleges_yml.py 生成）----
+

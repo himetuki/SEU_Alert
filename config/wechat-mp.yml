@@ -1,0 +1,13 @@
+# 公众号监控（ADR-025）：免登录（搜狗文章搜索发现 + mp.weixin.qq.com 公开正文）
+# + 大/小模型代读汇总讲座字段（题目/时间/校区+教室/报名途径）。
+# extract_layer: big=大模型（可选层）| small=小模型（备用层，禁思考参数已强制）
+
+accounts:
+  - key: wzjy                          # 群 = web-mp-wzjy
+    name: 东南大学文化素质教育中心
+    # 可继续加：
+    # - key: jwc
+    #   name: 东南大学教务处
+
+extract_layer: big        # big | small；模型未配置时自动降级为原文入库（low_conf）
+interval: 1800            # 秒；搜狗有风控，别低于 900

@@ -123,3 +123,9 @@ JEV 分类树替换假分类器（`CLASSIFIER=tree`）：连通性测试先行�
 - **33 个学院**：`config/colleges.yml`（官网院系设置页自动发现）；`seu-colleges` 源 30 分钟一轮，首次全量 backfill。学院缺 4 个（chem/math/futuretech/bme 首页未发现列表页），发现后往 colleges.yml 加一条即可。订阅：`/sub 群 建筑学院 类别 通知 讲座`
 - **劳动教育**：`labor` 源 5 分钟一轮。会话二选一——`.env` 填 `LABOR_USERNAME/LABOR_PASSWORD`（CAS 自动登录，需短信/验证码时跳过本轮并告警）或 `LABOR_COOKIES`（浏览器导出的 cookie JSON）。筛选（校区白名单/类别黑名单）在 `config/labor.yml`
 - 非校内网时劳动教育源会连续失败——只记日志不拖垮管道；回校内网自动恢复
+
+## 10. 公众号监控与人文讲座（ADR-025）
+
+- **公众号（免登录）**：`wechat-mp` 源 30 分钟一轮。默认监控「东南大学文化素质教育中心」（`config/wechat-mp.yml` 加账号即可多号监控）。链路：搜狗文章搜索 → mp.weixin.qq.com 公开正文 → **大/小模型代读**出「题目/时间/**校区+教室**/报名途径」（校区在推送里着重显示；报名途径只取文字路径，不取二维码）。模型判非讲座自动忽略；模型未配置时降级为原文入库（low_conf）。搜狗要验证码时跳过本轮，不会硬刚
+- **人文讲座（仅监控）**：`seu-lectures` 源 15 分钟一轮，移植 seu-lecture-cli 的监控能力（**不预约不抢票**）。会话：`.env` 填 `SEU_LECTURE_USERNAME/PASSWORD`（CAS，需短信时跳过并告警）或 `SEU_LECTURE_COOKIES`。讲座（含预约开放时间、余量）→ `web-lecture` 群 → 订阅分发。订阅：`/sub 群 人文讲座 类别 讲座`
+- 两个源都走同一个分类树和 deliver 出口；临期提醒对带 deadline 的 item 自动生效

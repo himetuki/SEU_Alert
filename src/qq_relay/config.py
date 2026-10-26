@@ -22,7 +22,8 @@ ACTIONS = ("submit", "signup", "attend", "know")
 GROUP_KINDS = ("course", "grade", "cadre", "class", "program", "club", "web", "other")
 SCOPES = ("course", "grade", "class", "school")
 FILTER_MODES = ("off", "whitelist", "blacklist")
-WEB_KINDS = ("seu_monitor", "seudaily", "seu_colleges", "labor")
+WEB_KINDS = ("seu_monitor", "seudaily", "seu_colleges", "labor",
+             "wechat_mp", "seu_lectures")
 
 # 通用预筛词（与群画像词取并集）；groups.yml 的 prefilter_generic 可覆盖
 DEFAULT_GENERIC_WORDS: tuple[str, ...] = (

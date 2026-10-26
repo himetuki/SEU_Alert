@@ -181,3 +181,14 @@
 - **理由**：学院站与教务处同构（WebPlus），直采可控且与另两源互补；劳动教育的登录/解析是验证过的资产，移植优于重写；新课程通知天然接入分类与订阅（web-labor 群）。
 - **被否方案**：改 SEUdaily 的 notice_categories.json 让它爬全院系（其抓取由助手使用时触发、非定时，不满足"监控"）；接 exe（违反用户要求且无法融入管道）。
 - **后果**：web 采集源增至 4 个；groups.yml +34 画像（33 学院 + web-labor）；新增依赖 cryptography（RSA）；测试 95 项（含真实页面夹具与 CAS 全流程 mock）；劳动教育会话走 .env（LABOR_USERNAME/PASSWORD 或 LABOR_COOKIES）。
+
+## ADR-025 公众号免登录监控（模型代读）+ 人文讲座监控接入
+
+- **背景**：① 用户要求接入**免登录监控微信公众号**能力：多账号、由大/小模型代读汇总，默认监控「东南大学文化素质教育中心」，提取**活动题目/活动时间/活动地点（校区着重+教室）/报名途径**（文字路径如"数智东南-工作台-学业生活-素质讲座"即可，不提取二维码）；② 附加接入 seu-lecture-cli（wynter-yaxley，讲座预约工具），**只用其监控能力，不用预约/抢票**。
+- **决定**：
+  1. **公众号（`adapters/web/wechat_mp.py`）**：免登录三段——搜狗微信**文章搜索**（type=2，按公众号名；账号搜索 type=1 实测返回空，弃用）→ `/link?url=` 跳转解析（`url += '…'` 片段与 `var url='a'+'b'` 两种拼法）→ mp.weixin.qq.com 公开文章页（rich_media_title/js_content）；**大/小模型代读**（Chat Completion，JSON 契约 is_lecture/title/time/campus/room/signup_path/summary）；**校区着重显示**（`【九龙湖校区】`前缀+地点行）；模型判非讲座不入库；未配模型降级原文入库。多账号 `config/wechat-mp.yml`，群 = `web-mp-<key>`。
+  2. **人文讲座（`adapters/web/seu_lectures.py`）**：移植 seu-lecture-cli 的 `parse_lectures` + `queryActivityList.do` 分页 + CAS 登录（收敛到共用 `cas.py`）；**不移植** reserve/captcha/clock；讲座 → 群 `web-lecture`，文案含预约开放时间与余量，注明"仅监控不代预约"。
+  3. **共用 CAS**（`adapters/web/cas.py`）：劳动教育与讲座监控共用同一套 auth.seu.edu.cn 无浏览器登录（探测验证码→RSA 加密→casLogin→票据兑换）。
+- **理由**：搜狗文章搜索是当前少数可用的免登录发现通道（mp 文章页本身公开）；模型代读把非结构化文章变成结构化字段；讲座监控复用已验证项目的解析，规避自研风险。
+- **被否方案**：搜狗账号搜索 type=1（实测空结果）；第三方 RSS 中转（不自托管、不稳定）；使用 seu-lecture-cli 的预约/抢票（用户明确排除）。
+- **后果**：web 采集源增至 6 个；测试 109 项（真实搜狗页面夹具+跳转解析+模型代读 mock+讲座解析移植）；**已知限制**：搜狗风控（验证码→跳过本轮，间隔 ≥1800s）、搜狗索引可能滞后、提取质量取决于配置的模型层。
