@@ -7,6 +7,7 @@ fan-in 语义（ADR-009）：同内容通知在多个群出现只分类一次；
 from __future__ import annotations
 
 import asyncio
+import inspect
 from datetime import datetime
 from uuid import uuid4
 
@@ -32,6 +33,7 @@ class Runner:
         classifier=classify_stub,
         prefilter: Prefilter | None = None,
         now_fn=datetime.now,
+        reminder_hook=None,
     ) -> None:
         self.settings = settings
         self.groups = groups
@@ -40,6 +42,7 @@ class Runner:
         self.db = db
         self.classifier = classifier
         self.now_fn = now_fn
+        self.reminder_hook = reminder_hook      # async (item, user_qq) -> None
         self.deduper = Deduper()
         self.prefilter = prefilter or Prefilter(generic_words=groups.generic_words)
         self.stats = {"events": 0, "passed": 0, "dropped": 0,
@@ -66,10 +69,26 @@ class Runner:
         self.deduper.register(d.content_hash, event_id)
         item: ClassifiedEvent = self.classifier(
             ev, event_id, profile.course if profile else None)
+        self._apply_hints(item, ev.hints)
         await queries.insert_event(self.db, ev, event_id, d.content_hash)
         await queries.insert_item(self.db, item)
         self.stats["passed"] += 1
         await self._deliver(item, already=set())
+
+    @staticmethod
+    def _apply_hints(item: ClassifiedEvent, hints: dict) -> None:
+        """提取层预填字段合并进 item（不覆盖已有值；P2 tree.py 同样受益）。"""
+        if not hints:
+            return
+        for key in ("course", "channel", "scope", "stage"):
+            value = hints.get(key)
+            if value and not getattr(item, key, None):
+                setattr(item, key, str(value))
+        deadline = hints.get("deadline")
+        if deadline and not item.deadline:
+            item.deadline = str(deadline)
+            item.deadline_src = "hint"
+            item.has_ddl = True
 
     async def _on_drop(self, ev: RawEvent, d: Decision) -> None:
         self.stats["dropped"] += 1
@@ -104,3 +123,7 @@ class Runner:
                 self.db, m.user_qq, item.event_id, self.settings.deliver_mode,
                 path, m.kind, item.urg)
             self.stats["delivered"] += 1
+            if self.reminder_hook is not None and item.deadline:
+                res = self.reminder_hook(item, m.user_qq)
+                if inspect.isawaitable(res):
+                    await res

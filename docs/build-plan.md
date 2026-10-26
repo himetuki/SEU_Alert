@@ -168,6 +168,21 @@ P2 与 P3 无相互依赖，可并行。关键路径：P0→P1→P2→P4→P5。
 
 ---
 
+## P7 对接产品计划文档（ADR-023，引擎侧，2026-10-26 落地）
+
+| 项 | 状态 |
+|---|---|
+| 投稿提取栈（`pipeline/extract_stack.py` + `ocr.py` + `llm.py`） | ✅ OCR 专用协议（讯飞/通用 HTTP）→ 视觉模型（Chat Completion）→ 大模型（可选）→ 小模型（备用）四级降级；JEV 只管分类 |
+| 用户投稿入口（`adapters/user_report.py` + `python -m qq_relay.submit`） | ✅ 本地 CLI + 程序化 intake；submissions 表全链路留档 |
+| PushPlus 分发（`deliver/pushplus.py` + MultiDeliverer） | ✅ 每用户 token（users 表）+ 全局兜底；DELIVER_MODE 逗号组合 |
+| 临期提醒调度（`pipeline/reminder.py`） | ✅ 截止前 24h/3h 多轮（REMINDER_OFFSETS 可配）；reminders 表 + runner reminder_hook |
+| 核验数据层（votes 表 + `/confirm` `/report`） | ✅ 3 人确认标 verified；报错转人工 |
+| 老库迁移（`store/db.py` _migrate） | ✅ items.verified/reminded_json、users.pushplus_token 幂等补齐 |
+
+**待前端（计划书团队）**：公众号收发 → 调 intake；H5 看板 → 读 items/subs 数据导出；PushPlus 绑定 → 写 users.pushplus_token。
+
+---
+
 ## P6 后续流程（部分提前落地）
 
 | 项 | 状态 |

@@ -23,3 +23,6 @@ desktop.ini
 
 # ---- 用户其他项目目录（勿入版本库）----
 seu-projects-test/
+
+# ---- 工具运行时产物 ----
+.dsh-ops/

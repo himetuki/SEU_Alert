@@ -1,9 +1,10 @@
-"""装配 + 启动（P1）：OneBot 反向 WS → Runner → 文件分发。
+"""装配 + 启动（ADR-023 版）：多出口分发 + 投稿提取栈 + 临期提醒调度。
 
     .venv\\Scripts\\python -m qq_relay.main [--seconds N] [--forever]
+    .venv\\Scripts\\python -m qq_relay.submit --text/--image/--course ...   # 本地投稿
 
-测试期零真实推送（ADR-021）：DELIVER_MODE=file 时所有分发写
-data/outbox/<用户QQ>/；qq 模式在 P5 之后启用。
+DELIVER_MODE 逗号组合：file（测试期留档）| pushplus（微信强推送）| qq（内部测试）。
+QQ 私聊为内部测试通道，不专门维护适配（ADR-023）。
 """
 
 from __future__ import annotations
@@ -11,8 +12,11 @@ from __future__ import annotations
 import argparse
 import asyncio
 import signal
+from dataclasses import dataclass
+from typing import Optional
 
 from .adapters.onebot import OneBotServer
+from .adapters.user_report import SubmissionIntake
 from .adapters.web import SCANNERS, WebPoller, WebSource
 from .botcmd import handle_private
 from .config import (
@@ -23,13 +27,95 @@ from .config import (
     load_web_sources,
 )
 from .deliver.file import FileDeliverer
+from .deliver.multi import MultiDeliverer
+from .deliver.pushplus import PushPlusDeliverer
+from .deliver.qq import QqDeliverer
+from .pipeline.extract_stack import SubmissionExtractor
+from .pipeline.llm import ChatClient
+from .pipeline.ocr import build_ocr_provider
+from .pipeline.reminder import ReminderScheduler
 from .pipeline.runner import Runner
 from .store import db as store_db
 from .store import queries
 
 
+def build_extractor(s: Settings) -> SubmissionExtractor:
+    """投稿提取栈：OCR/视觉（图→文）→ 大模型（可选）→ 小模型（备用）。"""
+    vision = (ChatClient(s.vision_base_url, s.vision_api_key, s.vision_model)
+              if s.vision_model else None)
+    big = (ChatClient(s.big_base_url, s.big_api_key, s.big_model)
+           if s.big_model else None)
+    small = (ChatClient(s.small_base_url, s.small_api_key, s.small_model,
+                        suppress_reasoning=True)
+             if s.small_model else None)
+    ocr = None
+    if s.ocr_provider != "none":
+        try:
+            ocr = build_ocr_provider(s.ocr_provider, s.ocr_base_url,
+                                     s.ocr_api_key, s.ocr_api_secret,
+                                     s.ocr_engine_id)
+        except Exception as e:
+            print(f"[main] OCR provider 初始化失败（按未配置处理）: {e!r}")
+    return SubmissionExtractor(vision=vision, big=big, small=small, ocr=ocr,
+                               chain=s.submit_extract_chain)
+
+
+@dataclass
+class Runtime:
+    settings: Settings
+    groups: object
+    subs: object
+    conn: object
+    runner: Runner
+    intake: SubmissionIntake
+    scheduler: ReminderScheduler
+    server: Optional[OneBotServer]
+
+
+async def build_runtime(s: Settings, with_server: bool = True) -> Runtime:
+    s.ensure_dirs()
+    if s.classifier != "stub":
+        raise ConfigError("当前仅支持 CLASSIFIER=stub（JEV 分类树 P2 接入）")
+
+    groups = load_groups(s.config_dir / "groups.yml")
+    subs = load_subscriptions(s.config_dir / "subscriptions.yml")
+    conn = await store_db.connect(s)
+    await store_db.init_schema(conn)
+    group_names = {gid: g.name for gid, g in groups.groups.items()}
+
+    server = OneBotServer(s.onebot_host, s.onebot_port, s.onebot_token) if with_server else None
+
+    # ---- 分发出口（可组合）----
+    deliverers = {}
+    for mode in Settings.parse_deliver_modes(s.deliver_mode):
+        if mode == "file":
+            deliverers["file"] = FileDeliverer(s.outbox_dir, group_names=group_names)
+        elif mode == "pushplus":
+            deliverers["pushplus"] = PushPlusDeliverer(
+                default_token=s.pushplus_token, topic=s.pushplus_topic,
+                token_of=lambda qq: queries.user_pushplus_token(conn, qq),
+                group_names=group_names)
+        elif mode == "qq":
+            deliverers["qq"] = QqDeliverer(server, group_names=group_names)
+    deliverer = deliverers[next(iter(deliverers))] if len(deliverers) == 1 \
+        else MultiDeliverer(deliverers)
+
+    # ---- 提醒调度 +  runner ----
+    scheduler = ReminderScheduler(conn, deliverer, offsets=s.reminder_offsets,
+                                  interval=s.reminder_interval)
+    runner = Runner(s, groups, subs, deliverer, conn,
+                    reminder_hook=scheduler.schedule_for)
+    await runner.restore_dedup()
+
+    intake = SubmissionIntake(extractor=build_extractor(s),
+                              on_notice=lambda ev: runner.handle_event(ev),
+                              db=conn)
+    return Runtime(settings=s, groups=groups, subs=subs, conn=conn,
+                   runner=runner, intake=intake, scheduler=scheduler,
+                   server=server)
+
+
 async def _spawn_web_poller(src, conn, runner) -> "asyncio.Task":
-    """每个 web 源一个轮询任务：首次 backfill，之后增量（web_seen 持久化）。"""
     seen = await queries.load_web_seen(conn, src.id)
     poller = WebPoller(
         source=WebSource(id=src.id, kind=src.kind, name=src.name,
@@ -44,35 +130,18 @@ async def _spawn_web_poller(src, conn, runner) -> "asyncio.Task":
 
 async def amain(seconds: int | None) -> int:
     s = Settings.from_env()
-    s.ensure_dirs()
-
-    if s.deliver_mode != "file":
-        raise ConfigError("P1 测试期仅支持 DELIVER_MODE=file（qq 分发后置，ADR-021）")
-    if s.classifier != "stub":
-        raise ConfigError("P1 仅支持 CLASSIFIER=stub（JEV 分类树 P2 接入）")
-
-    groups = load_groups(s.config_dir / "groups.yml")
-    subs = load_subscriptions(s.config_dir / "subscriptions.yml")
-    subs_path = s.config_dir / "subscriptions.yml"
-
-    conn = await store_db.connect(s)
-    await store_db.init_schema(conn)
-
-    runner = Runner(s, groups, subs,
-                    FileDeliverer(s.outbox_dir,
-                                  group_names={gid: g.name for gid, g in groups.groups.items()}),
-                    conn)
-    await runner.restore_dedup()
+    rt = await build_runtime(s, with_server=True)
+    runner, server = rt.runner, rt.server
 
     web_cfg = load_web_sources(s.config_dir / "web-sources.yml")
-    web_tasks = [await _spawn_web_poller(src, conn, runner) for src in web_cfg.sources]
+    web_tasks = [await _spawn_web_poller(src, rt.conn, runner) for src in web_cfg.sources]
 
-    server = OneBotServer(s.onebot_host, s.onebot_port, s.onebot_token)
     await server.start()
+    modes = " + ".join(Settings.parse_deliver_modes(s.deliver_mode))
     print(f"[main] 反向 WS 监听 ws://{s.onebot_host}:{s.onebot_port}，等 NapCat 连入")
-    print(f"[main] 分发模式=file → {s.outbox_dir}/<用户QQ>/；分类器=stub")
-    print(f"[main] 已加载画像群 {len(groups.groups)} 个，订阅用户 {len(subs.subs)} 个，"
-          f"web 采集源 {len(web_cfg.sources)} 个")
+    print(f"[main] 分发出口=[{modes}]；分类器=stub；提醒档位={s.reminder_offsets}h")
+    print(f"[main] 画像群 {len(rt.groups.groups)} 个 · 订阅用户 {len(rt.subs.subs)} 个 · "
+          f"web 源 {len(web_cfg.sources)} 个 · 提取链={s.submit_extract_chain}")
 
     stop = asyncio.Event()
     loop = asyncio.get_running_loop()
@@ -86,14 +155,16 @@ async def amain(seconds: int | None) -> int:
         async for ev in server.events():
             try:
                 await runner.handle_event(ev)
-            except Exception as e:                # 单条事件不许拖垮管道
+            except Exception as e:
                 print(f"[main] 事件处理失败: {e!r}")
 
     async def consume_private() -> None:
         async for pm in server.private_messages():
             try:
-                reply = await handle_private(pm.user_id, pm.text, groups, subs,
-                                             subs_path, conn)
+                reply = await handle_private(pm.user_id, pm.text, rt.groups,
+                                             rt.subs,
+                                             s.config_dir / "subscriptions.yml",
+                                             rt.conn)
                 if reply:
                     await server.call_action(
                         "send_private_msg",
@@ -102,7 +173,6 @@ async def amain(seconds: int | None) -> int:
                 print(f"[main] 私聊处理失败: {e!r}")
 
     async def watchdog() -> None:
-        """看门狗 stub（P5 完善）：NapCat 未连接 / 掉线时告警。"""
         warned = False
         while not stop.is_set():
             await asyncio.sleep(30)
@@ -113,7 +183,9 @@ async def amain(seconds: int | None) -> int:
                 print("[watchdog] NapCat 已连入")
                 warned = False
 
-    tasks = [asyncio.create_task(c) for c in (consume_group(), consume_private(), watchdog())]
+    tasks = [asyncio.create_task(c) for c in
+             (consume_group(), consume_private(), watchdog(),
+              rt.scheduler.run_forever())]
     tasks.extend(web_tasks)
     try:
         if seconds:
@@ -126,17 +198,18 @@ async def amain(seconds: int | None) -> int:
         for t in tasks:
             t.cancel()
         await server.stop()
-        await conn.close()
+        await rt.conn.close()
         print(f"[main] 结束：{runner.stats}；连接统计 {server.stats}")
     return 0
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="qq-relay P1 主管道")
+    ap = argparse.ArgumentParser(description="qq-relay 主管道（ADR-023）")
     ap.add_argument("--seconds", type=int, default=0, help="运行秒数，0=持续")
     ap.add_argument("--forever", action="store_true", help="持续运行（默认）")
     args = ap.parse_args()
-    raise SystemExit(asyncio.run(amain(None if (args.forever or not args.seconds) else args.seconds)))
+    raise SystemExit(asyncio.run(
+        amain(None if (args.forever or not args.seconds) else args.seconds)))
 
 
 if __name__ == "__main__":

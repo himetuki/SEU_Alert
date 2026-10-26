@@ -47,7 +47,8 @@ class FileDeliverer:
                 f.write(f"\n{'=' * 46}\n{text}\n")
         else:
             ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-            base = f"{ts}_{item.cat}_{item.event_id[:8]}"
+            mark = "REMINDER_" if kind == "reminder" else ""
+            base = f"{ts}_{mark}{item.cat}_{item.event_id[:8]}"
             path = user_dir / f"{base}.txt"
             n = 2                      # 同一秒内多条 → 追加序号，绝不互相覆盖
             while path.exists():

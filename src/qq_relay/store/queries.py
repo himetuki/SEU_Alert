@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 import time
-from typing import Optional, Sequence
+from typing import Optional
 
 import aiosqlite
 
@@ -41,12 +41,13 @@ async def insert_item(conn: aiosqlite.Connection, item: ClassifiedEvent) -> None
         """INSERT OR REPLACE INTO items
            (event_id, groups_json, cat, cat2, is_info, urg, action, has_ddl,
             course, scope, channel, stage, deadline, deadline_src, low_conf,
-            raw_text, model_calls_json, created_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            verified, reminded_json, raw_text, model_calls_json, created_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (item.event_id, json.dumps(item.groups, ensure_ascii=False), item.cat,
          item.cat2, item.is_info, item.urg, item.action, int(item.has_ddl),
          item.course, item.scope, item.channel, item.stage, item.deadline,
-         item.deadline_src, int(item.low_conf), item.raw_text,
+         item.deadline_src, int(item.low_conf), int(item.verified),
+         item.reminded_json, item.raw_text,
          json.dumps(item.model_calls, ensure_ascii=False),
          item.created_at or int(time.time())),
     )
@@ -60,6 +61,7 @@ async def get_item(conn: aiosqlite.Connection, event_id: str) -> Optional[aiosql
 
 
 async def row_to_item(row: aiosqlite.Row) -> ClassifiedEvent:
+    keys = row.keys()
     return ClassifiedEvent(
         event_id=row["event_id"],
         groups=json.loads(row["groups_json"]),
@@ -67,7 +69,10 @@ async def row_to_item(row: aiosqlite.Row) -> ClassifiedEvent:
         action=row["action"], has_ddl=bool(row["has_ddl"]), course=row["course"],
         scope=row["scope"], channel=row["channel"], stage=row["stage"],
         deadline=row["deadline"], deadline_src=row["deadline_src"],
-        low_conf=bool(row["low_conf"]), raw_text=row["raw_text"],
+        low_conf=bool(row["low_conf"]),
+        verified=(row["verified"] if "verified" in keys else 0),
+        reminded_json=(row["reminded_json"] if "reminded_json" in keys else "[]"),
+        raw_text=row["raw_text"],
         model_calls=json.loads(row["model_calls_json"] or "[]"),
         created_at=row["created_at"],
     )
@@ -156,3 +161,110 @@ async def mark_web_seen(conn: aiosqlite.Connection, source_id: str,
         (source_id, notice_key, int(time.time())),
     )
     await conn.commit()
+
+
+# ---------------- 投稿 / 提醒 / 核验（ADR-023）----------------
+
+
+async def insert_submission(conn: aiosqlite.Connection, *, submission_id: str,
+                            user: str, course: str | None, group_id: str,
+                            raw_text: str, image_path: str | None,
+                            extracted_text: str, chain_used: str,
+                            low_conf: bool, raw_event_id: str) -> None:
+    await conn.execute(
+        """INSERT INTO submissions
+           (submission_id, user, course, group_id, raw_text, image_path,
+            extracted_text, chain_used, low_conf, raw_event_id, created_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+        (submission_id, user, course, group_id, raw_text, image_path,
+         extracted_text, chain_used, int(low_conf), raw_event_id,
+         int(time.time())),
+    )
+    await conn.commit()
+
+
+async def insert_reminder(conn: aiosqlite.Connection, event_id: str,
+                          user_qq: str, fire_at: int, kind: str) -> bool:
+    """插入提醒行；已存在返回 False（去重）。"""
+    cur = await conn.execute(
+        "INSERT OR IGNORE INTO reminders (event_id, user_qq, fire_at, kind) VALUES (?,?,?,?)",
+        (event_id, user_qq, fire_at, kind),
+    )
+    await conn.commit()
+    return cur.rowcount > 0
+
+
+async def due_reminders(conn: aiosqlite.Connection, now_ts: int,
+                        limit: int = 100) -> list:
+    return await (await conn.execute(
+        """SELECT * FROM reminders
+           WHERE sent_at IS NULL AND fire_at<=? ORDER BY fire_at LIMIT ?""",
+        (now_ts, limit),
+    )).fetchall()
+
+
+async def mark_reminder_sent(conn: aiosqlite.Connection, reminder_id: int,
+                             path: str) -> None:
+    await conn.execute(
+        "UPDATE reminders SET sent_at=?, path=? WHERE reminder_id=?",
+        (int(time.time()), path, reminder_id),
+    )
+    await conn.commit()
+
+
+async def add_vote(conn: aiosqlite.Connection, event_id: str, user_qq: str,
+                   kind: str, note: str = "") -> bool:
+    if kind not in ("confirm", "report"):
+        raise ValueError(f"vote.kind 非法: {kind!r}")
+    cur = await conn.execute(
+        "INSERT OR IGNORE INTO votes (event_id, user_qq, kind, note, created_at) VALUES (?,?,?,?,?)",
+        (event_id, user_qq, kind, note, int(time.time())),
+    )
+    await conn.commit()
+    return cur.rowcount > 0
+
+
+async def vote_counts(conn: aiosqlite.Connection, event_id: str) -> dict[str, int]:
+    rows = await (await conn.execute(
+        "SELECT kind, COUNT(*) AS n FROM votes WHERE event_id=? GROUP BY kind",
+        (event_id,),
+    )).fetchall()
+    return {r["kind"]: r["n"] for r in rows}
+
+
+async def upsert_user(conn: aiosqlite.Connection, user_qq: str,
+                      pushplus_token: str | None = None) -> None:
+    await conn.execute(
+        "INSERT OR IGNORE INTO users (user_qq, joined_at) VALUES (?,?)",
+        (user_qq, int(time.time())),
+    )
+    if pushplus_token is not None:
+        await conn.execute(
+            "UPDATE users SET pushplus_token=? WHERE user_qq=?",
+            (pushplus_token, user_qq),
+        )
+    await conn.commit()
+
+
+async def user_pushplus_token(conn: aiosqlite.Connection, user_qq: str) -> str:
+    row = await (await conn.execute(
+        "SELECT pushplus_token FROM users WHERE user_qq=?", (user_qq,)
+    )).fetchone()
+    return (row["pushplus_token"] or "") if row else ""
+
+
+async def set_item_verified(conn: aiosqlite.Connection, event_id: str,
+                            verified: int) -> None:
+    await conn.execute("UPDATE items SET verified=? WHERE event_id=?",
+                       (int(verified), event_id))
+    await conn.commit()
+
+
+async def latest_delivery_event(conn: aiosqlite.Connection,
+                                user_qq: str) -> Optional[str]:
+    """该用户最近一次分发对应的事件 id（/confirm 不带参数时用）。"""
+    row = await (await conn.execute(
+        "SELECT event_id FROM deliveries WHERE user_qq=? ORDER BY created_at DESC LIMIT 1",
+        (user_qq,),
+    )).fetchone()
+    return row["event_id"] if row else None

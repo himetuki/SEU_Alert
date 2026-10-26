@@ -93,6 +93,27 @@ set PIP_CACHE_DIR=%CD%\.pipcache
   扫描完成后 `store/web/教务处/<栏目>/<标题--ID>/{meta.json,text.md}` 出现，本项目下轮轮询即接入。之后可在 WSL 里用 systemd timer 定时跑（参考 SEU-Monitor README），或先手动 `--once`。
 - **教务处双源重叠**：SEUdaily 也监控 jwc 站，与 SEU-Monitor 重复的通知由内容去重自动合并（一条 item、两个来源群）。
 
-## 6. P2 预告（P1 真实群验证后）
+## 6. 投稿提取栈与本地投稿 CLI（ADR-023）
+
+```bash
+# 文字投稿
+.venv\Scripts\python -m qq_relay.submit --text "高等数学作业 11月15日截止" --course 马原 --user 100001
+# 图片投稿（走 OCR/视觉层；.env 配了才生效，没配自动降级为原文+low_conf）
+.venv\Scripts\python -m qq_relay.submit --image shots\note.png --course 高等数学
+```
+
+- 层顺序 `SUBMIT_EXTRACT_CHAIN`（默认 `vision,big,small`）：OCR 专用协议（`OCR_PROVIDER=http|xunfei`，如讯飞）→ 视觉模型（`VISION_*`，Chat Completion 看图）→ 大模型（`BIG_*`，可选层）→ 小模型（`SMALL_*`，备用层；neohorse-1-9b 已强制禁思考参数）
+- **JEV 分类树只管分类**（P2 接入）；投稿提取只负责"图→文、口语→规范文本"
+- 每次投稿在 `submissions` 表留档（提取链、结果、low_conf）；分类后 course/deadline 等 hints 合并进 item
+- 前端接入后：公众号消息/私聊转发 → 调 `SubmissionIntake.submit()`（同一入口，HTTP 封装后续加）
+
+## 7. 分发出口与临期提醒（ADR-023）
+
+- `DELIVER_MODE` 逗号组合：`file`（测试期留档 outbox/）、`pushplus`（微信强推）、`qq`（内部测试）。例：`DELIVER_MODE=file,pushplus`
+- PushPlus：全局 token 填 `PUSHPLUS_TOKEN`；每用户 token 由用户绑定后写 `users` 表（`/bind_pushplus <token>` 或前端接口），无 token 的用户自动落到 file 留档
+- 临期提醒：`REMINDER_OFFSETS=24,3`（截止前 24h/3h 两轮，可加小数档位）；L5 分发时自动排程，调度器每分钟扫描 `reminders` 表触发，走同一 deliver 出口
+- 核验双按钮：用户回复 `/confirm`（+1确认，3 人标已核验）或 `/report <内容>`（报错转人工）；数据落 `votes` 表
+
+## 8. P2 预告（真实群验证后）
 
 JEV 分类树替换假分类器（`CLASSIFIER=tree`）：连通性测试先行（禁思考参数）→ JEV 客户端（队列/退避/缓存）→ L4 小模型提取 → 金标准 harness 校准。
