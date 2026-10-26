@@ -40,6 +40,8 @@
 
 ## 金标准集要求
 
-- 30–50 条**真实**课程通知（从任何渠道复制的真通知均可），覆盖 9 类；SRTP 类 ≥15 条
-- 每条带人工标注：cat（+cat2）、 urg、 是否有 deadline 及标准值
-- 同时用作：验收基准、题干校准依据、回归测试集（改关键词/阈值后必须重跑）
+- 40–50 条**真实**通知（从任何渠道复制的真通知均可），覆盖 9 类；SRTP/research 类 ≥15 条、chat 类 8–10 条
+- 每条带人工标注：cat（+cat2）、urg、has_ddl 及 deadline 标准值（拿不准填 null）
+- **模板**：`data/goldset.template.jsonl`（每类一条示例）；**采集指南**：`data/goldset.README.md`（含各类配额与"棘手样本"清单）
+- 成品放 `data/goldset.jsonl`（gitignore，只留本机）；跑 `.venv\Scripts\python scripts\run_goldset.py` 出 `data/goldset-report.md`
+- 同时用作：验收基准、题干校准依据、回归测试集（改题干/关键词/阈值后必须重跑对比，不允许悄悄变差）
