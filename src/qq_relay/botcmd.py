@@ -137,4 +137,22 @@ async def handle_private(user_qq: str, text: str, groups: GroupsConfig,
         _save(subs_cfg, subs_path)
         return f"Digest 已{'开启' if on else '关闭'}"
 
+    # ---- 共识核验双按钮（ADR-023，计划书「+1确认 / 时间变更报错」数据层）----
+    if cmd in ("/confirm", "/report"):
+        event_id = parts[1] if len(parts) >= 2 else None
+        if event_id is None:
+            event_id = await queries.latest_delivery_event(db, user_qq)
+        if not event_id:
+            return "没有找到可核验的推送（先收到一条推送再确认）。"
+        kind = "confirm" if cmd == "/confirm" else "report"
+        note = " ".join(parts[2:]) if kind == "report" else ""
+        await queries.add_vote(db, event_id, user_qq, kind, note)
+        counts = await queries.vote_counts(db, event_id)
+        if kind == "confirm" and counts.get("confirm", 0) >= 3:
+            await queries.set_item_verified(db, event_id, 1)
+        if kind == "confirm":
+            return (f"已 +1 确认（当前 {counts.get('confirm', 0)} 人确认"
+                    + ("，已标记为已核验）" if counts.get("confirm", 0) >= 3 else "）"))
+        return "已记录报错，会转人工复核（感谢！）"
+
     return _USAGE

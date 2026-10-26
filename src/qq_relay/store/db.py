@@ -33,6 +33,28 @@ async def connect(settings: Settings) -> aiosqlite.Connection:
 async def init_schema(conn: aiosqlite.Connection) -> None:
     await conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
     await conn.commit()
+    await _migrate(conn)
+
+
+# 幂等列迁移：CREATE TABLE IF NOT EXISTS 不会给老表加列，这里补（ADR-023 起）
+_MIGRATIONS: dict[str, list[tuple[str, str]]] = {
+    # 表名: [(列名, 列定义), ...]
+    "users": [("pushplus_token", "TEXT")],
+    "items": [("verified", "INTEGER NOT NULL DEFAULT 0"),
+              ("reminded_json", "TEXT NOT NULL DEFAULT '[]'")],
+}
+
+
+async def _migrate(conn: aiosqlite.Connection) -> None:
+    for table, columns in _MIGRATIONS.items():
+        cols = await (await conn.execute(f"PRAGMA table_info({table})")).fetchall()
+        existing = {c["name"] for c in cols}
+        for column, decl in columns:
+            if column not in existing:
+                await conn.execute(
+                    f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
+                await conn.commit()
+                print(f"[db] 迁移: {table}.{column} 已补齐")
 
 
 async def main() -> int:

@@ -1,6 +1,6 @@
 # QQ消息集散（qq-relay）
 
-> 版本 v0.5 · 2026-10-25 · SEU 网站采集已接入（ADR-022），SEUdaily 真实通知已验证入管道
+> 版本 v0.6 · 2026-10-26 · 对接产品计划文档：引擎定位 + 投稿提取栈 + PushPlus + 临期提醒（ADR-023），80 项测试全绿
 
 校内个性化信息推送：把分散在**学习通、雨课堂、QQ、微信和学校各类网站**上的课程作业、考试时间、DDL、科研竞赛、国际交流、讲座活动等信息，聚合成每个学生**按需订阅**的推送。
 
@@ -10,19 +10,19 @@
 
 ## 方案概要
 
-个人 QQ 小号接入 bot 框架（NapCat / OneBot 11）常驻各类 QQ 群 → 实时捕获群消息 → **渠道画像 + 预筛 + JEV 分类树** → 按需信息提取（DDL 等）→ 按「群 × 类别」订阅匹配 → QQ 私聊即时推送 / 定时 Digest。
+多源采集（QQ 群[内部增强] / SEU 网站 / 用户投稿）→ 渠道画像 + 预筛 → JEV 分类树（分类）→ 投稿提取栈（图→文、口语→规范）→ 按「群 × 类别」订阅匹配 → 多出口分发（file 测试期 / PushPlus 微信强推 / QQ 私聊内部测试）+ **临期提醒调度**（截止前 24h/3h）。
 
-- 采集层后续可扩展：学校网站爬虫、用户转发上报（学习通/雨课堂消息转发给 bot）
-- 分发主通道 QQ 私聊；微信侧用 WxPusher 类推送服务降级实现
-- 低置信分类进入人工复核队列（"人类完成分发"的固化形态）
+- 引擎定位：产品计划文档《校园提醒产品》的内容与决策引擎（ADR-023），前端（公众号/H5）由计划书团队负责
+- bot 保留为内部增强通道（我方主动接入部分群；NapCat 登录暂缓；QQ 私聊仅内部测试，不专门维护）
+- 低置信分类/提取进入人工复核队列（"人类完成分发"的固化形态）；核验「+1确认/报错」数据层已就绪（votes 表，3 人确认标已核验）
 
 ## 范围
 
 | | 内容 |
 |---|---|
-| 本期（流程1） | QQ 群消息 → 分类树 → QQ 私聊分发 |
-| 后续 | 学校网站爬虫、用户转发上报、微信分发、Digest 完善 |
-| 不做 | OCR、重解析、cookie 直连爬虫（后置评估） |
+| 本期（引擎侧） | 多源采集 + JEV 分类树 + 投稿提取栈 + 订阅匹配 + file/PushPlus/QQ 分发 + 临期提醒 + 核验数据层 |
+| 后续（前端侧，计划书团队） | 公众号收发、H5 看板、PushPlus 绑定、付费功能 |
+| 不做 | cookie 直连爬虫（后置评估）；bot 作为产品主通道（封号与隐私风险，负责人明确回避） |
 
 ## 文档索引
 
@@ -31,17 +31,17 @@
 | [docs/architecture.md](docs/architecture.md) | 分层架构、管线图、数据契约、关键不变量、部署、风险 | 架构级变更 |
 | [docs/classification.md](docs/classification.md) | 9 类体系、JEV 根调用与分支题干、小模型提取契约、发送者过滤、限流防线、阈值校准 | 分类体系/题干变更 |
 | [docs/config.md](docs/config.md) | groups.yml / tree.yml / 订阅 schema / bot 命令 / 环境约定 | 配置 schema 变更 |
-| [docs/decisions.md](docs/decisions.md) | 全部设计决策记录（ADR-001~020），含被否方案与理由 | 每个决策变更必须追加 |
+| [docs/decisions.md](docs/decisions.md) | 全部设计决策记录（ADR-001~023），含被否方案与理由 | 每个决策变更必须追加 |
 | [docs/acceptance.md](docs/acceptance.md) | 流程1 功能验收标准 | 验收口径变更 |
-| [docs/build-plan.md](docs/build-plan.md) | 搭建规划 P0→P5：每阶段步骤、方案要点、出口、回滚、技术栈 | 施工依据，阶段推进时更新 |
-| [docs/runbook.md](docs/runbook.md) | 操作手册：环境/NapCat 配置/启动冒烟/排障 | 操作步骤变更 |
+| [docs/build-plan.md](docs/build-plan.md) | 搭建规划 P0→P7：每阶段步骤、方案要点、出口、回滚、技术栈 | 施工依据，阶段推进时更新 |
+| [docs/runbook.md](docs/runbook.md) | 操作手册：环境/NapCat/投稿 CLI/提醒/PushPlus/排障 | 操作步骤变更 |
 | [docs/open-questions.md](docs/open-questions.md) | 已决留档、已知缺口、当前进度 | 状态推进时 |
 
-## 当前状态（2026-10-25）
+## 当前状态（2026-10-26）
 
-- **P0+P1 代码落地**：OneBot 反向 WS / 预筛链 / 假分类器 / 订阅匹配 / 文件分发 / bot 命令；**65 项测试全绿**
-- **SEU 网站采集已接入**（ADR-022）：SEU-Monitor + SEUdaily 输出库 → 同一分类树；SEUdaily 库里的真实通知已验证流到 outbox（Digest）
-- **NapCat 已解压**，待用户操作：运行 `napcat\napcat.bat` → 备用机扫码登小号 → 配反向 WS（模板 `config/napcat-onebot11-template.json`）
+- **引擎侧 P0~P3 能力齐备**：OneBot 反向 WS / 预筛链 / 假分类器 / 订阅匹配 / 文件分发 / bot 命令 / SEU 网站采集（ADR-022）/ **投稿提取栈 + PushPlus + 临期提醒 + 核验数据层（ADR-023）**；**80 项测试全绿**
+- **本地实测通过**：SEUdaily 真实通知入管道；投稿 CLI 端到端（文字投稿 → outbox 文件）；老库幂等迁移（14 张表）
+- **待用户操作**：① NapCat 扫码登录 + 反向 WS（token 与 .env 一致）；② WSL 跑一次 SEU-Monitor 真实扫描；③ 填 .env 里的模型密钥（当前为占位符，提取栈自动降级不报错）
 - 技术栈：Python 3.13 venv（项目内）+ 自写薄 OneBot 客户端 + SQLite（ADR-020）
 
 ## 修订记录
@@ -53,6 +53,7 @@
 | v0.3 | 2026-10-25 | ADR-021（测试期文件分发）；P0 代码落地；新增 runbook.md |
 | v0.4 | 2026-10-25 | P1 落地：预筛链/假分类器/匹配/文件分发/bot 命令/主管道；修复 YAML off→布尔坑 |
 | v0.5 | 2026-10-25 | ADR-022：SEU-Monitor/SEUdaily 输出库接入 web 采集（站点级群 + backfill + web_seen） |
+| v0.6 | 2026-10-26 | ADR-023：引擎定位（产品计划文档）；投稿提取栈（OCR/vision→big→small）+ PushPlus 分发 + 临期提醒调度 + votes 核验数据层；80 测试 |
 
 ## 参与修改的约定
 

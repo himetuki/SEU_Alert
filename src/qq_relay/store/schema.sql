@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS items (           -- ClassifiedEvent（分类树输�
   deadline      TEXT,
   deadline_src  TEXT NOT NULL DEFAULT 'none',
   low_conf      INTEGER NOT NULL DEFAULT 0,
+  verified      INTEGER NOT NULL DEFAULT 0,   -- +1 核验确认数（ADR-023）
+  reminded_json TEXT NOT NULL DEFAULT '[]',   -- 已发临期提醒档位（ADR-023）
   raw_text      TEXT NOT NULL,
   model_calls_json TEXT,
   created_at    INTEGER NOT NULL
@@ -43,7 +45,8 @@ CREATE INDEX IF NOT EXISTS idx_items_cat ON items(cat, created_at);
 CREATE TABLE IF NOT EXISTS users (
   user_qq     TEXT PRIMARY KEY,
   joined_at   INTEGER NOT NULL,
-  note        TEXT
+  note        TEXT,
+  pushplus_token TEXT                  -- 用户在看板绑定的 PushPlus token（ADR-023）
 );
 
 CREATE TABLE IF NOT EXISTS subs (
@@ -124,4 +127,40 @@ CREATE TABLE IF NOT EXISTS web_seen (     -- web 采集源已见通知（重启�
   notice_key TEXT NOT NULL,
   first_seen INTEGER NOT NULL,
   PRIMARY KEY (source_id, notice_key)
+);
+
+CREATE TABLE IF NOT EXISTS submissions (  -- 用户投稿全链路留档（ADR-023）
+  submission_id TEXT PRIMARY KEY,
+  user         TEXT NOT NULL,
+  course       TEXT,
+  group_id     TEXT NOT NULL,
+  raw_text     TEXT,
+  image_path   TEXT,
+  extracted_text TEXT NOT NULL,
+  chain_used   TEXT,
+  low_conf     INTEGER NOT NULL DEFAULT 0,
+  raw_event_id TEXT,
+  created_at   INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS reminders (    -- 临期提醒（ADR-023）
+  reminder_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  event_id    TEXT NOT NULL,
+  user_qq     TEXT NOT NULL,
+  fire_at     INTEGER NOT NULL,
+  kind        TEXT NOT NULL,              -- reminder-24h / reminder-3h
+  sent_at     INTEGER,
+  path        TEXT,
+  UNIQUE(event_id, user_qq, kind)
+);
+CREATE INDEX IF NOT EXISTS idx_reminders_due ON reminders(sent_at, fire_at);
+
+CREATE TABLE IF NOT EXISTS votes (        -- 共识核验数据层（ADR-023，接 H5 双按钮）
+  vote_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+  event_id   TEXT NOT NULL,
+  user_qq    TEXT NOT NULL,
+  kind       TEXT NOT NULL,               -- confirm | report
+  note       TEXT,
+  created_at INTEGER NOT NULL,
+  UNIQUE(event_id, user_qq, kind)
 );

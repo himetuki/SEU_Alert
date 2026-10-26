@@ -61,13 +61,44 @@ class Settings:
     chat_base_url: str
     chat_api_key: str
     chat_model: str
+    # ---- 投稿提取栈（ADR-023）：统一 Chat Completion 协议 ----
+    vision_base_url: str = ""       # 免费视觉模型（图片→文本）
+    vision_api_key: str = ""
+    vision_model: str = ""
+    big_base_url: str = ""          # 大模型（可选层：口语→规范文本）
+    big_api_key: str = ""
+    big_model: str = ""
+    small_base_url: str = ""        # 小模型（备用层）
+    small_api_key: str = ""
+    small_model: str = "neohorse-1-9b"
+    ocr_provider: str = "none"      # none | http | xunfei（星火认知模型走 vision 层）
+    ocr_base_url: str = ""          # provider=http 时的专用 OCR 接口
+    ocr_api_key: str = ""
+    ocr_api_secret: str = ""        # provider=xunfei 时的 APISecret
+    ocr_engine_id: str = "sf8e6aca1"  # provider=xunfei 时的引擎 id
+    submit_extract_chain: tuple[str, ...] = ("vision", "big", "small")
+    # ---- PushPlus 分发（ADR-023）----
+    pushplus_token: str = ""       # 默认 token（每用户 token 存 users 表，见 queries）
+    pushplus_topic: str = ""       # 可选：群组主题
+    # ---- 临期提醒（ADR-023）----
+    reminder_offsets: tuple[int, ...] = (24, 3)   # 截止前小时数
+    reminder_interval: int = 60                  # 调度扫描间隔秒
+
+    @classmethod
+    def parse_deliver_modes(cls, raw: str) -> tuple[str, ...]:
+        """DELIVER_MODE 支持逗号组合（如 file,pushplus）；单模式亦可。"""
+        modes = tuple(m.strip() for m in raw.split(",") if m.strip())
+        bad = [m for m in modes if m not in ("file", "pushplus", "qq")]
+        if bad or not modes:
+            raise ConfigError(
+                f"DELIVER_MODE 只能由 file|pushplus|qq 组合，当前 {raw!r}")
+        return modes
 
     @classmethod
     def from_env(cls) -> "Settings":
         load_env()
         deliver_mode = os.environ.get("DELIVER_MODE", "file")
-        if deliver_mode not in ("file", "qq"):
-            raise ConfigError(f"DELIVER_MODE 只能是 file|qq，当前 {deliver_mode!r}")
+        modes = cls.parse_deliver_modes(deliver_mode)
         classifier = os.environ.get("CLASSIFIER", "stub")
         if classifier not in ("stub", "tree"):
             raise ConfigError(f"CLASSIFIER 只能是 stub|tree，当前 {classifier!r}")
@@ -87,6 +118,27 @@ class Settings:
             chat_base_url=os.environ.get("CHAT_BASE_URL", "https://tokenrhythm.studio"),
             chat_api_key=os.environ.get("CHAT_API_KEY", ""),
             chat_model=os.environ.get("CHAT_MODEL", "neohorse-1-9b"),
+            vision_base_url=os.environ.get("VISION_BASE_URL", os.environ.get("CHAT_BASE_URL", "https://tokenrhythm.studio")),
+            vision_api_key=os.environ.get("VISION_API_KEY", os.environ.get("CHAT_API_KEY", "")),
+            vision_model=os.environ.get("VISION_MODEL", ""),
+            big_base_url=os.environ.get("BIG_BASE_URL", os.environ.get("CHAT_BASE_URL", "https://tokenrhythm.studio")),
+            big_api_key=os.environ.get("BIG_API_KEY", os.environ.get("CHAT_API_KEY", "")),
+            big_model=os.environ.get("BIG_MODEL", ""),
+            small_base_url=os.environ.get("SMALL_BASE_URL", os.environ.get("CHAT_BASE_URL", "https://tokenrhythm.studio")),
+            small_api_key=os.environ.get("SMALL_API_KEY", os.environ.get("CHAT_API_KEY", "")),
+            small_model=os.environ.get("SMALL_MODEL", os.environ.get("CHAT_MODEL", "neohorse-1-9b")),
+            ocr_provider=os.environ.get("OCR_PROVIDER", "none"),
+            ocr_base_url=os.environ.get("OCR_BASE_URL", ""),
+            ocr_api_key=os.environ.get("OCR_API_KEY", ""),
+            ocr_api_secret=os.environ.get("OCR_API_SECRET", ""),
+            ocr_engine_id=os.environ.get("OCR_ENGINE_ID", "sf8e6aca1"),
+            submit_extract_chain=tuple(
+                s.strip() for s in os.environ.get("SUBMIT_EXTRACT_CHAIN", "vision,big,small").split(",") if s.strip()),
+            pushplus_token=os.environ.get("PUSHPLUS_TOKEN", ""),
+            pushplus_topic=os.environ.get("PUSHPLUS_TOPIC", ""),
+            reminder_offsets=tuple(
+                int(s) for s in os.environ.get("REMINDER_OFFSETS", "24,3").split(",") if s.strip()),
+            reminder_interval=int(os.environ.get("REMINDER_INTERVAL", "60")),
         )
 
     def ensure_dirs(self) -> None:

@@ -57,13 +57,29 @@ graph TB
 
 | 源 | 状态 | 说明 |
 |---|---|---|
-| QQ 群消息 | ✅ 已落地 | OneBot 11 反向 WS（NapCat），`adapters/onebot.py` |
+| QQ 群消息 | ✅ 已落地（内部增强） | OneBot 11 反向 WS（NapCat），`adapters/onebot.py`；ADR-023 后定位为内部通道，不专门维护 |
 | **SEU-Monitor 归档库** | ✅ 已落地 | 教务处六栏目，`adapters/web/seu_monitor.py`，群 = `web-jwc`（ADR-022） |
 | **SEUdaily 网页库** | ✅ 已落地 | jwc/cse 等站，`adapters/web/seudaily.py`，群 = `web-cse` 等 |
-| 用户转发上报（学习通/雨课堂） | 后续 | 私聊转发 → RawEvent，接口已预留 |
+| **用户投稿** | ✅ 已落地（内部） | 公众号/私聊转发/拍图的引擎侧入口，`adapters/user_report.py`；提取栈见下 |
 | 其他学校网站 | 后续 | 新 adapter 实现 Adapter 协议即可 |
 
 web 源轮询：首次全量 backfill，之后增量（`web_seen` 表）；与 QQ 消息共用分类树，跨源同内容由去重自动合并（fan-in）。
+
+## 投稿提取栈（ADR-023）
+
+用户投稿（文字/图片）进入管道前，先把“图/口语/混乱格式”变成干净的 RawEvent.text。降级链可配置（`SUBMIT_EXTRACT_CHAIN`，默认 `vision,big,small`）：
+
+| 层 | 协议 | 职责 | 失败后 |
+|---|---|---|---|
+| OCR/视觉模型（讯飞星火等） | Chat Completion（图片 base64）/ 专用 OCR 协议 | 图片 → 文本 | 下一层 |
+| 大模型（可选层） | Chat Completion | 口语/混乱文本 → 规范通知文本 | 下一层 |
+| 小模型（备用层，neohorse-1-9b） | Chat Completion | 同上，免费额度 | 原文 + low_conf |
+
+结构化分类仍由 JEV 分类树负责（不替代）；DDL 等字段提取仍在 L4。所有层的原始输入/输出落 `submissions` 表备审。
+
+## 临期提醒调度（ADR-023）
+
+L5 匹配后，带 deadline 的 item 为每个匹配用户生成多轮临期提醒（默认截止前 24h/3h，可配），调度器每分钟扫描 `reminders` 表触发，走 deliver 层（与即时/Digest 同一出口）。计划书的“截止前 24h/3h、抢票前 10 分钟”即此机制。
 
 ## 数据契约
 
