@@ -41,7 +41,7 @@
 
 - **引擎侧 P0~P4 能力齐备**：OneBot 反向 WS / 预筛链 / 假分类器 / 订阅匹配 / 文件分发 / bot 命令 / SEU 网站采集（ADR-022）/ 投稿提取栈 + PushPlus + 临期提醒 + 核验数据层（ADR-023）/ **全院系 33 学院 + 劳动教育移植（ADR-024）**；**95 项测试全绿**
 - **采集覆盖**：教务处六栏目（SEU-Monitor 归档）+ jwc/cse（SEUdaily 库）+ **33 个学院官网直采** + 劳动教育课程平台（移植 SEU-Labor-Course-Pusher 源码，未联网验证）
-- **待用户操作**：① NapCat 扫码登录 + 反向 WS；② WSL 跑 SEU-Monitor 真实扫描；③ 填 .env 模型密钥与劳动教育会话（LABOR_*）；④ 金标准集 30-50 条（P2 校准）
+- **待用户操作**：① NapCat 扫码登录 + 反向 WS；② WSL 跑 SEU-Monitor 真实扫描；③ 填 .env 模型密钥与各源会话（LABOR_/SEU_LECTURE_/VISION_/BIG_/SMALL_）；④ **填金标准集**（模板+指南在 `data/goldset.*`，填完跑 `scripts/run_goldset.py` 出校准报告 → P2 开工）
 - 技术栈：Python 3.13 venv（项目内）+ 自写薄 OneBot 客户端 + SQLite（ADR-020）
 
 ## 修订记录
