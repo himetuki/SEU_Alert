@@ -129,3 +129,21 @@ JEV 分类树替换假分类器（`CLASSIFIER=tree`）：连通性测试先行�
 - **公众号（免登录）**：`wechat-mp` 源 30 分钟一轮。默认监控「东南大学文化素质教育中心」（`config/wechat-mp.yml` 加账号即可多号监控）。链路：搜狗文章搜索 → mp.weixin.qq.com 公开正文 → **大/小模型代读**出「题目/时间/**校区+教室**/报名途径」（校区在推送里着重显示；报名途径只取文字路径，不取二维码）。模型判非讲座自动忽略；模型未配置时降级为原文入库（low_conf）。搜狗要验证码时跳过本轮，不会硬刚
 - **人文讲座（仅监控）**：`seu-lectures` 源 15 分钟一轮，移植 seu-lecture-cli 的监控能力（**不预约不抢票**）。会话：`.env` 填 `SEU_LECTURE_USERNAME/PASSWORD`（CAS，需短信时跳过并告警）或 `SEU_LECTURE_COOKIES`。讲座（含预约开放时间、余量）→ `web-lecture` 群 → 订阅分发。订阅：`/sub 群 人文讲座 类别 讲座`
 - 两个源都走同一个分类树和 deliver 出口；临期提醒对带 deadline 的 item 自动生效
+
+## 11. 打包便携版（ADR-026）
+
+```bash
+# 一次性：venv 里装 pyinstaller
+.venv\Scripts\python -m pip install pyinstaller
+# 构建（约 6-10 分钟）
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/build_portable.ps1
+```
+
+产物 `dist/qq-relay-portable/`：`qq-relay.exe`（双击即跑，自带 Python 运行时）+
+`_internal/` + `config/` + `.env.example` + `使用说明.md`。数据/配置在 **exe 同级目录**
+（`data/`、`.env`、`logs/`），不写 %APPDATA%、不写系统目录——整个文件夹拷走即用。
+
+注意：`src/qq_relay/store/schema.sql` 是非 .py 数据文件，构建脚本已用 `--add-data`
+（绝对路径，PyInstaller 会把相对路径解析到 spec 目录）打入；以后新增非 .py 资源
+要同步改 `scripts/build_portable.ps1`。后台管理入口：`python -m qq_relay.admin`
+或便携版 exe；主管道（含 QQ 内部通道）仍是 `python -m qq_relay.main`。
