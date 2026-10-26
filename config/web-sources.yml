@@ -25,3 +25,15 @@ sources:
     name: 劳动教育课程
     root: config/labor.yml
     interval: 300                 # 选课抢名额，5 分钟一轮
+
+  - id: wechat-mp
+    kind: wechat_mp              # 公众号监控（ADR-025，免登录+模型代读；默认 东南大学文化素质教育中心）
+    name: 公众号文章
+    root: config/wechat-mp.yml
+    interval: 1800                # 搜狗有风控，30 分钟一轮
+
+  - id: seu-lectures
+    kind: seu_lectures           # 人文讲座预约系统监控（ADR-025，移植 seu-lecture-cli 监控能力）
+    name: 人文讲座
+    root: config/seu-lectures.yml
+    interval: 900                 # 15 分钟一轮（预约开放时间敏感）

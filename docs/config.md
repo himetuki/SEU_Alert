@@ -149,6 +149,25 @@ filters:
 
 会话（.env，二选一）：`LABOR_USERNAME` + `LABOR_PASSWORD`（CAS 自动登录：探测验证码→RSA 加密→casLogin→票据兑换；需短信/验证码时跳过本轮并告警）或 `LABOR_COOKIES`（JSON / `k=v; k=v`）/ `LABOR_COOKIE_FILE`。课程表解析与 diff 移植自 SEU-Labor-Course-Pusher（Rust）源码；**新课程 → web-labor 群 → 分类树 → 订阅分发**（含临期提醒）。非校内网期间该源连续失败只记日志。
 
+## 公众号监控（wechat-mp.yml，ADR-025）
+
+```yaml
+accounts:
+  - key: wzjy                    # 群 = web-mp-wzjy；name 用于搜狗搜索与账号过滤
+    name: 东南大学文化素质教育中心
+extract_layer: big               # big=大模型代读 | small=小模型备用；未配置则降级原文入库
+```
+
+免登录链路：搜狗文章搜索（type=2）→ `/link?url=` 跳转解析 → mp.weixin.qq.com 公开正文 → 模型代读（题目/时间/**校区+教室**/报名途径/摘要）。**校区着重显示**（`【九龙湖校区】`前缀）；报名途径只提取文字路径，不提取二维码。模型判 `is_lecture=false` 不入库。加账号 = 加一条 accounts。
+
+## 人文讲座监控（seu-lectures.yml，ADR-025）
+
+```yaml
+keyword: ""        # 可选：只监控标题含关键词的讲座
+```
+
+移植 seu-lecture-cli **仅监控**（queryActivityList.do 分页 + CAS，**不预约不抢票**）。会话：`SEU_LECTURE_USERNAME/PASSWORD` 或 `SEU_LECTURE_COOKIES`（与劳动教育共用 cas.py）。讲座 → `web-lecture` 群，文案含预约开放时间与余量。
+
 ## bot 命令表
 
 | 命令 | 作用 |

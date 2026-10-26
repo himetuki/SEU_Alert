@@ -1,0 +1,3 @@
+# 人文讲座监控（ADR-025）：移植 seu-lecture-cli 监控能力（仅查讲座，不预约不抢票）
+# 会话：.env 的 SEU_LECTURE_USERNAME/PASSWORD（CAS）或 SEU_LECTURE_COOKIES
+keyword: ""               # 可选：只监控标题含该关键词的讲座（空=全部）

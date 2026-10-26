@@ -194,6 +194,18 @@ P2 与 P3 无相互依赖，可并行。关键路径：P0→P1→P2→P4→P5。
 
 ---
 
+## P9 公众号监控与人文讲座接入（ADR-025，2026-10-26 落地）
+
+| 项 | 状态 |
+|---|---|
+| 共用 CAS（`adapters/web/cas.py`） | ✅ 劳动教育/讲座监控共用（探测验证码→RSA→casLogin→票据） |
+| 公众号监控（`adapters/web/wechat_mp.py`） | ✅ 免登录（搜狗文章搜索+跳转解析+mp 公开正文）+ 大/小模型代读（题目/时间/校区+教室/报名途径，校区着重显示）；`config/wechat-mp.yml` 默认「东南大学文化素质教育中心」 |
+| 人文讲座（`adapters/web/seu_lectures.py`） | ✅ 移植 seu-lecture-cli 仅监控（parse_lectures+queryActivityList 分页；不移植 reserve/captcha/clock）；`config/seu-lectures.yml` |
+| 测试 | ✅ 109 项（真实搜狗页面夹具 + 跳转解析 + 模型代读 mock + 讲座解析移植 + 账号过滤器） |
+| 踩坑记录 | Referer 头 raw 中文 → httpx UnicodeEncodeError 被 except 吞掉（已 quote 编码）；`<td-data>`/相对导入/账号在 all-time-y2 span |
+
+---
+
 ## P6 后续流程（部分提前落地）
 
 | 项 | 状态 |
