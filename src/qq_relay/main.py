@@ -12,7 +12,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import signal
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 from .adapters.onebot import OneBotServer
@@ -70,6 +70,7 @@ class Runtime:
     intake: SubmissionIntake
     scheduler: ReminderScheduler
     server: Optional[OneBotServer]
+    pollers: dict = field(default_factory=dict)      # source_id → WebPoller（ADR-026 后台用）
 
 
 async def build_runtime(s: Settings, with_server: bool = True) -> Runtime:
@@ -112,20 +113,27 @@ async def build_runtime(s: Settings, with_server: bool = True) -> Runtime:
                               db=conn)
     return Runtime(settings=s, groups=groups, subs=subs, conn=conn,
                    runner=runner, intake=intake, scheduler=scheduler,
-                   server=server)
+                   server=server, pollers={})
 
 
-async def _spawn_web_poller(src, conn, runner) -> "asyncio.Task":
-    seen = await queries.load_web_seen(conn, src.id)
-    poller = WebPoller(
-        source=WebSource(id=src.id, kind=src.kind, name=src.name,
-                         root=src.root, interval=src.interval),
-        scanner=SCANNERS[src.kind],
-        seen=seen,
-        on_notice=lambda ev: runner.handle_event(ev),
-        mark_seen=lambda key: queries.mark_web_seen(conn, src.id, key),
-    )
-    return asyncio.create_task(poller.run_forever())
+async def spawn_web_pollers(runtime: Runtime) -> dict:
+    """为所有 web 源创建轮询器并常驻运行；返回 {source_id: WebPoller}。"""
+    pollers: dict = {}
+    for src in load_web_sources(runtime.settings.config_dir / "web-sources.yml").sources:
+        seen = await queries.load_web_seen(runtime.conn, src.id)
+        poller = WebPoller(
+            source=WebSource(id=src.id, kind=src.kind, name=src.name,
+                             root=src.root, interval=src.interval),
+            scanner=SCANNERS[src.kind],
+            seen=seen,
+            on_notice=lambda ev: runtime.runner.handle_event(ev),
+            mark_seen=lambda key, sid=src.id: queries.mark_web_seen(
+                runtime.conn, sid, key),
+        )
+        pollers[src.id] = poller
+        asyncio.create_task(poller.run_forever())
+    runtime.pollers = pollers
+    return pollers
 
 
 async def amain(seconds: int | None) -> int:
@@ -133,8 +141,8 @@ async def amain(seconds: int | None) -> int:
     rt = await build_runtime(s, with_server=True)
     runner, server = rt.runner, rt.server
 
+    await spawn_web_pollers(rt)
     web_cfg = load_web_sources(s.config_dir / "web-sources.yml")
-    web_tasks = [await _spawn_web_poller(src, rt.conn, runner) for src in web_cfg.sources]
 
     await server.start()
     modes = " + ".join(Settings.parse_deliver_modes(s.deliver_mode))
@@ -186,7 +194,6 @@ async def amain(seconds: int | None) -> int:
     tasks = [asyncio.create_task(c) for c in
              (consume_group(), consume_private(), watchdog(),
               rt.scheduler.run_forever())]
-    tasks.extend(web_tasks)
     try:
         if seconds:
             await asyncio.wait_for(stop.wait(), timeout=seconds)

@@ -101,6 +101,7 @@ class WebPoller:
             new += 1
         self.stats["scans"] += 1
         self.stats["new"] += new
+        self.stats["last_scan_at"] = int(time.time())
         return new
 
     async def run_forever(self) -> None:
@@ -114,6 +115,7 @@ class WebPoller:
                     first = False
             except Exception as e:               # 扫描失败不拖垮主管道
                 self.stats["errors"] += 1
+                self.stats["last_error"] = repr(e)[:200]
                 print(f"[web:{self.source.id}] 扫描失败: {e!r}")
             await asyncio.sleep(self.source.interval)
 

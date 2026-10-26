@@ -7,6 +7,7 @@ P3 将扩展为单一配置管理器（单写者 / 原子写 / 热更新，ADR-0
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -14,8 +15,16 @@ from typing import Optional
 import yaml
 from dotenv import load_dotenv
 
-# src/qq_relay/config.py → 项目根
+# 源码树项目根（src/qq_relay/config.py → 仓库根）
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+
+def runtime_root() -> Path:
+    """运行期根目录：PyInstaller 便携版下 = exe 同级目录（数据/配置都落这里，
+    不写 %APPDATA%）；源码运行 = 仓库根。"""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return PROJECT_ROOT
 
 CATS = ("homework", "exam", "competition", "research", "exchange", "lecture", "task", "notice", "chat")
 ACTIONS = ("submit", "signup", "attend", "know")
@@ -37,12 +46,20 @@ class ConfigError(Exception):
 
 
 def load_env() -> None:
-    load_dotenv(PROJECT_ROOT / ".env")  # 已存在的系统环境变量优先
+    # 便携版优先读 exe 同级的 .env，其次源码树根
+    root = runtime_root()
+    for candidate in (root / ".env", PROJECT_ROOT / ".env"):
+        if candidate.is_file():
+            load_dotenv(candidate)
+            break
 
 
 def _path_from_env(name: str, default: str) -> Path:
     p = Path(os.environ.get(name, default))
-    return p if p.is_absolute() else (PROJECT_ROOT / p)
+    if p.is_absolute():
+        return p
+    base = runtime_root() if getattr(sys, "frozen", False) else PROJECT_ROOT
+    return base / p
 
 
 @dataclass(frozen=True)
