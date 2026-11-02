@@ -137,7 +137,7 @@ async def handle_private(user_qq: str, text: str, groups: GroupsConfig,
         _save(subs_cfg, subs_path)
         return f"Digest 已{'开启' if on else '关闭'}"
 
-    # ---- 共识核验双按钮（ADR-023，计划书「+1确认 / 时间变更报错」数据层）----
+    # ---- 共识核验双按钮（ADR-023，核验数据层）----
     if cmd in ("/confirm", "/report"):
         event_id = parts[1] if len(parts) >= 2 else None
         if event_id is None:

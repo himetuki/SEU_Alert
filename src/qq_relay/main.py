@@ -120,6 +120,9 @@ async def spawn_web_pollers(runtime: Runtime) -> dict:
     """为所有 web 源创建轮询器并常驻运行；返回 {source_id: WebPoller}。"""
     pollers: dict = {}
     for src in load_web_sources(runtime.settings.config_dir / "web-sources.yml").sources:
+        if not src.enabled:
+            print(f"[web:{src.id}] 已停用（web-sources.yml enabled: false），跳过")
+            continue
         seen = await queries.load_web_seen(runtime.conn, src.id)
         poller = WebPoller(
             source=WebSource(id=src.id, kind=src.kind, name=src.name,

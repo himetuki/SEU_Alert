@@ -7,6 +7,15 @@ name = "qq-relay"
 version = "0.1.0"
 description = "校内个性化信息推送：QQ 群消息 → 画像+预筛+JEV 分类树 → 按订阅分发（测试期文件分发）"
 requires-python = ">=3.11"
+license = "AGPL-3.0-only"
+license-files = ["LICENSE"]
+classifiers = [
+    "License :: OSI Approved :: GNU Affero General Public License v3",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
 
 [tool.setuptools.packages.find]
 include = ["qq_relay*"]

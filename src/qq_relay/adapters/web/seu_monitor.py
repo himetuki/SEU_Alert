@@ -6,7 +6,7 @@
         └── meta.json    # Notice(site/column/id/title/url/date) + 哈希 + 附件
 
 root 默认 `~/.local/share/seu-monitor`；Windows 开发期在 WSL 里跑监控，
-root 用 `--data-dir` 指到 项目所在盘（或配置里写 \\wsl.localhost\\... 路径）。
+root 用 `--data-dir` 指到项目内目录（或配置里写 \\wsl.localhost\\... 路径）。
 """
 
 from __future__ import annotations

@@ -31,7 +31,7 @@ ACTIONS = ("submit", "signup", "attend", "know")
 GROUP_KINDS = ("course", "grade", "cadre", "class", "program", "club", "web", "other")
 SCOPES = ("course", "grade", "class", "school")
 FILTER_MODES = ("off", "whitelist", "blacklist")
-WEB_KINDS = ("seu_monitor", "seudaily", "seu_colleges", "labor",
+WEB_KINDS = ("jwc", "seu_monitor", "seudaily", "seu_colleges", "labor",
              "wechat_mp", "seu_lectures")
 
 # 通用预筛词（与群画像词取并集）；groups.yml 的 prefilter_generic 可覆盖
@@ -162,6 +162,23 @@ class Settings:
     def ensure_dirs(self) -> None:
         for d in (self.data_dir, self.log_dir, self.outbox_dir):
             d.mkdir(parents=True, exist_ok=True)
+        self.config_dir.mkdir(parents=True, exist_ok=True)
+        self._ensure_subscriptions_file()
+
+    def _ensure_subscriptions_file(self) -> None:
+        """真实订阅文件含用户 QQ，不入版本库（ADR-027）。
+
+        首次运行若不存在，从被跟踪的 `subscriptions.yml.example` 模板复制生成；
+        模板也不在（极端情况）则退化为空订阅，保证启动不中断。
+        """
+        path = self.config_dir / "subscriptions.yml"
+        if path.exists():
+            return
+        sample = self.config_dir / "subscriptions.yml.example"
+        if sample.exists():
+            path.write_text(sample.read_text(encoding="utf-8"), encoding="utf-8")
+        else:
+            path.write_text("subscriptions: {}\n", encoding="utf-8")
 
 
 def load_yaml(path: Path) -> dict:
@@ -398,10 +415,12 @@ def load_subscriptions(path: Path) -> SubscriptionsConfig:
 @dataclass(frozen=True)
 class WebSourceCfg:
     id: str
-    kind: str                # seu_monitor | seudaily
+    kind: str                # jwc | seu_monitor | seudaily | seu_colleges |
+                             # labor | wechat_mp | seu_lectures
     name: str
     root: Path
     interval: int = 900
+    enabled: bool = True     # false = 不参与轮询（ADR-029 停用旧通道用）
 
 
 @dataclass(frozen=True)
@@ -429,5 +448,6 @@ def load_web_sources(path: Path) -> WebSourcesConfig:
         seen_ids.add(sid)
         sources.append(WebSourceCfg(id=sid, kind=kind,
                                     name=str(s.get("name") or sid),
-                                    root=root, interval=interval))
+                                    root=root, interval=interval,
+                                    enabled=bool(s.get("enabled", True))))
     return WebSourcesConfig(sources=tuple(sources))

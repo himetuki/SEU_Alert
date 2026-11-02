@@ -71,7 +71,7 @@
 
 ## ADR-010 部署路径：Win11 开发 → 香橙派 4 Pro 常驻
 
-- **背景**：用户确认先在 Windows 11 打通工作流，之后迁到家庭局域网内香橙派 4 Pro（RK358S/ARM64/6GB/Debian）。
+- **背景**：用户确认先在 Windows 11 打通工作流，之后迁到局域网内香橙派 4 Pro（RK358S/ARM64/6GB/Debian）。
 - **决定**：业务代码（Python + SQLite + OneBot 客户端）全平台通用；迁移 = 改 .env 的 WS 地址与 token，零代码改动；所有路径/端口/token 配置化，零硬编码。
 - **理由**：框架选型因此钉死 NapCat（LLBot 绑 Windows，迁不过去）。
 - **后果**：SQLite WAL 单文件；NapCat arm64 部署方式（Docker 多架构镜像或 Python 直跑）待验证；无头环境扫码登录入口提前试通；掉线看门狗为刚需。
@@ -159,21 +159,21 @@
 - **被否方案**：fork/内嵌爬虫代码（维护分叉）；webhook 接收（SEU-Monitor 只推飞书，格式不适合当数据源）。
 - **后果**：web-sources.yml 配置 root 与间隔；首次扫描全量 backfill，之后增量（web_seen 表）；SEUdaily metadata 无发布日期 → ts 用文件 mtime（抓取时间）；未配画像的站点通知会被通用词预筛挡掉（漏检可控，配画像即恢复）；SEU-Monitor 在 Linux/WSL 跑监控，Windows 侧读其归档（root 可指向 /mnt/<盘> 或 \\wsl.localhost）。
 
-## ADR-023 对接产品计划文档：引擎定位与投稿提取栈
+## ADR-023 引擎定位与投稿提取栈
 
-- **背景**：项目负责同学出具《校园提醒产品·产品计划文档》（V1.0，存 `data/doc-extract.txt`）：个人微信公众号投稿 + OCR+LLM 提取 + H5 双按钮核验 + PushPlus 微信强推送（截止前 24h/3h、抢票前 10min）+ 付费功能，4 周 MVP，我方（用户）为参与者 A（技术）。
-- **决定**（用户 2026-10-25 拍板）：
-  1. **定位**：qq-relay 作为计划的**内容与决策引擎**（多源采集 → JEV 分类树 → 提取 → 订阅匹配 → 提醒调度），公众号/H5/PushPlus 为前端触点；bot 保留为**内部增强通道**（我方主动接入部分群，不专门维护适配，NapCat 登录暂缓）；
+- **背景**：本引擎定位为「校园信息聚合与强提醒」类产品的内容与决策引擎，前端触点由独立仓库负责：个人公众号投稿 + OCR+LLM 提取 + 双按钮核验 + PushPlus 微信强推送（截止前 24h/3h）+ 临期提醒。
+- **决定**（2026-10-25 拍板）：
+  1. **定位**：qq-relay 作为**内容与决策引擎**（多源采集 → JEV 分类树 → 提取 → 订阅匹配 → 提醒调度），公众号/H5/PushPlus 为前端触点；bot 保留为**内部增强通道**（我方主动接入部分群，不专门维护适配，NapCat 登录暂缓）；
   2. **OCR 纳入**：投稿提取层 = **OCR/视觉模型（Chat Completion 协议）→ 大模型（可选层）→ 小模型（备用层）** 的降级链；JEV 分类树**保留用于分类**（不替代）；
   3. **模型接入统一走 Chat Completion 协议**（大模型/小模型/免费视觉模型/讯飞类 OCR）；专用 OCR 协议接口（如讯飞通用 OCR）作为 provider 之一可插拔；
   4. QQ 私聊仅内部测试通道；先本地实现全部引擎侧能力。
-- **理由**：计划书已注册公众号并实测 PushPlus，产品与增长层是既成方向；引擎层复用我方已落地的采集/分类/订阅资产，并补齐其方案里最重的“临期强提醒”与“投稿提取”缺口；网站采集可直接自动化计划书中“人工维护全校讲座/教务事件”的工作。
-- **被否方案**：另起独立产品线（与计划书内耗）；bot 作为产品主通道（封号与隐私风险，负责人明确回避）。
-- **后果**：引擎侧新增三能力（PushPlus 分发、deadline 提醒调度、用户投稿通道）+ 两数据层复用（labels/votes 核验、课程别名词典）；H5 看板由计划书前端负责，引擎提供数据导出。工作项列入 build-plan P7。
+- **理由**：前端触点（公众号 + PushPlus）已实测可用，产品与增长层是独立方向；引擎层复用已落地的采集/分类/订阅资产，并补齐其中最重的「临期强提醒」与「投稿提取」缺口；网站采集可直接自动化原本需要人工维护的全校讲座/教务事件。
+- **被否方案**：另起独立产品线（重复投入）；bot 作为产品主通道（封号与隐私风险，明确回避）。
+- **后果**：引擎侧新增三能力（PushPlus 分发、deadline 提醒调度、用户投稿通道）+ 两数据层复用（labels/votes 核验、课程别名词典）；H5 看板由前端侧负责，引擎提供数据导出。工作项列入 build-plan P7。
 
 ## ADR-024 全院系覆盖 + 劳动教育推送器源码接入
 
-- **背景**：① SEUdaily 只监控计软智学院（cse）一个学院站点，计划书要求覆盖**东南大学全部学院**并按学院订阅；② 用户已有项目 SEU-Labor-Course-Pusher（Rust+WebView2，监控劳动教育平台新课 + PushPlus 推送，仓库 zz6zz666/SEU-Labor-Course-Pusher，已克隆至 seu-projects-test/），要求**只用其源码、不接打包 exe**；当前非校内网，不测试连通性，保证可用即可。
+- **背景**：① SEUdaily 只监控计软智学院（cse）一个学院站点，产品需求是覆盖**东南大学全部学院**并按学院订阅；② 用户已有项目 SEU-Labor-Course-Pusher（Rust+WebView2，监控劳动教育平台新课 + PushPlus 推送，仓库 zz6zz666/SEU-Labor-Course-Pusher，已克隆至 seu-projects-test/），要求**只用其源码、不接打包 exe**；当前非校内网，不测试连通性，保证可用即可。
 - **决定**：
   1. **全院系**：从东南大学官网院系设置页自动发现 **33 个学院**通知列表页（WebPlus CMS `/<id>/list.htm`，scripts/discover_colleges.py），落 `config/colleges.yml`；新增 `seu_colleges` 异步扫描器（列表解析 + 文章页 arti_title/arti_update/wp_articlecontent 提取 + 页脚截断）；每学院一个 `web-<key>` 画像群，订阅粒度 = 学院 × 类别。chem/math/futuretech/bme 四院首页未发现列表页，留配置位后续补。
   2. **劳动教育**：移植 Rust 源码三块到 `adapters/web/labor.py`——`site.rs` 课程表解析（table#c_app_page_index_XuanKe_table、列偏移探测、td-data、已满/已截止）、`watcher.rs` 的 diff 语义（unique_id=课程名|时间，由 web_seen 承担）、`login.rs` 的 CAS 无浏览器登录（探测验证码 → RSA 公钥加密密码 → casLogin → 票据兑换）；会话优先 cookie（env/文件），CAS 自动登录兜底，需短信/验证码时 NeedManual 跳过本轮并告警。**推送复用本项目 deliver 层**（PushPlus/file/qq），不用其 exe。
@@ -193,9 +193,9 @@
 - **被否方案**：搜狗账号搜索 type=1（实测空结果）；第三方 RSS 中转（不自托管、不稳定）；使用 seu-lecture-cli 的预约/抢票（用户明确排除）。
 - **后果**：web 采集源增至 6 个；测试 109 项（真实搜狗页面夹具+跳转解析+模型代读 mock+讲座解析移植）；**已知限制**：搜狗风控（验证码→跳过本轮，间隔 ≥1800s）、搜狗索引可能滞后、提取质量取决于配置的模型层。
 
-## ADR-026 便携版打包 + 后台管理界面（校内使用者测试）
+## ADR-026 便携版打包 + 后台管理界面
 
-- **背景**：用户已离校、无校内网无法自测；需打成**便携版软件**发给校内校内使用者测试，反馈焦点为**人文讲座与劳动教育的监控与订阅**；要求**先做后台管理人员界面**、PushPlus 分发、**只打基础后续再配置**。
+- **背景**：需要把引擎做成**便携版软件**分发给校内非技术用户（无需安装 Python 即可运行），以便验证**人文讲座与劳动教育的监控与订阅**；要求**先做后台管理人员界面**、PushPlus 分发、**先打基础后续再配置**。
 - **决定**：
   1. **后台管理**（`src/qq_relay/admin.py`，Flask + 自包含单页，无构建无外部静态文件）：监控源状态（上次扫描/新增/错误/立即扫描）、最近信息流、订阅管理（群×类别 增删查，原子写 YAML）、PushPlus 测试推送（token 页内可填）、配置概览（密钥脱敏）。items 查询走**独立 SQLite 连接**，不与监控 loop 争抢（学院源一轮扫描数分钟，走 loop 会堵死页面）。
   2. **便携打包**：PyInstaller **one-dir**（符合用户 one-dir 偏好）；`runtime_root()` 冻结模式下把数据/配置解析到 **exe 同级目录**（不写 %APPDATA%、不写系统目录）；构建脚本 `scripts/build_portable.ps1` 产出 `dist/qq-relay-portable/`（exe + config/ + .env.example + 使用说明.md），整 folder 发给使用者，无需 Python。
@@ -204,3 +204,41 @@
 - **理由**：校内使用者是实际使用者，后台界面让他们能自证链路（扫描→信息流→推送）并回传日志；PyInstaller one-dir 是 Windows 零依赖分发的标准解；焦点源（讲座/劳动教育）需校内网，恰好由他们验证。
 - **被否方案**：安装包（inno setup，打包脚本已预留但本轮不做）；Web 部署（使用者无服务器）；Electron/Tauri 桌面壳（过重）。
 - **后果**：测试 124 项（含 admin API 桩测试 8 项）；新增依赖 flask/pyinstaller（构建期）；`spawn_web_pollers` 重构为 Runtime 持有 pollers（main.py 与 admin.py 共用）。
+
+## ADR-027 订阅文件移出版本库（与 .env 同一约定）
+
+- **背景**：安全排查发现 `config/subscriptions.yml` 被 git 跟踪；该文件记录用户 QQ 与订阅偏好（个人信息），正式使用后一旦 `git add` 即入库，构成隐私泄漏面。
+- **决定**：沿用 `.env` 的既定约定——**真实文件不入库，模板入库**：
+  1. 新增被 git 跟踪的模板 `config/subscriptions.yml.example`（占位 QQ/群号，含注释说明）；
+  2. `config/subscriptions.yml` 加入 `.gitignore`，并 `git rm --cached` 解除跟踪（本地文件保留）；
+  3. `Settings.ensure_dirs()` 增加引导：真实文件不存在时自动从 `.example` 复制生成；模板也不在（极端情况）则退化为空订阅，保证启动不中断；
+  4. `scripts/build_portable.ps1` 同步把模板拷进便携版 `config/`（首次启动自动生成真实文件）。
+- **理由**：与 `.env` / `.env.example` 完全一致的心智模型，最小改动、零迁移成本；引导逻辑保证全新克隆与便携版开箱即用。
+- **被否方案**：给 `subscriptions.yml` 加占位提交并只靠 `.gitignore`（文件已跟踪时 ignore 无效，必须 `git rm --cached`）；把用户 QQ 改成哈希/脱敏存储（订阅匹配依赖可读 QQ 查 users 表与 outbox 目录，改动面过大）。
+- **后果**：真实订阅从版本库消失（消除一处 PII 泄漏面）；测试 127 项（新增 `TestEnsureSubscriptionsBootstrap` 3 项：从模板生成 / 不覆盖已存在 / 无模板退化空订阅）；文档（config.md / runbook.md / portable-readme.md）同步说明。
+
+## ADR-028 GitHub Actions 自动构建分发 + Linux 服务器版
+
+- **背景**：① 用户要求增加 GitHub 工作流，自动构建并分发便携版；② Windows 平台专用构建源码需归置到项目内 `win/` 目录；③ 再补一份 Linux 服务器版，同样由工作流构建分发。
+- **决定**：
+  1. **源码归置**：Windows 便携版构建源码移入 `win/`——`win/build_portable.ps1`（原 `scripts/build_portable.ps1`）、`win/portable_entry.py`（原根目录）、新增 `win/README.md`；**产物仍输出到项目根 `dist/`**（`dist/` 已 gitignore），符合用户"产物不散落"的偏好。
+  2. **Linux 服务器版**（`linux/`）：新增无头入口 `server_entry.py`（`admin.main(host=0.0.0.0, open_browser=False)`，`ADMIN_HOST`/`ADMIN_PORT` 可覆盖）、构建脚本 `build_server.sh`（PyInstaller one-dir，不加 `--windowed`）、systemd unit `qq-relay-server.service`、`linux/README.md`；产物 `dist/qq-relay-server/` + `dist/qq-relay-server.tar.gz`。
+  3. **工作流** `.github/workflows/build.yml`：`test`（ubuntu，pytest）→ `win`（windows-latest）+ `linux`（ubuntu-latest）并行构建 → 上传 artifact；`release` job（`needs: [win, linux]`）在 **tag `v*`** 或手动勾选时用 `softprops/action-gh-release` 上传两份产物。`permissions: contents: write`。
+  4. **脚本 CI 兼容**：构建脚本支持参数/环境变量（`-Python`/`$PYTHON`/`$OUT`），本地优先用项目内 `.venv`，CI 回退到 runner 的 `python`/`python3`；统一设 `PYTHONPATH=src` + `--paths src`，避免依赖 `pip install -e .`。
+  5. **产物校验**：win 校验 `qq-relay.exe` 与 zip 存在，linux 校验可执行文件与 tar.gz 存在，缺失即 fail。
+- **理由**：GitHub Actions 是零自建服务器的标准分发通道；`win/`/`linux/` 按平台分目录使仓库结构清晰；无头服务器版复用同一 admin 后端（Flask），只改绑定地址与浏览器行为，改动最小；先跑 pytest 再构建，避免把测试失败的产物发出去。
+- **被否方案**：用 GitHub Pages / 自建 NAS 分发（无 Release 语义）；Linux 版用 Docker 镜像（用户明确要二进制 + systemd，且镜像构建在 runner 上更重）；把构建产物也提交进仓库（体积膨胀且不可追溯）。
+- **后果**：新增 `win/`（3 文件）、`linux/`（4 文件）、`.github/workflows/build.yml`；`scripts/build_portable.ps1` 与根 `portable_entry.py` 迁移；runbook 新增第 12/13 节；测试仍 127 项全绿（本 ADR 未改业务代码）；**注意**：仓库尚无 git remote，工作流在首次推送到 GitHub 后生效。
+
+## ADR-029 教务处直采（自包含采集）+ 许可边界核查
+
+- **背景**：用户希望把参考项目的源码整合成统一架构，不再只是「读取其输出库」。核查发现 SEU-Monitor（Go，教务处监控）**无 LICENSE 文件**（本地与上游 GitHub 均无，21 个 Go 文件也无版权头），按著作权法默认保留所有权利，不可复制其源码。曾误判「其依赖是 AGPL，故其本身是 AGPL」——核查后不成立：`internal/monitor/licenses/AGPL-3.0.txt` 是 SEU-Monitor 下载 **zju-connect**（可选外部 VPN 核心）时随附写入的许可证副本（`vpn.go` 的 `coreNotices()`）；其 `go.mod` 依赖只有 BSD-3-Clause 的 `golang.org/x/*`；AGPL 的传染方向是「污染下游」，不是「向上赋予授权」。
+- **决定**：
+  1. **教务处六栏目改为自研直采**（`adapters/web/jwc.py`）：按 WebPlus CMS **公开 HTML 结构**独立实现列表解析（新版 `news-list-item` / 旧版 `td.main` 两种模板）、正文容器提取（`wp_articlecontent` / `Article_Content` + 页脚截断）、附件链接识别（pdf/doc/xls/ppt/zip…）。**未复制 SEU-Monitor 的 Go 源码**。
+  2. **配置** `config/jwc.yml`：六栏目可增删（zxdt/jwxx/xjgl/sjjx/gjjl/cbxx）；缺省内置同款六栏目，文件缺失也能跑。
+  3. **新 kind `jwc`** 加入 `WEB_KINDS` 与 `SCANNERS`；`web-sources.yml` 新增 `jwc` 源替换旧的 `seu-monitor` 源。
+  4. **旧通道保留但默认停用**：新增 `WebSourceCfg.enabled`（`enabled: false` 不参与轮询），`seu_monitor` 源标为 false。若仍想在 WSL 跑 SEU-Monitor，改回 true 即可继续消费其归档。
+  5. **NOTICE 如实记录**：SEU-Monitor 条目写明「许可未声明 / 未获作者授权 / 本次未复制其源码」，并澄清那个 AGPL 文件属于 zju-connect。
+- **理由**：自研直采让 qq-relay **自包含**——不再需要先在 WSL 里跑一个 Go 程序生成 `store/` 才能工作，消除最脆弱的外部依赖；同时绕开无许可项目的复制风险。学院站（ADR-024）已是同构直采，教务处沿用同一套解析思路，架构统一。
+- **被否方案**：① 直接移植 SEU-Monitor 的 Go 源码（无许可，侵权）；② 继续只读其输出库（用户明确要求整合架构而非只读数据）；③ 等作者授权后再做（用户知晓风险后选择先推进可合法实现的部分）。
+- **后果**：新增 `adapters/web/jwc.py`（约 290 行）、`config/jwc.yml`、`tests/test_jwc.py`（15 项）、`tests/fixtures/jwc_list.html` + `jwc_article.html`；`WEB_KINDS` 加 `jwc`；`WebSourceCfg` 加 `enabled`；`web-sources.yml` 停用 `seu-monitor`、新增 `jwc`；测试 127 → **145 项全绿**。**遗留**：若要直接移植 SEU-Monitor 的 Go 代码，仍需先取得 miunerofrade 书面许可；SEUdaily 等三源仍是 MIT 合法移植，暂无变化。

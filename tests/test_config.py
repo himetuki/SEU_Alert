@@ -12,6 +12,7 @@ from qq_relay.config import (
     load_groups,
     load_subscriptions,
     load_tree,
+    load_web_sources,
 )
 from qq_relay.contracts import ClassifiedEvent, RawEvent
 
@@ -154,3 +155,72 @@ class TestSettings:
         monkeypatch.setenv("CLASSIFIER", "magic")
         with pytest.raises(ConfigError, match="CLASSIFIER"):
             Settings.from_env()
+
+
+class TestEnsureSubscriptionsBootstrap:
+    """真实 subscriptions.yml 不入版本库，首次运行从 .example 模板生成（ADR-027）。"""
+
+    def _settings(self, tmp_path, monkeypatch) -> Settings:
+        monkeypatch.setenv("DATA_DIR", str(tmp_path / "data"))
+        monkeypatch.setenv("LOG_DIR", str(tmp_path / "data" / "logs"))
+        monkeypatch.setenv("CONFIG_DIR", str(tmp_path / "config"))
+        monkeypatch.setenv("OUTBOX_DIR", str(tmp_path / "data" / "outbox"))
+        return Settings.from_env()
+
+    def test_creates_from_example(self, tmp_path, monkeypatch):
+        s = self._settings(tmp_path, monkeypatch)
+        s.config_dir.mkdir(parents=True, exist_ok=True)
+        (s.config_dir / "subscriptions.yml.example").write_text(
+            "subscriptions:\n  \"100001\":\n    cats: [homework]\n", encoding="utf-8")
+        s.ensure_dirs()
+        real = s.config_dir / "subscriptions.yml"
+        assert real.exists()
+        assert "100001" in load_subscriptions(real).subs
+
+    def test_does_not_overwrite_existing(self, tmp_path, monkeypatch):
+        s = self._settings(tmp_path, monkeypatch)
+        s.config_dir.mkdir(parents=True, exist_ok=True)
+        (s.config_dir / "subscriptions.yml").write_text(
+            "subscriptions:\n  \"999\":\n    cats: [exam]\n", encoding="utf-8")
+        (s.config_dir / "subscriptions.yml.example").write_text(
+            "subscriptions:\n  \"100001\":\n    cats: [homework]\n", encoding="utf-8")
+        s.ensure_dirs()
+        assert set(load_subscriptions(s.config_dir / "subscriptions.yml").subs) == {"999"}
+
+    def test_fallback_empty_when_no_example(self, tmp_path, monkeypatch):
+        s = self._settings(tmp_path, monkeypatch)
+        s.ensure_dirs()
+        assert load_subscriptions(s.config_dir / "subscriptions.yml").subs == {}
+
+
+class TestLoadWebSources:
+    """web-sources.yml：新增 jwc 直采源；enabled 控制是否轮询（ADR-029）。"""
+
+    def _write(self, tmp_path, text):
+        p = tmp_path / "web-sources.yml"
+        p.write_text(text, encoding="utf-8")
+        return p
+
+    def test_jwc_kind_accepted(self, tmp_path):
+        p = self._write(tmp_path, """
+sources:
+  - {id: jwc, kind: jwc, name: 教务处直采, root: config/jwc.yml, interval: 900}
+""")
+        cfg = load_web_sources(p)
+        assert [s.kind for s in cfg.sources] == ["jwc"]
+        assert cfg.sources[0].enabled is True   # 未写 enabled 默认启用
+
+    def test_enabled_false_parsed(self, tmp_path):
+        p = self._write(tmp_path, """
+sources:
+  - {id: old, kind: seu_monitor, name: 旧通道, root: store, interval: 900, enabled: false}
+""")
+        assert load_web_sources(p).sources[0].enabled is False
+
+    def test_unknown_kind_rejected(self, tmp_path):
+        p = self._write(tmp_path, """
+sources:
+  - {id: x, kind: 乱写, name: 源, root: store, interval: 900}
+""")
+        with pytest.raises(ConfigError, match="kind 非法"):
+            load_web_sources(p)

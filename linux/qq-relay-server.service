@@ -1,0 +1,33 @@
+# QQ消息集散 · Linux 服务器版 systemd unit
+#
+# 部署步骤（产物目录 dist/qq-relay-server/）：
+#   1) 把整个目录放到服务器，例如 /opt/qq-relay-server
+#   2) 按实际路径修改下方 WorkingDirectory / ExecStart / EnvironmentFile
+#   3) cp qq-relay-server.service /etc/systemd/system/
+#   4) sudo systemctl daemon-reload
+#   5) sudo systemctl enable --now qq-relay-server
+#   6) sudo journalctl -u qq-relay-server -f   # 看日志
+#
+# 建议专用系统用户：sudo useradd -r -s /usr/sbin/nologin qqrelay
+# 并把目录属主改为该用户：sudo chown -R qqrelay:qqrelay /opt/qq-relay-server
+
+[Unit]
+Description=QQ消息集散 服务器版（qq-relay-server）
+Documentation=file:///opt/qq-relay-server/LINUX-README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# WorkingDirectory / ExecStart / EnvironmentFile 按实际部署路径修改
+WorkingDirectory=/opt/qq-relay-server
+EnvironmentFile=-/opt/qq-relay-server/.env
+ExecStart=/opt/qq-relay-server/qq-relay-server
+Restart=on-failure
+RestartSec=5
+# 日志走 journald（systemctl status / journalctl -u）
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
