@@ -142,7 +142,7 @@
 - **决定**：Python 3.11+ / asyncio；httpx + websockets；PyYAML + dataclass 校验；SQLite（aiosqlite，WAL）；APScheduler；pytest。**不用 nonebot2 等 bot 框架**，OneBot 客户端自写薄层（反向 WS + action 封装）。
 - **理由**：中文日期解析生态（dateparser/chrono）；管道是我们自己的状态机，框架的控制反转不值得；依赖最少 = 迁移到香橙派最省。
 - **被否方案**：nonebot2（插件体系与我们的管道重叠、升级包袱）；Node/TS（日期解析与 NapCat 生态弱一点）。
-- **后果**：venv 与 pip 缓存全部指向 项目目录（用户硬性约束）。
+- **后果**：venv 与 pip 缓存全部指向项目目录（用户硬性约束）。
 
 ## ADR-021 测试期分发：文件模式（outbox/<用户QQ>/*.txt），不做真实推送
 
@@ -157,7 +157,7 @@
 - **决定**：**消费两个项目的输出库**，在本项目内实现 web 采集适配器（`adapters/web/`）：`seu_monitor` 扫归档目录、`seudaily` 扫网页库，统一转 RawEvent（source=web_crawl，合成群 = 站点级 `web-jwc` / `web-cse`），进同一条分类树与订阅匹配。**不重写、不 fork 爬虫逻辑**；两个项目的更新互不影响。
 - **理由**：爬虫（CAS 登录、反爬、VPN、HTML 解析）是他们已验证的核心资产，重写=双倍维护；输出库是稳定接口；群=站点级足够订阅（栏目级细分留作后续）；SEUdaily 与 SEU-Monitor 在教务处重叠的部分由内容去重自动合并（fan-in）。
 - **被否方案**：fork/内嵌爬虫代码（维护分叉）；webhook 接收（SEU-Monitor 只推飞书，格式不适合当数据源）。
-- **后果**：web-sources.yml 配置 root 与间隔；首次扫描全量 backfill，之后增量（web_seen 表）；SEUdaily metadata 无发布日期 → ts 用文件 mtime（抓取时间）；未配画像的站点通知会被通用词预筛挡掉（漏检可控，配画像即恢复）；SEU-Monitor 在 Linux/WSL 跑监控，Windows 侧读其归档（root 可指向 /mnt/<盘> 或 \\wsl.localhost）。
+- **后果**：web-sources.yml 配置 root 与间隔；首次扫描全量 backfill，之后增量（web_seen 表）；SEUdaily metadata 无发布日期 → ts 用文件 mtime（抓取时间）；未配画像的站点通知会被通用词预筛挡掉（漏检可控，配画像即恢复）；SEU-Monitor 在 Linux/WSL 跑监控，Windows 侧读其归档（root 可指向 WSL 挂载路径或 \\wsl.localhost）。
 
 ## ADR-023 引擎定位与投稿提取栈
 

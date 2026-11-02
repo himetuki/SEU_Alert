@@ -86,7 +86,7 @@ set PIP_CACHE_DIR=%CD%\.pipcache
 - **SEU-Monitor 归档库**（**默认停用**）：`kind: seu_monitor`，`web-sources.yml` 里 `enabled: false`。ADR-029 后教务处已直采，不再需要它；若你仍想在 WSL 里跑（例如想保留其附件归档），把 `enabled` 改回 `true`：
 
   ```bash
-  # WSL Ubuntu 内（假设项目挂在 /mnt/<盘> 下；按实际路径替换 <项目根>）
+  # WSL Ubuntu 内（按实际挂载路径替换 <项目根>）
   cd <项目根>/seu-projects-test/SEU-Monitor
   ./monitor --once --data-dir <项目根>/seu-projects-test/SEU-Monitor/store
   ```
