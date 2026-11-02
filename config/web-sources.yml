@@ -1,12 +1,23 @@
-# Web 采集源（ADR-022/024：消费现有项目输出库 + 全院系直采 + 劳动教育移植）
+# Web 采集源（ADR-022/024/029）
 # root 相对项目根解析；首次扫描全量 backfill，之后增量（web_seen 表去重）。
+# enabled: false 的源不参与轮询（默认未写即 true）。
 
 sources:
+  - id: jwc
+    kind: jwc                    # 教务处六栏目**直采**（ADR-029，自包含，无需外部程序）
+    name: 教务处通知（直采）
+    root: config/jwc.yml
+    interval: 900                # 秒；≥60
+
+  # 旧通道（ADR-022）：读 SEU-Monitor（Go）归档库。
+  # ADR-029 起 jwc 直采已替代它，默认停用；若仍想在 WSL 里跑 SEU-Monitor，
+  # 把 enabled 改回 true 即可继续消费其归档数据。
   - id: seu-monitor
-    kind: seu_monitor            # SEU-Monitor（Go）归档库：web/教务处/<栏目>/<标题--ID>/
+    kind: seu_monitor
     name: 教务处通知（SEU-Monitor）
     root: seu-projects-test/SEU-Monitor/store
-    interval: 900                # 秒；≥60。真实部署在 Linux 跑监控，root 改 ~/.local/share/seu-monitor
+    interval: 900                # 真实部署在 Linux：root 改 ~/.local/share/seu-monitor
+    enabled: false
 
   - id: seudaily
     kind: seudaily               # SEUdaily 网页库：metadata/*.json + files/<host>/<section>/<notice>/*.md

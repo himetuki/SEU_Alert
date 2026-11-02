@@ -1,0 +1,25 @@
+# 东南大学教务处直采（ADR-029）——六个栏目
+# 教务处站点为 WebPlus CMS，列表页统一 /<栏目>/list.htm。
+# 栏目可增删；id 用于去重键与群映射，name 用于推送文案的【栏目】前缀。
+
+base_url: https://jwc.seu.edu.cn
+
+columns:
+  - id: zxdt
+    name: 最新动态
+    url: https://jwc.seu.edu.cn/zxdt/list.htm
+  - id: jwxx
+    name: 教务信息
+    url: https://jwc.seu.edu.cn/jwxx/list.htm
+  - id: xjgl
+    name: 学籍管理
+    url: https://jwc.seu.edu.cn/xjgl/list.htm
+  - id: sjjx
+    name: 实践教学
+    url: https://jwc.seu.edu.cn/sjjx/list.htm
+  - id: gjjl
+    name: 国际交流
+    url: https://jwc.seu.edu.cn/gjjl/list.htm
+  - id: cbxx
+    name: 文化素质教育
+    url: https://jwc.seu.edu.cn/cbxx/list.htm

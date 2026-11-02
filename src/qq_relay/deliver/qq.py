@@ -1,6 +1,6 @@
 """QQ 私聊分发（内部测试通道，ADR-023：不专门维护或专门适配）。
 
-仅用于内部测试期把推送发到自己的 QQ；正式触达走 PushPlus（计划书方案）。
+仅用于内部测试期把推送发到自己的 QQ；正式触达走 PushPlus。
 """
 
 from __future__ import annotations

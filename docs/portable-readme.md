@@ -45,6 +45,8 @@
 
 在后台"订阅管理"区添加：
 
+> 也可以直接编辑 `config/subscriptions.yml`（首次启动自动生成，从 `config/subscriptions.yml.example` 模板复制）。该文件含接收人 QQ，不入版本库。
+
 | 字段 | 填什么 |
 |---|---|
 | 用户QQ | 接收人备注（测试期随便填，如 tester1） |
@@ -67,6 +69,7 @@ qq-relay-portable/
 ├── qq-relay.exe        ← 双击启动
 ├── .env                ← 密码/token 填这里（改完重启）
 ├── config/             ← 监控配置（一般不用动）
+│   └── subscriptions.yml.example  ← 订阅模板（真实 subscriptions.yml 首次启动自动生成）
 ├── data/               ← 数据库和 outbox（没配 token 时推送落这里）
 └── logs/               ← 运行日志（出问题把这个发给维护者）
 ```

@@ -1,6 +1,6 @@
 """后台管理界面（ADR-026）：Flask API + 自包含单页（无构建、无外部静态文件）。
 
-面向对象：校内运营人员（校内使用者）。焦点能力：人文讲座/劳动教育等源的监控状态、
+面向对象：校内运营人员（校内用户）。焦点能力：人文讲座/劳动教育等源的监控状态、
 订阅管理（群 × 类别）、手动触发扫描、PushPlus 测试推送、配置概览（脱敏）。
 "只打基础"：可改的配置仍在 config/*.yml 与 .env；本页负责运行态操作。
 
@@ -151,7 +151,8 @@ async function refreshAll(){
   $("uptime").textContent="已运行 "+Math.floor((st.uptime_s||0)/60)+" 分钟 · 分发模式 "+st.deliver_mode;
   $("deliverMode").textContent=st.deliver_mode;
   $("sources").innerHTML=(st.sources||[]).map(s=>`<tr>
-    <td>${s.name}</td><td class="muted">${s.kind}</td><td>${fmtTs(s.last_scan_at)}</td>
+    <td>${s.name}${s.enabled===false?' <span class="muted">（已停用）</span>':''}</td>
+    <td class="muted">${s.kind}</td><td>${s.enabled===false?"—":fmtTs(s.last_scan_at)}</td>
     <td>${s.new||0}</td><td class="${s.last_error?"err":"muted"}">${s.last_error||"—"}</td>
     <td><button class="ghost" onclick="scan('${s.id}')">立即扫描</button></td></tr>`).join("")
     ||'<tr><td colspan="6" class="muted">暂无监控源</td></tr>';
@@ -216,6 +217,7 @@ class AdminContext:
             sources.append({
                 "id": src.id, "name": src.name, "kind": src.kind,
                 "interval": src.interval,
+                "enabled": src.enabled,
                 "last_scan_at": st.get("last_scan_at", 0),
                 "new": st.get("new", 0),
                 "errors": st.get("errors", 0),

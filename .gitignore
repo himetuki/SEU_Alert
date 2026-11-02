@@ -3,30 +3,66 @@
 .pipcache/
 __pycache__/
 *.pyc
+*.pyo
 .pytest_cache/
+.mypy_cache/
 *.egg-info/
+node_modules/
+
+# pytest 运行时临时目录（本机 TEMP 可能指向项目内，避免误入库；目录名含用户名）
+pytest-of-*/
+.pytest-tmp/
 
 # ---- 运行产物（SQLite / outbox / 日志）----
 data/
+*.log
+*.tmp
 
 # ---- 第三方程序（NapCat 解包目录，重新下载即可）----
 napcat/
 
-# ---- 构建产物 ----
+# ---- 构建产物（目录 + 扩展名双重保险，确保产物不入库）----
+# 目录级：PyInstaller / 组装产物都在 dist/ 与 build/
 dist/
 build/
+# 扩展名级：无论谁把产物写到哪，二进制/归档都不会入库
+*.spec
+*.exe
+*.zip
+*.tar.gz
+*.tgz
+*.whl
+*.bin
+*.so
+*.dll
+*.dylib
 
 # ---- 密钥与环境 ----
 .env
+.env.local
+
+# ---- 含个人数据（真实订阅含用户 QQ；用 .example 模板替代）----
+config/subscriptions.yml
 
 # ---- 编辑器/系统 ----
 .vscode/
 .idea/
+.DS_Store
 Thumbs.db
 desktop.ini
 
-# ---- 用户其他项目目录（勿入版本库）----
+# ---- 参考项目工作副本（仅本地参考，勿入版本库）----
+# SEU-Monitor / SEUdaily / seu-lecture-cli / SEU-Labor-Course-Pusher
+# 及其工具链缓存与构建产物
 seu-projects-test/
+seu-projects-test/.caches/
+seu-projects-test/.cargo/
+seu-projects-test/.tools/
+seu-projects-test/.tmp/
 
 # ---- 工具运行时产物 ----
 .dsh-ops/
+.dsh/
+
+# ---- 内部工作文档（会话检查点：含本地路径与开发进度，勿入版本库）----
+important_view.*.md

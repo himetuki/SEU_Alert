@@ -1,0 +1,17 @@
+# 订阅（subscriptions.yml.example）——模板文件，**已被 git 跟踪**。
+# 真实订阅文件 `config/subscriptions.yml` 含用户 QQ 等个人信息，**不入版本库**
+# （同 .env 的约定：.env 不入库、.env.example 入库）。首次运行会自动从本模板复制生成。
+#
+# 用法：复制本文件为 config/subscriptions.yml 后编辑；或在后台"订阅管理"里增删（同一份数据）。
+# 用户自选「哪些群的哪些类别」，无发送者维度。
+# 测试期用户 = 你的主号 QQ（加小号为好友）；分发落到 data/outbox/<user_qq>/。
+# 新用户默认值：全部群 × {homework, exam, task, notice}，静默 23:00-07:00，即时 urg≥2。
+
+subscriptions:
+  "100001":                            # ← 换成你的主号 QQ
+    groups: ["*all"]                   # bot 可见的全部群；或列具体群号
+    cats: [homework, exam, task, notice]
+    keywords: { inc: [], exc: [] }
+    quiet: ["23:00-07:00"]
+    instant_min_urg: 2
+    digest: true

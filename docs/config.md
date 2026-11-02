@@ -90,7 +90,9 @@ extract:                               # L4 · Chat 小模型，按需触发
 ## 订阅 schema（用户侧）
 
 ```yaml
-# 用户可自选订阅哪些群的哪些类别；没有发送者维度。文件：config/subscriptions.yml
+# 用户可自选订阅哪些群的哪些类别；没有发送者维度。
+# 模板（被 git 跟踪）：config/subscriptions.yml.example
+# 真实文件（含用户 QQ，不入库）：config/subscriptions.yml（首次运行自动从模板生成）
 subscriptions:
   "100001":                         # 用户 QQ（主号加小号为好友）
     groups: ["123456789"]           # bot 可见的群；["*all"] = 全局追某类
@@ -100,6 +102,8 @@ subscriptions:
     instant_min_urg: 2              # urg ≥ 此值且非免打扰 → 即时分发；其余进 Digest
     digest: true
 ```
+
+> **真实文件不入库**（ADR-027）：`config/subscriptions.yml` 已加入 `.gitignore`，与 `.env` 同一约定（`.env` 不入库、`.env.example` 入库）。首次运行若不存在会自动从 `config/subscriptions.yml.example` 复制一份，无需手动创建。
 
 **新用户默认值**（宁漏勿误，觉得窄了随时开）：全部群 × {homework, exam, task, notice}，静默 23:00–07:00，即时 urg ≥ 2。
 
@@ -113,11 +117,17 @@ subscriptions:
 
 ```yaml
 sources:
+  - id: jwc
+    kind: jwc                    # 教务处六栏目**直采**（ADR-029；root=jwc.yml，自包含）
+    name: 教务处通知（直采）
+    root: config/jwc.yml
+    interval: 900                # 秒，≥60
   - id: seu-monitor
-    kind: seu_monitor            # SEU-Monitor（Go）归档库：web/教务处/<栏目>/<标题--ID>/
+    kind: seu_monitor            # 旧通道：SEU-Monitor（Go）归档库 web/教务处/<栏目>/<标题--ID>/
     name: 教务处通知（SEU-Monitor）
     root: seu-projects-test/SEU-Monitor/store     # 相对项目根；绝对路径亦可
     interval: 900                # 秒，≥60
+    enabled: false               # ADR-029 起默认停用；改 true 可继续消费其归档
   - id: seudaily
     kind: seudaily               # SEUdaily 网页库：metadata/*.json + files/<host>/<section>/<notice>/*.md
     name: SEUdaily 网页库
@@ -125,7 +135,22 @@ sources:
     interval: 900
 ```
 
-语义（ADR-022）：首次扫描全量 backfill，之后增量；`web_seen` 表持久化已见 key；扫描失败只记日志不拖垮管道。web 群是**站点级**合成群（`web-jwc` / `web-cse`，kind=web、scope=school），订阅与普通群一致（`/sub 群 教务处 类别 通知 考试`）。SEUdaily 的 metadata 无发布日期，ts 用抓取时间（文件 mtime）。SEU-Monitor 在 Linux/WSL 跑监控，root 可指向 `/mnt/<盘>/...`（WSL 内）或 `\\wsl.localhost\...`。
+**kind 取值**：`jwc`（教务处直采）/ `seu_monitor` / `seudaily` / `seu_colleges` / `labor` / `wechat_mp` / `seu_lectures`。
+**enabled**：省略或 `true` 参与轮询；`false` 则不启动该源的 poller，后台页面标注「已停用」。
+
+语义（ADR-022/029）：首次扫描全量 backfill，之后增量；`web_seen` 表持久化已见 key；扫描失败只记日志不拖垮管道。web 群是**站点级**合成群（`web-jwc` / `web-cse`，kind=web、scope=school），订阅与普通群一致（`/sub 群 教务处 类别 通知 考试`）。SEUdaily 的 metadata 无发布日期，ts 用抓取时间（文件 mtime）。教务处直采不需要任何外部程序；若仍启用 SEU-Monitor 通道，它在 Linux/WSL 跑监控，root 可指向 `/mnt/<盘>/...`（WSL 内）或 `\\wsl.localhost\...`。
+
+## 教务处直采（jwc.yml，ADR-029）
+
+```yaml
+base_url: https://jwc.seu.edu.cn
+columns:
+  - id: jwxx                   # 去重键用；群固定 web-jwc
+    name: 教务信息             # 推送文案的【栏目】前缀
+    url: https://jwc.seu.edu.cn/jwxx/list.htm
+```
+
+缺省内置六栏目（zxdt 最新动态 / jwxx 教务信息 / xjgl 学籍管理 / sjjx 实践教学 / gjjl 国际交流 / cbxx 文化素质教育），文件缺失时自动回落到内置清单。
 
 ## 学院采集（colleges.yml，ADR-024）
 

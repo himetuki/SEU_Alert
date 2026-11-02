@@ -1,0 +1,91 @@
+QQ消息集散（qq-relay）第三方与衍生来源声明
+==================================================
+
+本项目以 GNU Affero General Public License v3.0（AGPL-3.0）发布，见 LICENSE。
+
+本项目的部分模块参考或移植了下列项目的架构、数据结构与源码语义。
+除 SEU-Monitor 许可未声明（ADR-029 起教务处改为自研直采，详见第 1 节）外，
+其余项目均采用 MIT License，与本项目的 AGPL-3.0 兼容；其版权与许可归原作者所有。
+
+--------------------------------------------------
+1. miunerofrade/SEU-Monitor
+   许可：**未声明** —— 该仓库（本地克隆与上游 GitHub）均无 LICENSE 文件，
+         21 个 Go 文件头部亦无版权或 SPDX 声明，README 无许可章节。
+         按著作权法默认**保留所有权利**。
+         注：`internal/monitor/licenses/AGPL-3.0.txt` **不是**本项目的许可，
+         它是 SEU-Monitor 下载 zju-connect（第三方 VPN 核心）时随附写入的
+         许可证副本（vpn.go 的 coreNotices()）。SEU-Monitor 的 go.mod 依赖
+         只有 BSD-3-Clause 的 golang.org/x/*，不含 AGPL 编译期组件。
+   来源：https://github.com/miunerofrade/SEU-Monitor
+   本项目用法：
+     - 历史（ADR-022）：只读取其运行产物（归档库）→ `adapters/web/seu_monitor.py`，
+       该源现默认停用（web-sources.yml 的 enabled: false）。
+     - ADR-029 起：教务处六栏目改为**自研直采** `adapters/web/jwc.py`，按
+       WebPlus CMS 的公开 HTML 结构独立实现（列表项 / 日期 / 正文容器 /
+       附件链接），**未复制 SEU-Monitor 的 Go 源码**。
+   合规状态：⚠️ **未获得作者授权**。本项目按用户指示以独立实现推进，未复制
+         其源码；如需直接移植其 Go 代码，须先取得 miunerofrade 的书面许可。
+   注意：THIRD_PARTY.md 提到其 CAS 行为改编自 SEUdaily 的 MIT 实现；
+         本项目的 CAS 移植来源是 SEU-Labor-Course-Pusher 与 seu-lecture-cli
+         （均 MIT，见下），与 SEU-Monitor 无关。
+
+2. miunerofrade/SEUdaily
+   许可：MIT（Copyright (c) 2026 miunerofrade）
+   来源：https://github.com/miunerofrade/SEUdaily
+   借鉴：jwc/cse/news 输出库结构与通知 markdown + metadata 形态
+         → src/qq_relay/adapters/web/seudaily.py
+   说明：仅参考输出库结构，未复制其可执行分发物。
+
+3. zz6zz666/SEU-Labor-Course-Pusher
+   许可：MIT（Copyright (c) 2026 zz6zz666）
+   来源：https://github.com/zz6zz666/SEU-Labor-Course-Pusher
+   借鉴：site.rs 课程表解析 + login.rs CAS 登录（RSA）语义
+         → src/qq_relay/adapters/web/labor.py
+   说明：移植源码语义（登录流程与解析规则），未使用其 exe/安装包。
+
+4. wynter-yaxley/seu-lecture-cli
+   许可：MIT（Copyright (c) 2026 wynter-yaxley and seu-lecture-cli contributors）
+   来源：https://github.com/wynter-yaxley/seu-lecture-cli
+   借鉴：parse_lectures + queryActivityList.do 分页解析
+         → src/qq_relay/adapters/web/seu_lectures.py
+   说明：仅移植**监控**能力，未移植 reserve/captcha/clock（不预约、不抢票）。
+
+--------------------------------------------------
+其他第三方依赖（各自保留其许可）：
+
+| 依赖 | 版本 | 许可 | 类型 |
+|---|---|---|---|
+| httpx | 0.28.1 | BSD-3-Clause | 运行期 |
+| websockets | 14.2 | BSD-3-Clause | 运行期 |
+| PyYAML | 6.0.3 | MIT | 运行期 |
+| aiosqlite | 0.22.1 | MIT（元数据未声明，上游为 MIT） | 运行期 |
+| APScheduler | 3.11.3 | MIT | 运行期 |
+| dateparser | 1.4.3 | BSD-3-Clause | 运行期 |
+| python-dotenv | 1.2.4 | BSD-3-Clause | 运行期 |
+| pytest | 8.4.2 | MIT | 测试期 |
+| cryptography | 50.0.2 | Apache-2.0 OR BSD-3-Clause | 运行期 |
+| flask | 3.1.3 | BSD-3-Clause | 运行期 |
+| pyinstaller | 6.22.3 | GPL-2.0+（**含明确例外**：允许用其构建并分发非自由/商业程序） | 构建期 |
+
+上述许可中，BSD-3-Clause / MIT / Apache-2.0 均为**宽松许可**，可合并进
+AGPL-3.0 作品；PyInstaller 是构建工具而非运行期链接库，其许可文本已明确
+允许用它构建非自由程序，故不导致本项目被传染为 GPL。
+
+如需完整第三方许可文本，请运行：pip download <包名> 后查看其 LICENSE。
+
+--------------------------------------------------
+许可兼容性说明（本项目为何可以采用 AGPL-3.0）
+
+1. MIT / BSD-3-Clause / Apache-2.0 都是宽松许可，明确授予「使用、复制、
+   修改、合并、发布、分发、再许可」等权利。因此把这些代码合并进一个
+   AGPL-3.0 作品并整体以 AGPL-3.0 分发，是被允许的；合并后的作品整体
+   受 AGPL-3.0 约束。
+2. 相应义务：必须保留这些代码原有的版权与许可声明。本 NOTICE 即为
+   该义务的履行；被移植的具体文件（labor.py、seu_lectures.py、cas.py）
+   头部 docstring 也标注了来源。
+3. AGPL-3.0 第 13 条（Remote Network Interaction）给合并后的作品附加了
+   一项新义务：若通过网络提供服务，须向远程用户提供对应源码。这是
+   AGPL 对**本项目**的要求，与上游 MIT 许可不冲突。
+4. 本项目未复制 SEU-Monitor 的任何源码（见第 1 节）；ADR-029 的教务处直采
+   为按 WebPlus CMS 公开页面结构独立实现。如后续改为直接移植其 Go 代码，
+   须先取得作者授权并在本节更新记录。

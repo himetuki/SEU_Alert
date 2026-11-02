@@ -28,7 +28,7 @@ groups:
     roles: {}
     sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
 
-  "web-jwc":                          # 教务处（SEU-Monitor 归档 + SEUdaily jwc 站，内容去重自动合并）
+  "web-jwc":                          # 教务处（ADR-029 直采 + SEUdaily jwc 站 + 可选 SEU-Monitor 归档，内容去重自动合并）
     name: 教务处（jwc.seu.edu.cn）
     kind: web
     scope: school

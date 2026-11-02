@@ -1,6 +1,6 @@
 # 操作手册（runbook）
 
-> 版本 v0.1 · 2026-10-25 · P0/P1 的操作步骤。所有命令在项目根 `<项目根>` 执行；venv、pip 缓存、数据、NapCat 全部在项目内。
+> 版本 v0.1 · 2026-10-25 · P0/P1 的操作步骤。所有命令在**项目根目录**执行；venv、pip 缓存、数据、NapCat 全部在项目内。
 
 ## 0. 一次性环境搭建（已完成 ✅）
 
@@ -75,23 +75,23 @@ set PIP_CACHE_DIR=%CD%\.pipcache
 
 **检查点**：往测试群贴一条含"作业/截止"的通知 → 30 秒内 `data/outbox/<你的QQ>/` 出现 txt；灌水群不应产生任何新文件（验收 A3/A5）。
 
-**当前订阅用户**：编辑 `config/subscriptions.yml` 或让用户私聊发 `/sub`（双通道同一份数据，ADR-018）。
+**当前订阅用户**：编辑 `config/subscriptions.yml`（真实文件不入库，首次运行自动从 `config/subscriptions.yml.example` 生成）或让用户私聊发 `/sub`（双通道同一份数据，ADR-018）。
 
-## 5. web 采集源（SEU-Monitor / SEUdaily，ADR-022）
+## 5. web 采集源（教务处直采 / SEU-Monitor / SEUdaily，ADR-022/029）
 
-两个源已在 `config/web-sources.yml` 配好，`python -m qq_relay.main` 启动时自动开始轮询（首次全量 backfill，之后每 15 分钟增量）。
+各源在 `config/web-sources.yml` 配好，`python -m qq_relay.main` 启动时自动开始轮询（首次全量 backfill，之后按各自的 `interval` 增量）。`enabled: false` 的源不参与轮询。
 
+- **教务处六栏目直采**（ADR-029，已就绪）：`kind: jwc`，配置 `config/jwc.yml`，直接抓 `jwc.seu.edu.cn` 六个栏目（最新动态/教务信息/学籍管理/实践教学/国际交流/文化素质教育），群 = `web-jwc`。**自包含，不需要任何外部程序**。
 - **SEUdaily 网页库**（已就绪）：`seu-projects-test/SEUdaily/.seudaily/web-files` 里已有的通知会自动流入（已验证：免试公示通知 → Digest 文件）。库会随你使用 SEUdaily 增长，新增自动接入。
-- **SEU-Monitor 归档库**（待跑一次真实扫描）：目前 `store/` 里只有 dry-run 的空记录。SEU-Monitor 是 Linux 程序，在 **WSL** 里跑一次真实扫描填充归档（`--data-dir` 指到项目内的 store，Windows 侧直接读）：
+- **SEU-Monitor 归档库**（**默认停用**）：`kind: seu_monitor`，`web-sources.yml` 里 `enabled: false`。ADR-029 后教务处已直采，不再需要它；若你仍想在 WSL 里跑（例如想保留其附件归档），把 `enabled` 改回 `true`：
 
   ```bash
-  # WSL Ubuntu 内（项目所在盘挂载在 /mnt/<盘>）
+  # WSL Ubuntu 内（假设项目挂在 /mnt/<盘> 下；按实际路径替换 <项目根>）
   cd <项目根>/seu-projects-test/SEU-Monitor
   ./monitor --once --data-dir <项目根>/seu-projects-test/SEU-Monitor/store
   ```
 
-  扫描完成后 `store/web/教务处/<栏目>/<标题--ID>/{meta.json,text.md}` 出现，本项目下轮轮询即接入。之后可在 WSL 里用 systemd timer 定时跑（参考 SEU-Monitor README），或先手动 `--once`。
-- **教务处双源重叠**：SEUdaily 也监控 jwc 站，与 SEU-Monitor 重复的通知由内容去重自动合并（一条 item、两个来源群）。
+- **教务处多源重叠**：直采、SEUdaily、SEU-Monitor（若启用）都会覆盖 jwc 站，重复通知由内容去重自动合并（一条 item、多个来源群）。
 
 ## 6. 投稿提取栈与本地投稿 CLI（ADR-023）
 
@@ -130,20 +130,50 @@ JEV 分类树替换假分类器（`CLASSIFIER=tree`）：连通性测试先行�
 - **人文讲座（仅监控）**：`seu-lectures` 源 15 分钟一轮，移植 seu-lecture-cli 的监控能力（**不预约不抢票**）。会话：`.env` 填 `SEU_LECTURE_USERNAME/PASSWORD`（CAS，需短信时跳过并告警）或 `SEU_LECTURE_COOKIES`。讲座（含预约开放时间、余量）→ `web-lecture` 群 → 订阅分发。订阅：`/sub 群 人文讲座 类别 讲座`
 - 两个源都走同一个分类树和 deliver 出口；临期提醒对带 deadline 的 item 自动生效
 
-## 11. 打包便携版（ADR-026）
+## 11. 打包便携版（ADR-026，Windows）
+
+Windows 构建源码在 [win/](../win/)；产物仍输出到项目根 `dist/`。
 
 ```bash
-# 一次性：venv 里装 pyinstaller
+# 一次性：venv 里装 pyinstaller（脚本也会自动装）
 .venv\Scripts\python -m pip install pyinstaller
 # 构建（约 6-10 分钟）
-pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/build_portable.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File win/build_portable.ps1
 ```
 
 产物 `dist/qq-relay-portable/`：`qq-relay.exe`（双击即跑，自带 Python 运行时）+
-`_internal/` + `config/` + `.env.example` + `使用说明.md`。数据/配置在 **exe 同级目录**
+`_internal/` + `config/` + `.env.example` + `使用说明.md` + `WIN-README.md`；另产出
+`dist/qq-relay-portable.zip` 供分发。数据/配置在 **exe 同级目录**
 （`data/`、`.env`、`logs/`），不写 %APPDATA%、不写系统目录——整个文件夹拷走即用。
 
 注意：`src/qq_relay/store/schema.sql` 是非 .py 数据文件，构建脚本已用 `--add-data`
 （绝对路径，PyInstaller 会把相对路径解析到 spec 目录）打入；以后新增非 .py 资源
-要同步改 `scripts/build_portable.ps1`。后台管理入口：`python -m qq_relay.admin`
+要同步改 `win/build_portable.ps1`。后台管理入口：`python -m qq_relay.admin`
 或便携版 exe；主管道（含 QQ 内部通道）仍是 `python -m qq_relay.main`。
+
+## 12. 打包 Linux 服务器版（ADR-028）
+
+Linux 构建源码在 [linux/](../linux/)（WSL / Linux 上执行）：
+
+```bash
+bash linux/build_server.sh
+```
+
+产物 `dist/qq-relay-server/`：无头二进制 `qq-relay-server`（不开浏览器，绑
+`0.0.0.0:8000`，可用 `ADMIN_HOST`/`ADMIN_PORT` 覆盖）+ `_internal/` + `config/` +
+`.env.example` + `qq-relay-server.service`（systemd unit）+ `LINUX-README.md`；
+另产出 `dist/qq-relay-server.tar.gz` 供分发。部署见 [linux/README.md](../linux/README.md)。
+
+## 13. CI 自动构建与分发（ADR-028）
+
+[.github/workflows/build.yml](../.github/workflows/build.yml)（GitHub Actions）：
+
+| 触发 | 行为 |
+|---|---|
+| `push` / `pull_request` | 单元测试 → 构建 Windows 便携版 + Linux 服务器版 → 上传 artifact |
+| 打 tag `v*` | 额外创建 GitHub Release，上传 `qq-relay-portable.zip` 与 `qq-relay-server.tar.gz` |
+| `workflow_dispatch` | 可勾选「创建 Release」手动发布 |
+
+工作流使用 `windows-latest` / `ubuntu-latest` runner，`setup-python` 3.13 + `pip install
+-r requirements.txt pyinstaller`，构建脚本自动回退到 runner 的 `python`/`python3`
+（本地优先用项目内 `.venv`）。
