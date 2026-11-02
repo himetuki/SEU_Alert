@@ -138,7 +138,7 @@ sources:
 **kind 取值**：`jwc`（教务处直采）/ `seu_monitor` / `seudaily` / `seu_colleges` / `labor` / `wechat_mp` / `seu_lectures`。
 **enabled**：省略或 `true` 参与轮询；`false` 则不启动该源的 poller，后台页面标注「已停用」。
 
-语义（ADR-022/029）：首次扫描全量 backfill，之后增量；`web_seen` 表持久化已见 key；扫描失败只记日志不拖垮管道。web 群是**站点级**合成群（`web-jwc` / `web-cse`，kind=web、scope=school），订阅与普通群一致（`/sub 群 教务处 类别 通知 考试`）。SEUdaily 的 metadata 无发布日期，ts 用抓取时间（文件 mtime）。教务处直采不需要任何外部程序；若仍启用 SEU-Monitor 通道，它在 Linux/WSL 跑监控，root 可指向 `/mnt/<盘>/...`（WSL 内）或 `\\wsl.localhost\...`。
+语义（ADR-022/029）：首次扫描全量 backfill，之后增量；`web_seen` 表持久化已见 key；扫描失败只记日志不拖垮管道。web 群是**站点级**合成群（`web-jwc` / `web-cse`，kind=web、scope=school），订阅与普通群一致（`/sub 群 教务处 类别 通知 考试`）。SEUdaily 的 metadata 无发布日期，ts 用抓取时间（文件 mtime）。教务处直采不需要任何外部程序；若仍启用 SEU-Monitor 通道，它在 Linux/WSL 跑监控，root 可指向 WSL 挂载路径（如 `/mnt/<盘>/...`）或 `\\wsl.localhost\...`。
 
 ## 教务处直采（jwc.yml，ADR-029）
 

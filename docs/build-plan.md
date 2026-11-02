@@ -35,7 +35,7 @@ P2 与 P3 无相互依赖，可并行。关键路径：P0→P1→P2→P4→P5。
 **步骤**：
 
 1. 建项目骨架：目录结构（src/ 布局，见 config.md 代码骨架）+ `.gitignore` + `.env.example` + `requirements.txt` + `pyproject.toml`
-2. Python venv **建在 项目内**（`.venv/`）；`PIP_CACHE_DIR` 也指向项目内（避免 pip 缓存落到系统临时目录）
+2. Python venv **建在项目内**（`.venv/`）；`PIP_CACHE_DIR` 也指向项目内（避免 pip 缓存落到系统临时目录）
 3. 安装 NapCat（Win11，解包到项目 `napcat/`）：配置 OneBot 11 反向 WS（`ws://127.0.0.1:3001` + token）→ 扫码登录小号
 4. 冒烟模块 `python -m qq_relay.smoke`：起反向 WS 服务等 NapCat 连入，实时打印所有群消息事件，原始日志存 `data/logs/`
 5. SQLite 建表：`events / items / users / subs / deliveries / labels / audit / model_calls / filtered_log`
@@ -161,7 +161,7 @@ P2 与 P3 无相互依赖，可并行。关键路径：P0→P1→P2→P4→P5。
 3. 可迁移打包：`requirements.txt`、`.env.example`、systemd unit（Pi）/ 任务计划程序（Win 备选）
 4. 香橙派准备：Debian 更新、Python 3.11、固定内网 IP；**先验证 NapCat arm64 部署方式**（Docker 多架构镜像优先，不行 Python 直跑）——提前验证，别等迁移当天
 5. 迁移执行：停 Win 实例 → 拷贝 `data/`（SQLite + 日志）与 `config/` → Pi 起服务 → 改 `.env` → 24h soak
-6. 备份：SQLite 每日 `VACUUM INTO` 拷贝到 外部存储/NAS
+6. 备份：SQLite 每日 `VACUUM INTO` 拷贝到外部存储/NAS
 
 **出口**：A6（看门狗告警）、A7（Pi 上 24h 无事故）。
 **回滚**：Win 实例保持可启动状态一周，Pi 出问题切回。
