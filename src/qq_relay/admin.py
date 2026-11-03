@@ -36,6 +36,7 @@ from .config import (
 )
 from .deliver.pushplus import DeliverError, PushPlusDeliverer
 from .adapters.web.errors import friendly_error
+from . import settings_io
 from .yamlio import atomic_write_yaml
 
 _SECRET_RE = re.compile(r"((?:sk_|token|password|secret|api_key)\S*)\s*[:=]\s*\S+",
@@ -212,6 +213,42 @@ td.err-cell{max-width:340px;white-space:normal;word-break:break-word;color:var(-
 .cfg-item:last-child{border-bottom:none}
 .cfg-item .key{color:var(--muted);flex-shrink:0}
 pre.cfg-body{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px;overflow:auto;max-height:200px;white-space:pre-wrap;word-break:break-all;font-family:"JetBrains Mono","Consolas",monospace;color:var(--text)}
+
+/* ── 传统配置表单 ── */
+.cfg-section{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);margin-bottom:14px}
+.cfg-section>h2{font-size:14px;font-weight:700;margin:0 0 6px;display:flex;align-items:center;gap:8px}
+.cfg-section>h2 small{font-size:11px;color:var(--muted);font-weight:400}
+.cfg-row{display:grid;grid-template-columns:230px 1fr;gap:16px;padding:12px 0;border-bottom:1px dashed var(--border);align-items:center}
+.cfg-row:last-child{border-bottom:none;padding-bottom:2px}
+.cfg-label{font-size:13px;font-weight:600}
+.cfg-label small{display:block;font-weight:400;color:var(--muted);font-size:11px;margin-top:2px;line-height:1.5}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctl input[type=text],.ctl input[type=password],.ctl input[type=number],.ctl select{
+  padding:8px 12px;border:1px solid var(--border);border-radius:8px;
+  background:var(--panel2);color:var(--text);font-size:12.5px;min-width:130px;
+}
+.ctl input:focus,.ctl select:focus{outline:none;border-color:var(--accent)}
+.opt{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1px solid var(--border);border-radius:8px;background:var(--panel2);font-size:12.5px;cursor:pointer;user-select:none}
+.opt:has(input:checked){border-color:var(--accent);background:rgba(44,180,151,.14);color:var(--accent);font-weight:600}
+.opt input{accent-color:var(--accent)}
+.switch{position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.switch span{position:absolute;inset:0;background:var(--border);border-radius:99px;transition:.2s;cursor:pointer}
+.switch span::before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.switch input:checked+span{background:var(--accent)}
+.switch input:checked+span::before{transform:translateX(18px)}
+.slider{display:flex;align-items:center;gap:10px;flex:1;min-width:200px}
+.slider input[type=range]{flex:1;accent-color:var(--accent)}
+.slider output{min-width:72px;text-align:right;font-family:"JetBrains Mono","Consolas",monospace;font-size:12px;color:var(--accent)}
+.src-row{display:grid;grid-template-columns:1fr 90px 96px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
+.src-row:last-child{border-bottom:none}
+.src-row .src-name{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.src-row .src-kind{font-size:10.5px;color:var(--muted);font-weight:400;margin-left:6px}
+.src-row input[type=number]{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--panel2);color:var(--text);font-size:12px}
+.settings-bar{position:sticky;bottom:0;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:12px 0 2px;background:linear-gradient(180deg,transparent,var(--bg) 40%);z-index:5}
+.dirty-badge{font-size:11px;color:var(--yellow);margin-right:auto;opacity:0;transition:opacity .2s}
+.dirty-badge.show{opacity:1}
+@media(max-width:760px){.cfg-row{grid-template-columns:1fr;gap:6px}.src-row{grid-template-columns:1fr 70px 90px}}
 .footer{
   display:flex;align-items:center;justify-content:space-between;gap:10px;
   padding:7px 18px;background:var(--panel);border-top:1px solid var(--border);
@@ -402,24 +439,131 @@ pre.cfg-body{background:var(--panel2);border:1px solid var(--border);border-radi
 
       <!-- ═══ 配置概览 ═══ -->
       <section class="view" id="view-config">
-        <div class="section-title">⚙️ 配置概览 <span class="hint">敏感项已脱敏；可改的配置仍在 config/*.yml 与 .env，保存后重启生效</span></div>
-        <div class="bento">
-          <div class="panel span-3">
-            <h3>🔐 环境变量（脱敏）</h3>
-            <pre class="cfg-body" id="cfgEnv">加载中…</pre>
-          </div>
-          <div class="panel span-3">
-            <h3>📤 PushPlus 测试推送</h3>
-            <div class="sub-form">
-              <input id="tQq" placeholder="接收人 QQ（备注用）" style="min-width:150px">
-              <input id="tToken" placeholder="token（留空则用 .env 配置）" style="min-width:200px">
-              <button class="btn btn-primary" onclick="testPush()">发送测试</button>
+        <div class="section-title">⚙️ 配置 <span class="hint">保存后重启后台进程生效；密钥留空表示保持原值</span></div>
+        <div id="settingsForm">
+
+          <section class="cfg-section">
+            <h2>🚀 运行</h2>
+            <div class="cfg-row">
+              <div class="cfg-label">分发方式<small>可多选，至少一个</small></div>
+              <div class="ctl" id="sDeliver">
+                <label class="opt"><input type="checkbox" value="file"> 文件落盘</label>
+                <label class="opt"><input type="checkbox" value="pushplus"> PushPlus</label>
+                <label class="opt"><input type="checkbox" value="qq"> QQ 私聊</label>
+              </div>
             </div>
-            <div class="sub" style="margin-top:10px">当前分发模式：<b id="deliverMode">·</b>。未配置 token 时推送会落盘到 outbox 文件夹（不外发）。</div>
-          </div>
-          <div class="panel span-6">
-            <h3>🗂️ 配置文件（只读，密钥已隐藏）</h3>
-            <div id="cfgFiles" style="display:flex;flex-direction:column;gap:10px">加载中…</div>
+            <div class="cfg-row">
+              <div class="cfg-label">分类器<small>stub 用于联调；tree 走 JEV 分类树</small></div>
+              <div class="ctl" id="sClassifier">
+                <label class="opt"><input type="radio" name="classifier" value="stub"> Stub 假分类</label>
+                <label class="opt"><input type="radio" name="classifier" value="tree"> JEV 分类树</label>
+              </div>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-label">管理员 QQ<small>告警与复核队列接收人，可留空</small></div>
+              <div class="ctl"><input id="sAdminQq" type="text" placeholder="例如 10001"></div>
+            </div>
+          </section>
+
+          <section class="cfg-section">
+            <h2>⏰ 临期提醒</h2>
+            <div class="cfg-row">
+              <div class="cfg-label">提前提醒<small>两轮，单位小时（1–168）</small></div>
+              <div class="ctl">
+                <span class="sub">第一轮</span>
+                <input id="sOff1" type="number" min="1" max="168" step="1" style="width:88px">
+                <span class="sub">小时 · 第二轮</span>
+                <input id="sOff2" type="number" min="1" max="168" step="1" style="width:88px">
+                <span class="sub">小时</span>
+              </div>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-label">扫描间隔<small>调度器 tick 间隔，15–600 秒</small></div>
+              <div class="ctl slider">
+                <input id="sRemInterval" type="range" min="15" max="600" step="5">
+                <output id="sRemIntervalOut">60 秒</output>
+              </div>
+            </div>
+          </section>
+
+          <section class="cfg-section">
+            <h2>📤 PushPlus</h2>
+            <div class="cfg-row">
+              <div class="cfg-label">Token<small>留空保持原值；已配置时显示占位提示</small></div>
+              <div class="ctl"><input id="sPushToken" type="password" placeholder="未配置" autocomplete="new-password"></div>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-label">群组主题<small>可选，PUSHPLUS_TOPIC</small></div>
+              <div class="ctl"><input id="sPushTopic" type="text" placeholder="留空则不使用主题"></div>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-label">测试推送<small>发送一条测试消息验证通道</small></div>
+              <div class="ctl">
+                <input id="tQq" placeholder="接收人 QQ" style="min-width:130px">
+                <input id="tToken" placeholder="临时 token（可空）" style="min-width:170px">
+                <button class="btn btn-primary" onclick="testPush()">发送测试</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="cfg-section">
+            <h2>🤖 模型服务</h2>
+            <div class="cfg-row">
+              <div class="cfg-label">JEV 分类服务<small>Base URL + API Key（留空保持）</small></div>
+              <div class="ctl">
+                <input id="sJevBase" type="text" placeholder="https://…" style="min-width:220px">
+                <input id="sJevKey" type="password" placeholder="API Key（留空保持）" style="min-width:200px" autocomplete="new-password">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-label">对话模型<small>Base URL + API Key + 模型名</small></div>
+              <div class="ctl">
+                <input id="sChatBase" type="text" placeholder="https://…" style="min-width:220px">
+                <input id="sChatKey" type="password" placeholder="API Key（留空保持）" style="min-width:200px" autocomplete="new-password">
+                <input id="sChatModel" type="text" placeholder="模型名" style="min-width:150px">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-label">投稿提取栈<small>按勾选顺序启用，可多选</small></div>
+              <div class="ctl" id="sExtractChain">
+                <label class="opt"><input type="checkbox" value="vision"> 视觉</label>
+                <label class="opt"><input type="checkbox" value="big"> 大模型</label>
+                <label class="opt"><input type="checkbox" value="small"> 小模型</label>
+              </div>
+            </div>
+          </section>
+
+          <section class="cfg-section">
+            <h2>📡 采集源</h2>
+            <div class="sub" style="margin-bottom:4px">开关控制是否参与轮询；间隔单位秒（60–86400）</div>
+            <div id="sSources"></div>
+          </section>
+
+          <section class="cfg-section">
+            <h2>📰 公众号 · 人文讲座</h2>
+            <div class="cfg-row">
+              <div class="cfg-label">提取层<small>公众号文章字段抽取模型</small></div>
+              <div class="ctl" id="sWechatLayer">
+                <label class="opt"><input type="radio" name="wechatLayer" value="big"> 大模型</label>
+                <label class="opt"><input type="radio" name="wechatLayer" value="small"> 小模型</label>
+              </div>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-label">公众号间隔<small>秒（60–86400，建议 ≥900）</small></div>
+              <div class="ctl"><input id="sWechatInterval" type="number" min="60" max="86400" step="60" style="width:140px"></div>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-label">讲座关键词<small>只监控标题含该词的讲座，空=全部</small></div>
+              <div class="ctl"><input id="sLectureKeyword" type="text" placeholder="空 = 全部"></div>
+            </div>
+          </section>
+
+          <div class="settings-bar">
+            <span class="dirty-badge" id="dirtyBadge">● 有未保存的修改</span>
+            <button class="btn btn-ghost" onclick="resetSettings()">重置默认</button>
+            <button class="btn btn-ghost" onclick="cancelSettings()">取消</button>
+            <button class="btn btn-primary" onclick="saveSettings()">保存</button>
+            <button class="btn btn-primary" onclick="confirmSettings()">确定</button>
           </div>
         </div>
       </section>
@@ -496,7 +640,7 @@ $("drawerNav").addEventListener("click",e=>{
   document.querySelectorAll(".view").forEach(s=>s.classList.remove("active"));
   $("view-"+v).classList.add("active");
   $("crumbNow").textContent=VIEW_TITLES[v];
-  if(v==="config")loadConfig();
+  if(v==="config")loadSettings();
 });
 
 /* ═══ 时钟 ═══ */
@@ -642,19 +786,144 @@ function renderSubs(){
   ).join("")||'<tr><td colspan="6" class="muted">暂无订阅</td></tr>';
 }
 
-/* ═══ 配置视图（进入时按需加载） ═══ */
-let cfgLoaded=false;
-async function loadConfig(){
-  if(cfgLoaded)return;
-  const r=await api("/api/config");
-  if(!r.ok){toast("配置加载失败："+(r.error||""));return}
-  cfgLoaded=true;
-  const env=r.files.find(f=>f.name===".env");
-  $("cfgEnv").textContent=env?env.content:"（无 .env）";
-  $("cfgFiles").innerHTML=r.files.filter(f=>f.name!==".env").map(f=>
-    `<div><b class="mono"># ${esc(f.name)}</b><pre class="cfg-body">${esc(f.content)}</pre></div>`
-  ).join("")||"（无配置文件）";
+/* ═══ 配置页（传统表单） ═══ */
+let settingsData=null, settingsDirty=false;
+
+function setDirty(v){settingsDirty=v;$("dirtyBadge").classList.toggle("show",v)}
+
+function fillSettings(d){
+  settingsData=d;
+  const env=d.env||{};
+  document.querySelectorAll("#sDeliver input").forEach(el=>{el.checked=(env.DELIVER_MODE||[]).includes(el.value)});
+  document.querySelectorAll("#sClassifier input").forEach(el=>{el.checked=env.CLASSIFIER===el.value});
+  $("sAdminQq").value=env.ADMIN_QQ||"";
+  const offs=env.REMINDER_OFFSETS||[24,3];
+  $("sOff1").value=offs[0]??24;
+  $("sOff2").value=offs[1]??"";
+  $("sRemInterval").value=env.REMINDER_INTERVAL??60;
+  $("sRemIntervalOut").textContent=(env.REMINDER_INTERVAL??60)+" 秒";
+  $("sPushToken").value="";
+  $("sPushToken").placeholder=env.PUSHPLUS_TOKEN_SET?"已配置（留空保持原值）":"未配置";
+  $("sPushTopic").value=env.PUSHPLUS_TOPIC||"";
+  $("sJevBase").value=env.JEV_BASE_URL||"";
+  $("sJevKey").value="";
+  $("sJevKey").placeholder=env.JEV_API_KEY_SET?"已配置（留空保持原值）":"未配置";
+  $("sChatBase").value=env.CHAT_BASE_URL||"";
+  $("sChatKey").value="";
+  $("sChatKey").placeholder=env.CHAT_API_KEY_SET?"已配置（留空保持原值）":"未配置";
+  $("sChatModel").value=env.CHAT_MODEL||"";
+  const chain=env.SUBMIT_EXTRACT_CHAIN||["vision","big","small"];
+  document.querySelectorAll("#sExtractChain input").forEach(el=>{el.checked=chain.includes(el.value)});
+  $("sSources").innerHTML=(d.sources||[]).map(s=>
+    `<div class="src-row" data-id="${esc(s.id)}">`+
+    `<div><span class="src-name">${esc(s.name)}</span><span class="src-kind">${esc(s.kind)}</span></div>`+
+    `<label class="switch"><input type="checkbox" data-src-enabled ${s.enabled?"checked":""}><span></span></label>`+
+    `<input type="number" min="60" max="86400" step="60" value="${s.interval}" data-src-interval title="扫描间隔（秒）"></div>`
+  ).join("")||'<div class="sub">暂无采集源</div>';
+  document.querySelectorAll("#sWechatLayer input").forEach(el=>{el.checked=(d.wechat?.extract_layer||"big")===el.value});
+  $("sWechatInterval").value=d.wechat?.interval??1800;
+  $("sLectureKeyword").value=d.lectures?.keyword||"";
+  setDirty(false);
 }
+
+async function loadSettings(){
+  const r=await api("/api/settings");
+  if(!r.ok){toast("配置加载失败："+(r.error||""));return}
+  fillSettings(r);
+}
+
+function collectSettings(){
+  const env={
+    DELIVER_MODE:[...document.querySelectorAll("#sDeliver input:checked")].map(e=>e.value),
+    CLASSIFIER:(document.querySelector("#sClassifier input:checked")||{}).value||"stub",
+    ADMIN_QQ:$("sAdminQq").value.trim(),
+    REMINDER_OFFSETS:[$("sOff1").value,$("sOff2").value].filter(v=>v!=="").map(Number),
+    REMINDER_INTERVAL:Number($("sRemInterval").value),
+    PUSHPLUS_TOKEN:$("sPushToken").value.trim(),
+    PUSHPLUS_TOPIC:$("sPushTopic").value.trim(),
+    JEV_BASE_URL:$("sJevBase").value.trim(),
+    JEV_API_KEY:$("sJevKey").value.trim(),
+    CHAT_BASE_URL:$("sChatBase").value.trim(),
+    CHAT_API_KEY:$("sChatKey").value.trim(),
+    CHAT_MODEL:$("sChatModel").value.trim(),
+    SUBMIT_EXTRACT_CHAIN:[...document.querySelectorAll("#sExtractChain input:checked")].map(e=>e.value),
+  };
+  const sources=[...document.querySelectorAll("#sSources .src-row")].map(row=>({
+    id:row.dataset.id,
+    enabled:row.querySelector("[data-src-enabled]").checked,
+    interval:Number(row.querySelector("[data-src-interval]").value),
+  }));
+  return {
+    env, sources,
+    wechat:{extract_layer:(document.querySelector("#sWechatLayer input:checked")||{}).value||"big",
+            interval:Number($("sWechatInterval").value)},
+    lectures:{keyword:$("sLectureKeyword").value.trim()},
+  };
+}
+
+async function saveSettings(){
+  if(!settingsData)return false;
+  const body=collectSettings();
+  if(!body.env.DELIVER_MODE.length){toast("分发方式至少选一个");return false}
+  const r=await api("/api/settings",{method:"POST",body:JSON.stringify(body)});
+  if(!r.ok){toast("保存失败："+(r.error||""));return false}
+  toast("已保存，重启后台进程后生效");
+  await loadSettings();
+  refreshAll();
+  return true;
+}
+
+async function confirmSettings(){
+  if(await saveSettings()){
+    document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+    document.querySelector('.nav-item[data-view="dashboard"]').classList.add("active");
+    document.querySelectorAll(".view").forEach(s=>s.classList.remove("active"));
+    $("view-dashboard").classList.add("active");
+    $("crumbNow").textContent=VIEW_TITLES.dashboard;
+  }
+}
+
+function resetSettings(){
+  if(!settingsData)return;
+  if(!confirm("恢复默认配置？未保存前可通过「取消」放弃。"))return;
+  const d=settingsData.defaults||{}, env=d.env||{};
+  document.querySelectorAll("#sDeliver input").forEach(el=>{el.checked=(env.DELIVER_MODE||["file"]).includes(el.value)});
+  document.querySelectorAll("#sClassifier input").forEach(el=>{el.checked=env.CLASSIFIER===el.value});
+  $("sAdminQq").value=env.ADMIN_QQ||"";
+  $("sOff1").value=(env.REMINDER_OFFSETS||[24,3])[0];
+  $("sOff2").value=(env.REMINDER_OFFSETS||[24,3])[1]??"";
+  $("sRemInterval").value=env.REMINDER_INTERVAL??60;
+  $("sRemIntervalOut").textContent=(env.REMINDER_INTERVAL??60)+" 秒";
+  $("sPushToken").value="";
+  $("sPushTopic").value=env.PUSHPLUS_TOPIC||"";
+  $("sJevBase").value=env.JEV_BASE_URL||"";$("sJevKey").value="";
+  $("sChatBase").value=env.CHAT_BASE_URL||"";$("sChatKey").value="";
+  $("sChatModel").value=env.CHAT_MODEL||"";
+  document.querySelectorAll("#sExtractChain input").forEach(el=>{
+    el.checked=(env.SUBMIT_EXTRACT_CHAIN||[]).includes(el.value)});
+  document.querySelectorAll("#sSources .src-row").forEach(row=>{
+    row.querySelector("[data-src-enabled]").checked=true;
+    row.querySelector("[data-src-interval]").value=d.source_interval||900;
+  });
+  document.querySelectorAll("#sWechatLayer input").forEach(el=>{
+    el.checked=(d.wechat?.extract_layer||"big")===el.value});
+  $("sWechatInterval").value=d.wechat?.interval??1800;
+  $("sLectureKeyword").value=d.lectures?.keyword||"";
+  setDirty(true);
+  toast("已填入默认值，保存后生效");
+}
+
+async function cancelSettings(){
+  if(settingsDirty&&!confirm("放弃未保存的修改？"))return;
+  await loadSettings();
+  toast("已取消未保存的修改");
+}
+
+document.getElementById("settingsForm").addEventListener("input",e=>{
+  setDirty(true);
+  if(e.target.id==="sRemInterval")$("sRemIntervalOut").textContent=e.target.value+" 秒";
+});
+document.getElementById("settingsForm").addEventListener("change",()=>setDirty(true));
 
 /* ═══ 全量刷新 ═══ */
 async function refreshAll(){
@@ -873,6 +1142,166 @@ class AdminContext:
             d.deliver(qq, item, "instant"), self.loop).result(timeout=60)
         return {"ok": True, "detail": detail}
 
+    # ------------------------------------------------------------ 结构化配置
+
+    def settings_view(self) -> dict:
+        """配置页数据（密钥只回「是否已配置」，不回明文）。"""
+        s = self.runtime.settings
+        env = settings_io.read_env(runtime_root() / ".env")
+
+        def _split(v: str) -> list[str]:
+            return [x.strip() for x in str(v).split(",") if x.strip()]
+
+        def _int(v, default: int) -> int:
+            try:
+                return int(v)
+            except (TypeError, ValueError):
+                return default
+
+        offsets = []
+        for x in _split(env.get("REMINDER_OFFSETS", "24,3")):
+            try:
+                offsets.append(int(x))
+            except ValueError:
+                continue
+        wechat = settings_io.read_yaml(s.config_dir / "wechat-mp.yml")
+        lectures = settings_io.read_yaml(s.config_dir / "seu-lectures.yml")
+        sources = [{
+            "id": src.id, "name": src.name, "kind": src.kind,
+            "enabled": src.enabled, "interval": src.interval,
+        } for src in load_web_sources(s.config_dir / "web-sources.yml").sources]
+        return {
+            "ok": True,
+            "env": {
+                "DELIVER_MODE": _split(env.get("DELIVER_MODE", s.deliver_mode)),
+                "CLASSIFIER": env.get("CLASSIFIER", s.classifier),
+                "ADMIN_QQ": env.get("ADMIN_QQ", s.admin_qq),
+                "REMINDER_OFFSETS": offsets or [24, 3],
+                "REMINDER_INTERVAL": _int(env.get("REMINDER_INTERVAL"), s.reminder_interval),
+                "PUSHPLUS_TOKEN_SET": bool(env.get("PUSHPLUS_TOKEN") or s.pushplus_token),
+                "PUSHPLUS_TOPIC": env.get("PUSHPLUS_TOPIC", s.pushplus_topic),
+                "JEV_BASE_URL": env.get("JEV_BASE_URL", s.jev_base_url),
+                "JEV_API_KEY_SET": bool(env.get("JEV_API_KEY") or s.jev_api_key),
+                "CHAT_BASE_URL": env.get("CHAT_BASE_URL", s.chat_base_url),
+                "CHAT_API_KEY_SET": bool(env.get("CHAT_API_KEY") or s.chat_api_key),
+                "CHAT_MODEL": env.get("CHAT_MODEL", s.chat_model),
+                "SUBMIT_EXTRACT_CHAIN": _split(
+                    env.get("SUBMIT_EXTRACT_CHAIN", ",".join(s.submit_extract_chain))),
+            },
+            "sources": sources,
+            "wechat": {
+                "extract_layer": str(wechat.get("extract_layer") or "big"),
+                "interval": _int(wechat.get("interval"), 1800),
+            },
+            "lectures": {"keyword": str(lectures.get("keyword") or "")},
+            "defaults": {
+                "env": {
+                    "DELIVER_MODE": ["file"], "CLASSIFIER": "stub", "ADMIN_QQ": "",
+                    "REMINDER_OFFSETS": [24, 3], "REMINDER_INTERVAL": 60,
+                    "PUSHPLUS_TOPIC": "",
+                    "JEV_BASE_URL": "https://tokenrhythm.studio",
+                    "CHAT_BASE_URL": "https://tokenrhythm.studio",
+                    "CHAT_MODEL": "neohorse-1-9b",
+                    "SUBMIT_EXTRACT_CHAIN": ["vision", "big", "small"],
+                },
+                "wechat": {"extract_layer": "big", "interval": 1800},
+                "lectures": {"keyword": ""},
+                "source_interval": 900,
+            },
+        }
+
+    def save_settings(self, payload: dict) -> dict:
+        """校验并写回 .env / web-sources.yml / wechat-mp.yml / seu-lectures.yml。"""
+        s = self.runtime.settings
+        env_in = payload.get("env") or {}
+
+        modes = [m for m in (env_in.get("DELIVER_MODE") or [])
+                 if m in ("file", "pushplus", "qq")]
+        if not modes:
+            raise ValueError("分发方式至少选择一个（file / pushplus / qq）")
+        classifier = str(env_in.get("CLASSIFIER") or "stub")
+        if classifier not in ("stub", "tree"):
+            raise ValueError("分类器只能是 stub 或 tree")
+        admin_qq = str(env_in.get("ADMIN_QQ") or "").strip()
+        if admin_qq and not admin_qq.isdigit():
+            raise ValueError("管理员 QQ 只能填数字")
+
+        offsets: list[int] = []
+        for x in env_in.get("REMINDER_OFFSETS") or []:
+            try:
+                v = int(x)
+            except (TypeError, ValueError):
+                raise ValueError("提醒提前量必须是整数小时")
+            if not 1 <= v <= 168:
+                raise ValueError("提醒提前量需在 1–168 小时之间")
+            offsets.append(v)
+        if not offsets or len(offsets) > 4:
+            raise ValueError("提醒提前量需 1–4 个")
+        interval = int(env_in.get("REMINDER_INTERVAL") or 60)
+        if not 15 <= interval <= 3600:
+            raise ValueError("提醒扫描间隔需在 15–3600 秒之间")
+
+        updates = {
+            "DELIVER_MODE": ",".join(modes),
+            "CLASSIFIER": classifier,
+            "ADMIN_QQ": admin_qq,
+            "REMINDER_OFFSETS": ",".join(str(v) for v in offsets),
+            "REMINDER_INTERVAL": str(interval),
+            "PUSHPLUS_TOPIC": str(env_in.get("PUSHPLUS_TOPIC") or "").strip(),
+            "CHAT_MODEL": str(env_in.get("CHAT_MODEL") or "").strip(),
+            "SUBMIT_EXTRACT_CHAIN": ",".join(
+                [x for x in (env_in.get("SUBMIT_EXTRACT_CHAIN") or [])
+                 if x in ("vision", "big", "small")] or ["vision", "big", "small"]),
+        }
+        # 密钥：留空表示保持原值，绝不把占位符写回
+        for key in ("PUSHPLUS_TOKEN", "JEV_API_KEY", "CHAT_API_KEY"):
+            val = str(env_in.get(key) or "").strip()
+            if val:
+                updates[key] = val
+        for key in ("JEV_BASE_URL", "CHAT_BASE_URL"):
+            val = str(env_in.get(key) or "").strip().rstrip("/")
+            if val and not val.startswith(("http://", "https://")):
+                raise ValueError(f"{key} 必须以 http:// 或 https:// 开头")
+            updates[key] = val
+
+        valid_ids = {src.id for src in
+                     load_web_sources(s.config_dir / "web-sources.yml").sources}
+        src_changes: dict[str, dict] = {}
+        for item in payload.get("sources") or []:
+            sid = str(item.get("id") or "").strip()
+            if sid not in valid_ids:
+                raise ValueError(f"未知采集源：{sid}")
+            iv = int(item.get("interval") or 900)
+            if not 60 <= iv <= 86400:
+                raise ValueError(f"{sid} 的扫描间隔需在 60–86400 秒之间")
+            src_changes[sid] = {"enabled": bool(item.get("enabled")),
+                                "interval": iv}
+
+        wechat = payload.get("wechat") or {}
+        layer = str(wechat.get("extract_layer") or "big")
+        if layer not in ("big", "small"):
+            raise ValueError("公众号提取层只能是 big 或 small")
+        w_interval = int(wechat.get("interval") or 1800)
+        if not 60 <= w_interval <= 86400:
+            raise ValueError("公众号扫描间隔需在 60–86400 秒之间")
+
+        lectures = payload.get("lectures") or {}
+        keyword = str(lectures.get("keyword") or "").strip()
+
+        # 全部校验通过后再落盘，避免半写状态
+        settings_io.update_env(runtime_root() / ".env", updates)
+        settings_io.update_web_sources(
+            s.config_dir / "web-sources.yml", src_changes)
+        settings_io.update_simple_yaml(
+            s.config_dir / "wechat-mp.yml",
+            {"extract_layer": layer, "interval": w_interval})
+        settings_io.update_simple_yaml(
+            s.config_dir / "seu-lectures.yml", {"keyword": keyword})
+
+        return {"ok": True, "restart_required": True,
+                "updated": ["env", "web-sources.yml", "wechat-mp.yml",
+                            "seu-lectures.yml"]}
+
     def config_view(self) -> dict:
         root = self.runtime.settings.config_dir
         files = []
@@ -943,6 +1372,16 @@ def create_app(ctx: AdminContext) -> Flask:
         body = request.get_json(force=True)
         return ctx.test_push(str(body.get("qq") or "tester"),
                              body.get("token") or None)
+
+    @app.get("/api/settings")
+    @guard
+    def _settings():
+        return ctx.settings_view()
+
+    @app.post("/api/settings")
+    @guard
+    def _save_settings():
+        return ctx.save_settings(request.get_json(force=True))
 
     @app.get("/api/config")
     @guard
