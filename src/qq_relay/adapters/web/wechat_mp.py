@@ -187,6 +187,8 @@ async def scan(root: Path, *, client: Optional[httpx.AsyncClient] = None,
         for acc in accounts:
             name = str(acc.get("name") or "").strip()
             key = str(acc.get("key") or "").strip() or re.sub(r"\W+", "", name)[:8]
+            # 可选：把该公众号的讲座并入指定频道（如人文讲座 web-lecture）
+            gid = str(acc.get("group_id") or "").strip() or f"web-mp-{key}"
             if not name:
                 continue
             try:
@@ -227,7 +229,7 @@ async def scan(root: Path, *, client: Optional[httpx.AsyncClient] = None,
                     _truncate(f"【讲座】{title}\n{content}")
                 out.append(WebNotice(
                     key=f"mp:{url}",
-                    group_id=f"web-mp-{key}",
+                    group_id=gid,
                     group_name=name,
                     title=title,
                     text=text,

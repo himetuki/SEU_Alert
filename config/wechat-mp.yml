@@ -3,8 +3,9 @@
 # extract_layer: big=大模型（可选层）| small=小模型（备用层，禁思考参数已强制）
 
 accounts:
-  - key: wzjy                          # 群 = web-mp-wzjy
+  - key: wzjy                          # 群 = web-lecture（并入人文讲座频道）
     name: 东南大学文化素质教育中心
+    group_id: web-lecture              # 公众号里识别出的讲座进入「人文讲座」频道
     # 可继续加：
     # - key: jwc
     #   name: 东南大学教务处

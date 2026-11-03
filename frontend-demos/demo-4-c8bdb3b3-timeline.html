@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QQ消息集散 · Hash Design #4 (c8bdb3b3)</title>
+<style>
+/* ─────────────────────────────────────
+   Hash: c8bdb3b3 → timeline-kanban + pulse-breathe
+   Palette: SEU Green-light (绿6.5% · 黄37.5% · 对比80)
+   Tokens: 脉冲2560ms · 视差 · 弹簧600ms
+─────────────────────────────────────── */
+
+:root {
+  --seu-green: #057C66;
+  --seu-green2: #2CB497;
+  --seu-yellow: #ddd000;
+  --seu-black: #231815;
+  --bg: #f7f8f4;
+  --track: #eef0dd;
+  --card: #fff;
+  --text: var(--seu-black);
+  --muted: #9aa99a;
+  --border: #e0e5d8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Source Han Sans CN", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+.page-breath { animation: breathe var(--pulse_ms, 2560ms) ease-in-out infinite; }
+@keyframes breathe { 0%,100%{opacity:1} 50%{opacity:.97} }
+
+/* ═══ Navbar ═══ */
+.nav {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  height: 52px; padding: 0 20px;
+  background: #fff; border-bottom: 2px solid var(--seu-green);
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  position: sticky; top: 0; z-index: 50;
+}
+.nav .brand-pill {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 15px; font-weight: 700; letter-spacing: -.02em;
+}
+.nav .brand-pill .pill {
+  width: 26px; height: 26px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--seu-green), #1a8a70);
+  color: #fff; font-size: 13px; display: grid; place-items: center;
+}
+.nav .nav-chev {
+  font-size: 12px; color: var(--muted);
+  cursor: pointer; letter-spacing: .06em;
+}
+
+/* ═══ 顶部分区 ═══ */
+.c-hours {
+  display: flex; align-items: center;
+  gap: 36px;
+  padding: 12px 20px;
+  background: #fff; border-bottom: 1px solid var(--border);
+  font-size: 12px; color: var(--muted);
+  overflow-x: auto;
+}
+.c-hours .c-block {
+  display: flex; align-items: center; gap: 6px;
+  font-weight: 600;
+}
+.c-hours .c-block.sep { color: var(--border); }
+.c-hours a { color: var(--seu-green); text-decoration: none; font-weight: 700; }
+
+/* ═══ Timeline + Kanban ═══ */
+.tk-container {
+  display: grid;
+  grid-template-columns: 1.6fr minmax(0,1fr) repeat(4,1fr);
+  min-height: calc(100vh - 120px);
+}
+@media (max-width:1200px) {
+  .tk-container { grid-template-columns: 1.4fr minmax(0,1fr) repeat(3,1fr); }
+}
+@media (max-width:900px) {
+  .tk-container { grid-template-columns: 1fr; }
+}
+
+/* ── Timeline ── */
+.timeline {
+  background: #fff; border-right: 1px solid var(--border);
+  overflow-y: auto; padding: 16px;
+}
+.timeline::part(gutter) {
+  display: flex; flex-direction: column; gap: 14px;
+}
+.timeline-item {
+  position: relative;
+  padding-left: 20px;
+}
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 4px;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--seu-green);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px var(--seu-yellow);
+  z-index: 2;
+}
+.timeline-item::after {
+  content: attr(data-time);
+  position: absolute;
+  left: 14px; top: -8px;
+  font-size: 10px; color: var(--muted);
+  white-space: nowrap;
+}
+.timeline-item.half { opacity: .55; }
+.timeline-item.half::before { background: var(--muted); border-color: #fff; }
+.timeline-head { display: flex; align-items: center; gap: 8px; margin-bottom: -6px; }
+.timeline-head .cat-badge {
+  font-size: 10px; padding: 2px 6px;
+  border-radius: 4px; font-weight: 700;
+  background: var(--seu-yellow); color: var(--seu-black);
+}
+.timeline-title { font-size: 13px; font-weight: 700; }
+.timeline-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.timeline-actions { display: flex; gap: 4px; margin-top: 4px; }
+.timeline-actions .tc-btn {
+  font-size: 11px; padding: 3px 8px;
+  border: 1px solid var(--border); border-radius: 4px;
+  background: #f5f6f2; cursor: pointer;
+}
+.timeline-actions .tc-btn:hover { border-color: var(--seu-green); }
+
+/* ── Kanban ── */
+.kanban { border-left: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column; }
+.kanban-inner { display: flex; overflow-x: auto; flex: 1; padding: 12px 0; gap: 12px; }
+.col-header {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700;
+  padding: 0 10px;
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.col-header .n { font-size: 14px; font-weight: 900; color: var(--seu-green); }
+.col {
+  min-width: 180px; max-width: 220px;
+  background: var(--track);
+  border-radius: 10px;
+  padding: 10px 10px 8px;
+  display: flex; flex-direction: column;
+  gap: 8px;
+}
+.col .col-label { font-size: 11px; color: var(--muted); text-align: center; }
+.col .col-count { text-align: center; font-size: 22px; font-weight: 800; color: rgba(5,124,102,.35); }
+.card-stack { display: flex; flex-direction: column; gap: 6px; }
+.k-card {
+  background: #fff; border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px;
+  font-size: 12px; cursor: grab;
+  box-shadow: 0 1px 2px rgba(0,0,0,.03);
+  transition: box-shadow .15s, transform .15s;
+}
+.k-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); transform: translateY(-1px); }
+.k-card .k-cat { display: inline-block; font-size: 9px; padding: 1px 4px; border-radius: 3px; background: rgba(44,180,151,.15); color: var(--seu-green); font-weight: 700; margin-bottom: 4px; }
+.k-card .k-dl { margin-top: 4px; font-size: 10px; color: #c04030; }
+.k-card .k-bottom { display: flex; gap: 4px; margin-top: 6px; }
+.k-card .k-mini { flex: 1; text-align: center; font-size: 10px; padding: 3px; border-radius: 3px; border: 1px solid var(--border); background: #fafafa; cursor: pointer; }
+
+/* ═══ 底部标签 ═══ */
+.hash-bar {
+  display: flex; align-items: center;
+  justify-content: center; gap: 12px;
+  padding: 8px;
+  background: #fff;
+  border-top: 1px solid var(--border);
+  font-size: 11px; color: var(--muted);
+}
+.hash-bar .hash { font-family: "JetBrains Mono", monospace; color: var(--seu-green); font-weight: 700; }
+
+</style>
+</head>
+<body class="page-breath">
+
+<nav class="nav">
+  <div class="brand-pill"><span class="pill">南</span> QQ消息集散</div>
+  <div class="nav-chev">》</div>
+</nav>
+
+<div class="c-hours">
+  <span class="c-block">🕐 2026-11-03</span>
+  <span class="c-block sep">|</span>
+  <a href="#">06:00</a><a href="#">07:00</a><a href="#">08:00</a><a href="#">09:00</a>
+  <span class="c-block sep">|</span>
+  <a href="#">10:00</a><a href="#">11:00</a><a href="#">12:00</a><a href="#">13:00</a>
+  <span class="c-block sep">|</span>
+  <a href="#">14:00</a><a href="#">15:00</a><a href="#">16:00</a><a href="#">17:00</a>
+  <span class="c-block sep">|</span>
+  <a href="#">18:00</a><a href="#">19:00</a><a href="#">20:00</a><a href="#">21:00</a>
+  <span class="c-block sep">|</span>
+  <a href="#">22:00</a><a href="#">23:00</a><a href="#">00:00</a>
+</div>
+
+<div class="tk-container">
+
+  <!-- Timeline -->
+  <aside class="timeline">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">时间轴</div>
+    <div class="timeline-item" data-time="06:00" style="opacity:1">
+      <div class="timeline-head"><span class="cat-badge">通知</span><span class="timeline-title">寒假调休安排</span></div>
+      <div class="timeline-meta">来源：校办 · 已核验 ✓</div>
+      <div class="timeline-actions"><button class="tc-btn">详情</button><button class="tc-btn">订阅</button></div>
+    </div>
+    <div class="timeline-item" data-time="07:00" style="opacity:1">
+      <div class="timeline-head"><span class="cat-badge">讲座</span><span class="timeline-title">AI for Science 讲座</span></div>
+      <div class="timeline-meta">来源：科普院 · 报名中</div>
+      <div class="timeline-actions"><button class="tc-btn">报名</button><button class="tc-btn">订阅</button></div>
+    </div>
+    <div class="timeline-item" data-time="08:00" style="opacity:1">
+      <div class="timeline-head"><span class="cat-badge">作业</span><span class="timeline-title">数据结构 HW3</span></div>
+      <div class="timeline-meta">来源：CS 学院 · 截止 11-08</div>
+      <div class="timeline-actions"><button class="tc-btn">提交</button><button class="tc-btn">订阅</button></div>
+    </div>
+    <div class="timeline-item" data-time="09:00" style="opacity:1">
+      <div class="timeline-head"><span class="cat-badge">考试</span><span class="timeline-title">高数下期中试</span></div>
+      <div class="timeline-meta">来源：教务处 · 截止 11-04</div>
+      <div class="timeline-actions"><button class="tc-btn">复习</button><button class="tc-btn">订阅</button></div>
+    </div>
+    <div class="timeline-item" data-time="10:00" style="opacity:1">
+      <div class="timeline-head"><span class="cat-badge">竞赛</span><span class="timeline-title">蓝桥杯省赛报名</span></div>
+      <div class="timeline-meta">来源：计算机学院 · 截止 11-10</div>
+      <div class="timeline-actions"><button class="tc-btn">报名</button><button class="tc-btn">订阅</button></div>
+    </div>
+    <div class="timeline-item half" data-time="11:00"><div class="timeline-head"><span class="cat-badge">投稿</span><span class="timeline-title"> Tuesdays Photography</span></div><div class="timeline-meta">来源：投稿 · 未分类</div><div class="timeline-actions"><button class="tc-btn">处理</button></div></div>
+    <div class="timeline-item" data-time="12:00" style="opacity:1">
+      <div class="timeline-head"><span class="cat-badge">科研</span><span class="timeline-title">数字人文工作坊</span></div>
+      <div class="timeline-meta">来源：人文学院 · 限 20 人</div>
+      <div class="timeline-actions"><button class="tc-btn">申请</button><button class="tc-btn">订阅</button></div>
+    </div>
+    <div class="timeline-item" data-time="14:00" style="opacity:1">
+      <div class="timeline-head"><span class="cat-badge">讲座</span><span class="timeline-title">明清文学·新学期</span></div>
+      <div class="timeline-meta">来源：文学院 · 报名截止 11-05</div>
+      <div class="timeline-actions"><button class="tc-btn">报名</button><button class="tc-btn">订阅</button></div>
+    </div>
+    <div class="timeline-item half" data-time="16:00"><div class="timeline-head"><span class="cat-badge">教务</span><span class="timeline-title">选课系统维护</span></div><div class="timeline-meta">来源：教务处 · 临时通知</div><div class="timeline-actions"><button class="tc-btn">订阅</button></div></div>
+    <div class="timeline-item" data-time="19:00" style="opacity:1">
+      <div class="timeline-head"><span class="cat-badge">通知</span><span class="timeline-title">图书馆闭馆通知</span></div>
+      <div class="timeline-meta">来源：图书馆 · 持续生效</div>
+      <div class="timeline-actions"><button class="tc-btn">详情</button><button class="tc-btn">订阅</button></div>
+    </div>
+  </aside>
+
+  <!-- Kanban -->
+  <div class="kanban">
+    <div class="kanban-inner">
+      <div class="col-header"><span class="n">1</span>讲座 <span style="color:var(--muted);margin-left:4px;">(8)</span></div>
+      <div class="col"><div class="col-label">讲座<span style="float:right;">8</span></div><div class="col-count">8</div>
+        <div class="card-stack">
+          <div class="k-card"><span class="k-cat">LECTURE</span><div>AI for Science · 科普院</div><div class="k-dl">报名中 · 截止 11-05</div><div class="k-bottom"><div class="k-mini">报名</div><div class="k-mini">订阅</div></div></div>
+          <div class="k-card"><span class="k-cat">LECTURE</span><div>明清文学 · 文学院</div><div class="k-dl">报名截止 11-05 17:00</div><div class="k-bottom"><div class="k-mini">报名</div><div class="k-mini">订阅</div></div></div>
+          <div class="k-card"><span class="k-cat">LECTURE</span><div>数字人文工作坊</div><div class="k-dl">限 20 人 · 截止 11-06</div><div class="k-bottom"><div class="k-mini">申请</div><div class="k-mini">订阅</div></div></div>
+          <div class="k-card"><span class="k-cat">LECTURE</span><div>Tuesdays Photography</div><div class="k-dl">投稿未分类 · 待审核</div><div class="k-bottom"><div class="k-mini">处理</div><div class="k-mini">×</div></div></div>
+        </div>
+      </div>
+      <div class="col"><div class="col-label">作业<span style="float:right;">9</span></div><div class="col-count">9</div>
+        <div class="card-stack">
+          <div class="k-card"><span class="k-cat">HW</span><div>数据结构 HW3</div><div class="k-dl">截止 11-08 23:59</div><div class="k-bottom"><div class="k-mini">提交</div><div class="k-mini">订阅</div></div></div>
+          <div class="k-card"><span class="k-cat">HW</span><div>OS DHCP 服务器</div><div class="k-dl">实验报告 · 截止 11-09</div><div class="k-bottom"><div class="k-mini">提交</div><div class="k-mini">订阅</div></div></div>
+          <div class="k-card"><span class="k-cat">HW</span><div>高数练习册 P112</div><div class="k-dl">课前预习 · 截止 11-04</div><div class="k-bottom"><div class="k-mini">查看</div><div class="k-mini">订阅</div></div></div>
+          <div class="k-card"><span class="k-cat">HW</span><div>数字媒体作品</div><div class="k-dl">期末项目 · 截止 12-15</div><div class="k-bottom"><div class="k-mini">提交</div><div class="k-mini">订阅</div></div></div>
+        </div>
+      </div>
+      <div class="col"><div class="col-label">考试<span style="float:right;">6</span></div><div class="col-count">6</div>
+        <div class="card-stack">
+          <div class="k-card"><span class="k-cat">EXAM</span><div>高数下期中试</div><div class="k-dl">截止 11-04 10:00</div><div class="k-bottom"><div class="k-mini">复习</div><div class="k-mini">订阅</div></div></div>
+          <div class="k-card"><span class="k-cat">EXAM</span><div>数据库期末</div><div class="k-dl">复习材料发布</div><div class="k-bottom"><div class="k-mini">下载</div><div class="k-mini">订阅</div></div></div>
+          <div class="k-card"><span class="k-cat">EXAM</span><div>线性代数期中</div><div class="k-dl">复习范围已出</div><div class="k-bottom"><div class="k-mini">查看</div><div class="k-mini">订阅</div></div></div>
+        </div>
+      </div>
+      <div class="col"><div class="col-label">竞赛<span style="float:right;">4</span></div><div class="col-count">4</div>
+        <div class="card-stack">
+          <div class="k-card"><span class="k-cat">COMP</span><div>蓝桥杯省赛</div><div class="k-dl">报名截止 11-10</div><div class="k-bottom"><div class="k-mini">报名</div><div class="k-mini">订阅</div></div></div>
+          <div class="k-card"><span class="k-cat">COMP</span><div>ACM 训练赛</div><div class="k-dl">本周六 19:00</div><div class="k-bottom"><div class="k-mini">报名</div><div class="k-mini">订阅</div></div></div>
+          <div class="k-card"><span class="k-cat">COMP</span><div>CTF 预选赛</div><div class="k-dl">报名中</div><div class="k-bottom"><div class="k-mini">报名</div><div class="k-mini">订阅</div></div></div>
+        </div>
+      </div>
+      <div class="col"><div class="col-label">其他<span style="float:right;">?</span></div><div class="col-count">?</div>
+        <div class="card-stack">
+          <div class="k-card"><span class="k-cat">NOTICE</span><div>寒假调休安排</div><div class="k-bottom"><div class="k-mini">详情</div><div class="k-mini">订阅</div></div></div>
+          <div class="k-card"><span class="k-cat">NOTICE</span><div>图书馆闭馆</div><div class="k-bottom"><div class="k-mini">详情</div><div class="k-mini">订阅</div></div></div>
+          <div class="k-card"><span class="k-cat">SYS</span><div>选课系统维护</div><div class="k-dl">今晚 14:00-16:00</div><div class="k-bottom"><div class="k-mini">订阅</div><div class="k-mini">×</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="hash-bar">
+  <span class="hash">c8bdb3b3</span>
+  · timeline-kanban · pulse-breathe
+  · SEU_Alert frontend demo #4
+</div>
+
+</body>
+</html>

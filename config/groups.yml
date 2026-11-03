@@ -328,10 +328,10 @@ groups:
     roles: {}
     sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }
   "web-lecture":
-    name: 人文讲座（预约系统监控）
+    name: 人文讲座（预约系统 · 网站 · 公众号）
     kind: web
     scope: school
-    prefilter: [讲座, 预约, 人文, 素质, 时间, 地点, 开放, 余量]
+    prefilter: [讲座, 预约, 人文, 素质, 时间, 地点, 开放, 余量, 六朝松, 讲堂, 文化素质]
     default_cats: [lecture, task]
     roles: {}
     sender_filter: { mode: "off", whitelist: [], blacklist: [], roles: { allow: [], deny: [] }, dry_run: false, log_filtered: true }

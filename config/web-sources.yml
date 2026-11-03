@@ -9,15 +9,20 @@ sources:
     root: config/jwc.yml
     interval: 900                # 秒；≥60
 
-  # 旧通道（ADR-022）：读 SEU-Monitor（Go）归档库。
-  # ADR-029 起 jwc 直采已替代它，默认停用；若仍想在 WSL 里跑 SEU-Monitor，
-  # 把 enabled 改回 true 即可继续消费其归档数据。
+  - id: lecture-site
+    kind: jwc                    # 人文讲座·学校网站渠道（复用 jwc 解析器，群=web-lecture）
+    name: 人文讲座（文化素质教育栏目）
+    root: config/lecture-site.yml
+    interval: 900
+
+  # 旧通道（ADR-022）：读 SEU-Monitor（Go）归档库 web/教务处/<栏目>/<标题--ID>/。
+  # 已启用：归档为空时每轮扫描新增 0（不报错）；有 meta.json 即自动入库。
   - id: seu-monitor
     kind: seu_monitor
     name: 教务处通知（SEU-Monitor）
     root: seu-projects-test/SEU-Monitor/store
     interval: 900                # 真实部署在 Linux：root 改 ~/.local/share/seu-monitor
-    enabled: false
+    enabled: true
 
   - id: seudaily
     kind: seudaily               # SEUdaily 网页库：metadata/*.json + files/<host>/<section>/<notice>/*.md

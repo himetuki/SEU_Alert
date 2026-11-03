@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Callable, Iterable
 
 from ...contracts import RawEvent
+from .errors import friendly_error
 
 TEXT_MAX = 1500
 
@@ -34,6 +35,8 @@ class WebNotice:
     url: str
     ts: int
     sender: str = ""
+    column: str = ""         # 栏目中文名（jwc 等直采用；归档生成需要）
+    notice_id: str = ""      # 站点内通知 ID（归档目录命名用）
 
     def to_raw_event(self, msg_id: str) -> RawEvent:
         return RawEvent(
@@ -115,7 +118,7 @@ class WebPoller:
                     first = False
             except Exception as e:               # 扫描失败不拖垮主管道
                 self.stats["errors"] += 1
-                self.stats["last_error"] = repr(e)[:200]
+                self.stats["last_error"] = friendly_error(e)
                 print(f"[web:{self.source.id}] 扫描失败: {e!r}")
             await asyncio.sleep(self.source.interval)
 

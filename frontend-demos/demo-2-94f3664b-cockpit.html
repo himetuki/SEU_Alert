@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QQ消息集散 · Hash Design #2 (94f3664b)</title>
+<style>
+/* ─────────────────────────────────────
+   Hash: 94f3664b → cockpit-drawer + pulse-breathe
+   Palette: SEU Green-heavy (绿61.3% · 黄100% · 对比22)
+   Tokens: 脉冲2720ms · 呼吸光晕 · 弹簧1950ms
+─────────────────────────────────────── */
+
+:root {
+  --seu-green: #057C66;
+  --seu-green2: #2CB497;
+  --seu-yellow: #ddd000;
+  --seu-black: #231815;
+  --bg: #0a1a16;
+  --panel: #0d241f;
+  --panel2: #0f2d26;
+  --border: #1a3a31;
+  --text: #c8e6db;
+  --muted: #7fbfa8;
+  --card: #103029;
+  --accent: #2CB497;
+  --accent2: #057C66;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Source Han Sans CN", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ═══ 脉冲光晕 ═══ */
+.pulse-glow {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background: radial-gradient(circle at 20% -10%, rgba(44,180,151,.08), transparent 40%),
+              radial-gradient(circle at 80% 80%, rgba(5,124,102,.06), transparent 40%);
+  animation: breathe var(--pulse_ms, 2720ms) ease-in-out infinite;
+}
+@keyframes breathe {
+  0%, 100% { opacity: .6; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.15); }
+}
+
+/* ═══ Layout ═══ */
+.app {
+  position: relative; z-index: 1;
+  display: flex; flex: 1; overflow: hidden;
+}
+
+/* ═══ Sidebar Drawer ═══ */
+.drawer {
+  width: 260px; background: var(--panel);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  transition: width .25s ease;
+}
+.drawer-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.drawer-header .logo {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: grid; place-items: center;
+  font-size: 18px; font-weight: 900; color: #fff;
+}
+.drawer-header h1 { font-size: 16px; font-weight: 700; }
+.drawer-nav { padding: 8px 12px; flex: 1; overflow-y: auto; }
+.drawer-nav .nav-group { margin-bottom: 8px; }
+.drawer-nav .nav-group .group-title {
+  font-size: 11px; text-transform: uppercase;
+  color: var(--muted); letter-spacing: .08em;
+  padding: 6px 8px 2px;
+}
+.drawer-nav .nav-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px;
+  color: var(--muted);
+  text-decoration: none;
+  border-radius: 8px;
+  margin-bottom: 2px;
+  transition: background .15s, color .15s;
+  font-size: 14px;
+}
+.drawer-nav .nav-item:hover { background: var(--panel2); color: var(--text); }
+.drawer-nav .nav-item.active {
+  background: rgba(44,180,151,.18);
+  color: var(--accent);
+  font-weight: 600;
+}
+.drawer-footer {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 8px;
+}
+.drawer-footer .mini-btn {
+  flex: 1; text-align: center;
+  padding: 7px;
+  border-radius: 6px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--muted);
+  cursor: pointer;
+}
+.drawer-footer .mini-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ═══ Main ═══ */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* ═══ Header ═══ */
+.header {
+  height: 56px;
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+.header .breadcrumb { font-size: 13px; color: var(--muted); }
+.header .breadcrumb span { color: var(--text); }
+.header .header-actions { display: flex; gap: 8px; }
+.btn {
+  padding: 7px 16px; border-radius: 6px;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer; border: 1px solid transparent;
+  transition: all .15s;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent2); }
+.btn-ghost { background: var(--panel2); color: var(--text); border-color: var(--border); }
+.btn-ghost:hover { border-color: var(--accent); }
+
+/* ═══ Content ═══ */
+.content { flex: 1; overflow-y: auto; padding: 20px; }
+
+/* ═══ Cockpit Grid ═══ */
+.cockpit-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+@media (max-width: 900px) { .cockpit-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .cockpit-grid { grid-template-columns: 1fr; } }
+
+.cockpit-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex; flex-direction: column;
+  gap: 6px;
+  transition: box-shadow .2s;
+}
+.cockpit-panel:hover { box-shadow: 0 4px 20px rgba(0,0,0,.25); }
+.cockpit-panel h3 { font-size: 13px; font-weight: 700; color: var(--muted); }
+.cockpit-panel .数值 { font-size: 32px; font-weight: 800; color: var(--accent); }
+.cockpit-panel .sub { font-size: 12px; color: var(--muted); }
+
+/* ═══ 信息列表 ═══ */
+.list-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.list-section h2 { font-size: 15px; font-weight: 700; padding: 14px 20px; border-bottom: 1px solid var(--border); margin: 0; }
+.list-section table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.list-section th { text-align: left; padding: 10px 20px; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--border); }
+.list-section td { padding: 10px 20px; border-bottom: 1px solid var(--border); }
+.list-section tr:hover td { background: var(--panel2); }
+.list-section .cat { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; background: rgba(44,180,151,.15); color: var(--accent); }
+.list-section .deadline { font-family: "JetBrains Mono", monospace; color: #f87171; }
+
+/* ═══ 底部 ═══ */
+.footer {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--muted);
+}
+
+/* ═══ Toast ═══ */
+.toast {
+  position: fixed; bottom: 20px; right: 20px;
+  background: var(--accent); color: #fff;
+  padding: 10px 18px; border-radius: 8px;
+  font-size: 13px; z-index: 100;
+  animation: slideIn .25s ease;
+}
+@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+</style>
+</head>
+<body>
+
+<div class="pulse-glow"></div>
+
+<div class="app">
+  <!-- Sidebar Drawer -->
+  <aside class="drawer">
+    <div class="drawer-header">
+      <div class="logo">南</div>
+      <h1>QQ消息集散</h1>
+    </div>
+    <nav class="drawer-nav">
+      <div class="nav-group">
+        <div class="group-title">概览</div>
+        <a class="nav-item active" href="#">📊 仪表盘</a>
+        <a class="nav-item" href="#">🔔 提醒中心</a>
+        <a class="nav-item" href="#">📋 最近信息</a>
+      </div>
+      <div class="nav-group">
+        <div class="group-title">管理</div>
+        <a class="nav-item" href="#">👥 订阅管理</a>
+        <a class="nav-item" href="#">📡 监控源</a>
+        <a class="nav-item" href="#">📁 采集配置</a>
+      </div>
+      <div class="nav-group">
+        <div class="group-title">系统</div>
+        <a class="nav-item" href="#">⚙️ 设置</a>
+        <a class="nav-item" href="#">📖 文档</a>
+        <a class="nav-item" href="#">ℹ️ 关于</a>
+      </div>
+    </nav>
+    <div class="drawer-footer">
+      <div class="mini-btn">退出</div>
+      <div class="mini-btn">帮助</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="header">
+      <div class="breadcrumb">首页 / <span>仪表盘</span></div>
+      <div class="header-actions">
+        <div class="btn btn-ghost" style="padding:6px 12px;">刷新</div>
+        <div class="btn btn-primary">立即扫描</div>
+      </div>
+    </header>
+
+    <div class="content">
+      <!-- Cockpit Grid -->
+      <div class="cockpit-grid">
+        <div class="cockpit-panel">
+          <h3>今日新增</h3>
+          <div class="数值">27</div>
+          <div class="sub">↗ 12% 比昨日 · 覆盖 6 个源</div>
+        </div>
+        <div class="cockpit-panel">
+          <h3>待处理提醒</h3>
+          <div class="数值" style="color:#f87171">5</div>
+          <div class="sub">⏰ 3 条临期 · 2 条过期</div>
+        </div>
+        <div class="cockpit-panel">
+          <h3>订阅数</h3>
+          <div class="数值">42</div>
+          <div class="sub">👥 31 位同学 · 7 个群</div>
+        </div>
+      </div>
+
+      <!-- Info List -->
+      <div class="list-section" style="margin-bottom:16px;">
+        <h2>📡 最近信息流</h2>
+        <table>
+          <thead><tr><th>时间</th><th>类别</th><th>题目</th><th>来源</th><th>截止</th></tr></thead>
+          <tbody>
+            <tr><td>10:23</td><td><span class="cat">讲座</span></td><td>人工智能前沿讲座 · 张三教授</td><td>教务处</td><td><span class="deadline">2026-11-06</span></td></tr>
+            <tr><td>09:47</td><td><span class="cat">作业</span></td><td>数据结构 HW3 提交</td><td>CS 学院</td><td><span class="deadline">2026-11-08</span></td></tr>
+            <tr><td>08:15</td><td><span class="cat">考试</span></td><td>高数下期中试通知</td><td>教务处</td><td><span class="deadline">2026-11-04</span></td></tr>
+            <tr><td>07:30</td><td><span class="cat">竞赛</span></td><td>蓝桥杯选拔赛报名</td><td>计算机学院</td><td><span class="deadline">2026-11-10</span></td></tr>
+            <tr><td>06:00</td><td><span class="cat">通知</span></td><td>寒假调休安排</td><td>校办</td><td>-</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Subscription Overview -->
+      <div class="cockpit-panel">
+        <h3>🔔 临期提醒（即将触发）</h3>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
+            <span>🎤 人文讲座·明清文学 · 报名截止</span>
+            <span style="color:#f87171; font-size:12px;">16h 后</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
+            <span>📝 数据结构 HW3 · 提交截止</span>
+            <span style="color:#f87171; font-size:12px;">32h 后</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;">
+            <span>📐 高数下 · 期中考前提醒</span>
+            <span style="color:#f87171; font-size:12px;">48h 后</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <span>94f3664b · cockpit-drawer · pulse-breathe</span>
+      <span>HEX: #057C66 #ddd000 #231815</span>
+    </footer>
+  </main>
+</div>
+
+</body>
+</html>
