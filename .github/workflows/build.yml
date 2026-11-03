@@ -6,8 +6,8 @@ name: build
 #   - 手动 workflow_dispatch → 可勾选「创建 Release」
 #
 # 产物（均在项目根 dist/，已被 .gitignore 忽略）：
-#   dist/qq-relay-portable.zip   Windows 便携版（win/ 构建脚本产出）
-#   dist/qq-relay-server.tar.gz  Linux 服务器版（linux/ 构建脚本产出）
+#   dist/seu_alert-portable-win.zip   Windows 便携版（win/ 构建脚本产出）
+#   dist/seu_alert-portable-server.tar.gz  Linux 服务器版（linux/ 构建脚本产出）
 
 on:
   push:
@@ -73,13 +73,13 @@ jobs:
       - name: 校验产物
         shell: pwsh
         run: |
-          if (-not (Test-Path "dist/qq-relay-portable/qq-relay.exe")) { throw "缺少 qq-relay.exe" }
-          if (-not (Test-Path "dist/qq-relay-portable.zip")) { throw "缺少 qq-relay-portable.zip" }
+          if (-not (Test-Path "dist/seu_alert-portable-win/qq-relay.exe")) { throw "缺少 qq-relay.exe" }
+          if (-not (Test-Path "dist/seu_alert-portable-win.zip")) { throw "缺少 seu_alert-portable-win.zip" }
           "win 产物 OK"
       - uses: actions/upload-artifact@v4
         with:
-          name: qq-relay-portable-win
-          path: dist/qq-relay-portable.zip
+          name: seu_alert-portable-win
+          path: dist/seu_alert-portable-win.zip
           if-no-files-found: error
 
   linux:
@@ -101,13 +101,13 @@ jobs:
         run: bash linux/build_server.sh
       - name: 校验产物
         run: |
-          test -x dist/qq-relay-server/qq-relay-server || { echo "缺少可执行文件" >&2; exit 1; }
-          test -f dist/qq-relay-server.tar.gz || { echo "缺少 tar.gz" >&2; exit 1; }
+          test -x dist/seu_alert-portable-server/qq-relay-server || { echo "缺少可执行文件" >&2; exit 1; }
+          test -f dist/seu_alert-portable-server.tar.gz || { echo "缺少 tar.gz" >&2; exit 1; }
           echo "linux 产物 OK"
       - uses: actions/upload-artifact@v4
         with:
-          name: qq-relay-server-linux
-          path: dist/qq-relay-server.tar.gz
+          name: seu_alert-portable-server
+          path: dist/seu_alert-portable-server.tar.gz
           if-no-files-found: error
 
   release:
@@ -122,8 +122,8 @@ jobs:
         run: find . -maxdepth 2 -type f \( -name "*.zip" -o -name "*.tar.gz" \) -print
       - name: 生成 SHA256 校验和
         run: |
-          sha256sum qq-relay-portable-win/qq-relay-portable.zip \
-                    qq-relay-server-linux/qq-relay-server.tar.gz > checksums.txt
+          sha256sum seu_alert-portable-win/seu_alert-portable-win.zip \
+                    seu_alert-portable-server/seu_alert-portable-server.tar.gz > checksums.txt
           cat checksums.txt
       - uses: softprops/action-gh-release@v2
         with:
@@ -132,6 +132,6 @@ jobs:
           fail_on_unmatched_files: true
           generate_release_notes: true
           files: |
-            qq-relay-portable-win/qq-relay-portable.zip
-            qq-relay-server-linux/qq-relay-server.tar.gz
+            seu_alert-portable-win/seu_alert-portable-win.zip
+            seu_alert-portable-server/seu_alert-portable-server.tar.gz
             checksums.txt

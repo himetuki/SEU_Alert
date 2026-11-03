@@ -3,8 +3,8 @@
 # 用法：
 #   本地：bash linux/build_server.sh
 #   CI：  bash linux/build_server.sh
-# 产物：dist/qq-relay-server/（无头二进制 + config + .env.example + systemd unit + 说明）
-#      dist/qq-relay-server.tar.gz（用于 GitHub Release 分发）
+# 产物：dist/seu_alert-portable-server/（无头二进制 + config + .env.example + systemd unit + 说明）
+#      dist/seu_alert-portable-server.tar.gz（用于 GitHub Release 分发）
 # 说明：入口 linux/server_entry.py；schema.sql 用绝对路径（PyInstaller 把相对路径解析到 spec 目录）。
 
 set -euo pipefail
@@ -16,7 +16,7 @@ if [ -z "${PYTHON:-}" ]; then
   if [ -x "$ROOT/.venv/bin/python" ]; then PYTHON="$ROOT/.venv/bin/python"
   else PYTHON="python3"; fi
 fi
-if [ -z "${OUT:-}" ]; then OUT="$ROOT/dist/qq-relay-server"; fi
+if [ -z "${OUT:-}" ]; then OUT="$ROOT/dist/seu_alert-portable-server"; fi
 
 PYI_DIST="$ROOT/build/linux-pyi"
 PYI_WORK="$ROOT/build/linux-work"
@@ -45,7 +45,7 @@ rm -rf "$PYI_DIST" "$PYI_WORK" "$PYI_SPEC"
   --collect-submodules qq_relay \
   linux/server_entry.py
 
-echo "[4/5] 组装目录 dist/qq-relay-server ..."
+echo "[4/5] 组装目录 dist/seu_alert-portable-server ..."
 rm -rf "$OUT"
 mkdir -p "$OUT/config"
 cp -r "$PYI_DIST"/* "$OUT/"

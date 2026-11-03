@@ -5,7 +5,7 @@ Linux 服务器版：**无头二进制**（PyInstaller one-dir）+ **systemd uni
 | 文件 | 作用 |
 |---|---|
 | `server_entry.py` | 服务器入口：`qq_relay.admin.main(host=0.0.0.0, open_browser=False)`，可用 `ADMIN_HOST`/`ADMIN_PORT` 覆盖 |
-| `build_server.sh` | PyInstaller one-dir 打包脚本：产出 `dist/qq-relay-server/` 与 `dist/qq-relay-server.tar.gz` |
+| `build_server.sh` | PyInstaller one-dir 打包脚本：产出 `dist/seu_alert-portable-server/` 与 `dist/seu_alert-portable-server.tar.gz` |
 | `qq-relay-server.service` | systemd unit（部署时按实际路径修改） |
 
 ## 与 Windows 便携版的区别
@@ -14,7 +14,7 @@ Linux 服务器版：**无头二进制**（PyInstaller one-dir）+ **systemd uni
 |---|---|---|
 | 入口 | `win/portable_entry.py` → admin + 自动开浏览器 | `linux/server_entry.py` → admin，不开浏览器，绑 `0.0.0.0:8000` |
 | PyInstaller | `--windowed`（无控制台） | 默认 console（日志走 journald） |
-| 打包形态 | `dist/qq-relay-portable/`（zip 分发） | `dist/qq-relay-server/`（tar.gz 分发 + systemd） |
+| 打包形态 | `dist/seu_alert-portable-win/`（zip 分发） | `dist/seu_alert-portable-server/`（tar.gz 分发 + systemd） |
 | 分发对象 | 校内用户本地电脑 | Linux 服务器（常驻服务） |
 
 ## 本地构建（WSL / Linux）
@@ -29,7 +29,7 @@ bash linux/build_server.sh
 
 ```bash
 sudo mkdir -p /opt/qq-relay-server
-sudo cp -r dist/qq-relay-server/* /opt/qq-relay-server/
+sudo cp -r dist/seu_alert-portable-server/* /opt/qq-relay-server/
 sudo useradd -r -s /usr/sbin/nologin qqrelay
 sudo chown -R qqrelay:qqrelay /opt/qq-relay-server
 # 编辑 /opt/qq-relay-server/qq-relay-server.service 里的路径

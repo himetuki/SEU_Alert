@@ -147,9 +147,9 @@ Windows 构建源码在 [win/](../win/)；产物仍输出到项目根 `dist/`。
 pwsh -NoProfile -ExecutionPolicy Bypass -File win/build_portable.ps1
 ```
 
-产物 `dist/qq-relay-portable/`：`qq-relay.exe`（双击即跑，自带 Python 运行时）+
+产物 `dist/seu_alert-portable-win/`：`qq-relay.exe`（双击即跑，自带 Python 运行时）+
 `_internal/` + `config/` + `.env.example` + `使用说明.md` + `WIN-README.md`；另产出
-`dist/qq-relay-portable.zip` 供分发。数据/配置在 **exe 同级目录**
+`dist/seu_alert-portable-win.zip` 供分发。数据/配置在 **exe 同级目录**
 （`data/`、`.env`、`logs/`），不写 %APPDATA%、不写系统目录——整个文件夹拷走即用。
 
 注意：`src/qq_relay/store/schema.sql` 是非 .py 数据文件，构建脚本已用 `--add-data`
@@ -165,10 +165,10 @@ Linux 构建源码在 [linux/](../linux/)（WSL / Linux 上执行）：
 bash linux/build_server.sh
 ```
 
-产物 `dist/qq-relay-server/`：无头二进制 `qq-relay-server`（不开浏览器，绑
+产物 `dist/seu_alert-portable-server/`：无头二进制 `qq-relay-server`（不开浏览器，绑
 `0.0.0.0:8000`，可用 `ADMIN_HOST`/`ADMIN_PORT` 覆盖）+ `_internal/` + `config/` +
 `.env.example` + `qq-relay-server.service`（systemd unit）+ `LINUX-README.md`；
-另产出 `dist/qq-relay-server.tar.gz` 供分发。部署见 [linux/README.md](../linux/README.md)。
+另产出 `dist/seu_alert-portable-server.tar.gz` 供分发。部署见 [linux/README.md](../linux/README.md)。
 
 ## 13. CI 自动构建与分发（ADR-028）
 
@@ -177,7 +177,7 @@ bash linux/build_server.sh
 | 触发 | 行为 |
 |---|---|
 | `push` / `pull_request` | 单元测试 → 构建 Windows 便携版 + Linux 服务器版 → 上传 artifact |
-| 打 tag `v*` | 额外创建 GitHub Release，上传 `qq-relay-portable.zip` 与 `qq-relay-server.tar.gz` |
+| 打 tag `v*` | 额外创建 GitHub Release，上传 `seu_alert-portable-win.zip` 与 `seu_alert-portable-server.tar.gz` |
 | `workflow_dispatch` | 可勾选「创建 Release」手动发布 |
 
 工作流使用 `windows-latest` / `ubuntu-latest` runner，`setup-python` 3.13 + `pip install
