@@ -14,7 +14,7 @@
 
 ## 二、怎么启动
 
-1. 把整个 `qq-relay-portable` 文件夹拷贝到电脑上（放哪都行，建议放非系统盘）
+1. 把整个 `seu_alert-portable-win` 文件夹拷贝到电脑上（放哪都行，建议放非系统盘）
 2. 双击 **`qq-relay.exe`**
 3. 等几秒，浏览器会自动打开后台管理页面（地址是 `http://127.0.0.1:8000`；
    没自动开就手动在浏览器输入这个地址）
@@ -65,7 +65,7 @@
 ## 五、文件都放在哪
 
 ```
-qq-relay-portable/
+seu_alert-portable-win/
 ├── qq-relay.exe        ← 双击启动
 ├── .env                ← 密码/token 填这里（改完重启）
 ├── config/             ← 监控配置（一般不用动）

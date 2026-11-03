@@ -90,8 +90,8 @@ python -m pytest -q
 
 | 形态 | 产物 | 说明 |
 |---|---|---|
-| **Windows 便携版** | `dist/qq-relay-portable/`（zip） | PyInstaller one-dir，双击即跑，无需 Python；数据与配置在 exe 同级目录 |
-| **Linux 服务器版** | `dist/qq-relay-server/`（tar.gz） | 无头二进制 + systemd unit；绑定 `0.0.0.0:8000`，适合常驻服务器 |
+| **Windows 便携版** | `dist/seu_alert-portable-win/`（zip） | PyInstaller one-dir，双击即跑，无需 Python；数据与配置在 exe 同级目录 |
+| **Linux 服务器版** | `dist/seu_alert-portable-server/`（tar.gz） | 无头二进制 + systemd unit；绑定 `0.0.0.0:8000`，适合常驻服务器 |
 | **源码运行** | — | `python -m qq_relay.main` / `-m qq_relay.admin` |
 
 构建源码分别在 [`win/`](win/) 与 [`linux/`](linux/)；产物一律输出到 `dist/`（已 gitignore）。

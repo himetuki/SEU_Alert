@@ -2,8 +2,8 @@
 # 用法：
 #   本地：powershell -NoProfile -ExecutionPolicy Bypass -File win\build_portable.ps1
 #   CI：  powershell -NoProfile -ExecutionPolicy Bypass -File win\build_portable.ps1 -Python python
-# 产物：dist\qq-relay-portable\（整个文件夹拷给使用者即可，无需 Python）
-#      dist\qq-relay-portable.zip（用于 GitHub Release 分发）
+# 产物：dist\seu_alert-portable-win\（整个文件夹拷给使用者即可，无需 Python）
+#      dist\seu_alert-portable-win.zip（用于 GitHub Release 分发）
 # 说明：入口 win\portable_entry.py；schema.sql 用绝对路径（PyInstaller 把相对路径解析到 spec 目录）。
 
 param(
@@ -19,7 +19,7 @@ if (-not $Python) {
     $Venv = Join-Path $Root ".venv\Scripts\python.exe"
     if (Test-Path $Venv) { $Python = $Venv } else { $Python = "python" }
 }
-if (-not $OutDir) { $OutDir = Join-Path $Root "dist\qq-relay-portable" }
+if (-not $OutDir) { $OutDir = Join-Path $Root "dist\seu_alert-portable-win" }
 
 # 让 PyInstaller 能找到 src 下的 qq_relay（本地 venv 已装时亦无害）
 $env:PYTHONPATH = "$Root\src" + $(if ($env:PYTHONPATH) { ";$env:PYTHONPATH" } else { "" })
@@ -47,7 +47,7 @@ if (Test-Path "dist\qq-relay") { Remove-Item -Recurse -Force "dist\qq-relay" }
   win\portable_entry.py
 if ($LASTEXITCODE -ne 0) { Write-Error "PyInstaller 打包失败" }
 
-Write-Host "[4/5] 组装便携目录 dist\qq-relay-portable ..."
+Write-Host "[4/5] 组装便携目录 dist\seu_alert-portable-win ..."
 if (Test-Path $OutDir) { Remove-Item -Recurse -Force $OutDir }
 New-Item -ItemType Directory -Path $OutDir | Out-Null
 Copy-Item -Recurse "dist\qq-relay\*" $OutDir
@@ -63,10 +63,10 @@ Copy-Item "$OutDir\.env.example" "$OutDir\.env"
   Set-Content "$OutDir\.env" -Encoding UTF8
 
 Write-Host "[5/5] 打包 zip ..."
-$Zip = Join-Path $Root "dist\qq-relay-portable.zip"
+$Zip = Join-Path $Root "dist\seu_alert-portable-win.zip"
 if (Test-Path $Zip) { Remove-Item -Force $Zip }
 Compress-Archive -Path (Join-Path $OutDir "*") -DestinationPath $Zip
 
 Write-Host "完成：$OutDir（含 $Zip）"
 Get-ChildItem $OutDir | Select-Object Mode, Length, Name | Format-Table -AutoSize
-Write-Host "把整个 qq-relay-portable 文件夹（或 zip）发给使用者；使用者双击 qq-relay.exe 即可。"
+Write-Host "把整个 seu_alert-portable-win 文件夹（或 zip）发给使用者；使用者双击 qq-relay.exe 即可。"

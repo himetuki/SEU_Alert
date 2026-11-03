@@ -1,0 +1,2 @@
+f3eb64a6aa66fedeb58e0c561b4927e6175e62bfb8f25c959def38f6be860fcc  qq-relay-portable-win/qq-relay-portable.zip
+a5352e53806773a1e10ee73d732a5ad1f53d0e8ee888302b54c43fb410fcd3f3  qq-relay-server-linux/qq-relay-server.tar.gz
