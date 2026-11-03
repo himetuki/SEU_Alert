@@ -83,14 +83,16 @@ set PIP_CACHE_DIR=%CD%\.pipcache
 
 - **教务处六栏目直采**（ADR-029，已就绪）：`kind: jwc`，配置 `config/jwc.yml`，直接抓 `jwc.seu.edu.cn` 六个栏目（最新动态/教务信息/学籍管理/实践教学/国际交流/文化素质教育），群 = `web-jwc`。**自包含，不需要任何外部程序**。
 - **SEUdaily 网页库**（已就绪）：`seu-projects-test/SEUdaily/.seudaily/web-files` 里已有的通知会自动流入（已验证：免试公示通知 → Digest 文件）。库会随你使用 SEUdaily 增长，新增自动接入。
-- **SEU-Monitor 归档库**（**默认停用**）：`kind: seu_monitor`，`web-sources.yml` 里 `enabled: false`。ADR-029 后教务处已直采，不再需要它；若你仍想在 WSL 里跑（例如想保留其附件归档），把 `enabled` 改回 `true`：
+- **SEU-Monitor 归档库**（**已启用，Windows 原生**）：`kind: seu_monitor`，`web-sources.yml` 里 `enabled: true`。它消费 `store/web/教务处/<栏目>/<标题--ID>/` 下的 `meta.json` + `text.md`。本项目自带生成器，**不需要 Go / WSL**：
 
-  ```bash
-  # WSL Ubuntu 内（按实际挂载路径替换 <项目根>）
-  cd <项目根>/seu-projects-test/SEU-Monitor
-  ./monitor --once --data-dir <项目根>/seu-projects-test/SEU-Monitor/store
+  ```powershell
+  # Windows 直接生成一轮归档（抓教务处六栏目 → 写 store/web/教务处/…）
+  .venv\Scripts\python -m qq_relay.tools.seu_archive --once
+  # 可选参数：--root <归档目录> --config config/jwc.yml --max-articles 15
   ```
 
+  生成后重启后台或点「立即扫描」，`seu-monitor` 源即把归档读入管线；与 `jwc` 直采内容相同，会自动去重合并（一条 item、多个来源群）。
+- **人文讲座·网站渠道**（新增）：`kind: jwc` + `config/lecture-site.yml`，抓「文化素质教育」「六朝松大师讲堂」两个栏目，群 = `web-lecture`。与预约系统、公众号共用同一讲座频道。
 - **教务处多源重叠**：直采、SEUdaily、SEU-Monitor（若启用）都会覆盖 jwc 站，重复通知由内容去重自动合并（一条 item、多个来源群）。
 
 ## 6. 投稿提取栈与本地投稿 CLI（ADR-023）
@@ -124,11 +126,15 @@ JEV 分类树替换假分类器（`CLASSIFIER=tree`）：连通性测试先行�
 - **劳动教育**：`labor` 源 5 分钟一轮。会话二选一——`.env` 填 `LABOR_USERNAME/LABOR_PASSWORD`（CAS 自动登录，需短信/验证码时跳过本轮并告警）或 `LABOR_COOKIES`（浏览器导出的 cookie JSON）。筛选（校区白名单/类别黑名单）在 `config/labor.yml`
 - 非校内网时劳动教育源会连续失败——只记日志不拖垮管道；回校内网自动恢复
 
-## 10. 公众号监控与人文讲座（ADR-025）
+## 10. 人文讲座三渠道 · 公众号监控（ADR-025/031）
 
-- **公众号（免登录）**：`wechat-mp` 源 30 分钟一轮。默认监控「东南大学文化素质教育中心」（`config/wechat-mp.yml` 加账号即可多号监控）。链路：搜狗文章搜索 → mp.weixin.qq.com 公开正文 → **大/小模型代读**出「题目/时间/**校区+教室**/报名途径」（校区在推送里着重显示；报名途径只取文字路径，不取二维码）。模型判非讲座自动忽略；模型未配置时降级为原文入库（low_conf）。搜狗要验证码时跳过本轮，不会硬刚
-- **人文讲座（仅监控）**：`seu-lectures` 源 15 分钟一轮，移植 seu-lecture-cli 的监控能力（**不预约不抢票**）。会话：`.env` 填 `SEU_LECTURE_USERNAME/PASSWORD`（CAS，需短信时跳过并告警）或 `SEU_LECTURE_COOKIES`。讲座（含预约开放时间、余量）→ `web-lecture` 群 → 订阅分发。订阅：`/sub 群 人文讲座 类别 讲座`
-- 两个源都走同一个分类树和 deliver 出口；临期提醒对带 deadline 的 item 自动生效
+人文讲座现在有**三个来源**，都归到 `web-lecture` 群，订阅一次即可全收：
+
+- **预约系统**（`seu-lectures`，15 分钟一轮）：移植 seu-lecture-cli 的监控能力（**不预约不抢票**）。会话：`.env` 填 `SEU_LECTURE_USERNAME/PASSWORD`（CAS，需短信时跳过并告警）或 `SEU_LECTURE_COOKIES`。讲座（含预约开放时间、余量）→ `web-lecture`
+- **学校网站**（`lecture-site`，复用 jwc 直采，**无需登录**）：抓「文化素质教育」`jwc.seu.edu.cn/cbxx` 与「六朝松大师讲堂」`jwc.seu.edu.cn/lcsdjt` 两个栏目 → `web-lecture`
+- **公众号**（`wechat-mp`，30 分钟一轮，免登录）：默认监控「东南大学文化素质教育中心」，`config/wechat-mp.yml` 里 `group_id: web-lecture` 把讲座并入同一频道；加账号 = 加一条 accounts。链路：搜狗搜索 → mp 公开正文 → **大/小模型代读**（题目/时间/**校区+教室**/报名途径）。模型判非讲座自动忽略；模型未配置时降级原文入库。搜狗要验证码时跳过本轮
+
+订阅示例：`/sub 群 人文讲座 类别 讲座`。三个源共用同一分类树与 deliver 出口；临期提醒对带 deadline 的 item 自动生效。
 
 ## 11. 打包便携版（ADR-026，Windows）
 

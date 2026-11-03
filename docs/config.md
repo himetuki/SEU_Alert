@@ -122,12 +122,17 @@ sources:
     name: 教务处通知（直采）
     root: config/jwc.yml
     interval: 900                # 秒，≥60
+  - id: lecture-site
+    kind: jwc                    # 人文讲座·学校网站渠道（复用 jwc 解析器；群=web-lecture）
+    name: 人文讲座（文化素质教育栏目）
+    root: config/lecture-site.yml
+    interval: 900
   - id: seu-monitor
-    kind: seu_monitor            # 旧通道：SEU-Monitor（Go）归档库 web/教务处/<栏目>/<标题--ID>/
+    kind: seu_monitor            # SEU-Monitor 归档库 web/教务处/<栏目>/<标题--ID>/
     name: 教务处通知（SEU-Monitor）
     root: seu-projects-test/SEU-Monitor/store     # 相对项目根；绝对路径亦可
     interval: 900                # 秒，≥60
-    enabled: false               # ADR-029 起默认停用；改 true 可继续消费其归档
+    enabled: true                # 已启用；归档由 qq_relay.tools.seu_archive 生成（Windows 原生）
   - id: seudaily
     kind: seudaily               # SEUdaily 网页库：metadata/*.json + files/<host>/<section>/<notice>/*.md
     name: SEUdaily 网页库
@@ -138,7 +143,7 @@ sources:
 **kind 取值**：`jwc`（教务处直采）/ `seu_monitor` / `seudaily` / `seu_colleges` / `labor` / `wechat_mp` / `seu_lectures`。
 **enabled**：省略或 `true` 参与轮询；`false` 则不启动该源的 poller，后台页面标注「已停用」。
 
-语义（ADR-022/029）：首次扫描全量 backfill，之后增量；`web_seen` 表持久化已见 key；扫描失败只记日志不拖垮管道。web 群是**站点级**合成群（`web-jwc` / `web-cse`，kind=web、scope=school），订阅与普通群一致（`/sub 群 教务处 类别 通知 考试`）。SEUdaily 的 metadata 无发布日期，ts 用抓取时间（文件 mtime）。教务处直采不需要任何外部程序；若仍启用 SEU-Monitor 通道，它在 Linux/WSL 跑监控，root 可指向 WSL 挂载路径（如 `/mnt/<盘>/...`）或 `\\wsl.localhost\...`。
+语义（ADR-022/029）：首次扫描全量 backfill，之后增量；`web_seen` 表持久化已见 key；扫描失败只记日志不拖垮管道。web 群是**站点级**合成群（`web-jwc` / `web-cse`，kind=web、scope=school），订阅与普通群一致（`/sub 群 教务处 类别 通知 考试`）。SEUdaily 的 metadata 无发布日期，ts 用抓取时间（文件 mtime）。教务处直采不需要任何外部程序；SEU-Monitor 归档用 Windows 原生生成器：`.venv\Scripts\python -m qq_relay.tools.seu_archive --once`（无需 Go/WSL）。
 
 ## 教务处直采（jwc.yml，ADR-029）
 
@@ -151,6 +156,18 @@ columns:
 ```
 
 缺省内置六栏目（zxdt 最新动态 / jwxx 教务信息 / xjgl 学籍管理 / sjjx 实践教学 / gjjl 国际交流 / cbxx 文化素质教育），文件缺失时自动回落到内置清单。
+
+### 人文讲座·网站渠道（lecture-site.yml）
+
+复用同一套 jwc 解析器，只换栏目与群：
+
+```yaml
+group_id: web-lecture
+group_name: 人文讲座（文化素质教育栏目）
+columns:
+  - {id: cbxx, name: 文化素质教育, url: https://jwc.seu.edu.cn/cbxx/list.htm}
+  - {id: lcsdjt, name: 六朝松大师讲堂, url: https://jwc.seu.edu.cn/lcsdjt/list.htm}
+```
 
 ## 学院采集（colleges.yml，ADR-024）
 
@@ -178,8 +195,9 @@ filters:
 
 ```yaml
 accounts:
-  - key: wzjy                    # 群 = web-mp-wzjy；name 用于搜狗搜索与账号过滤
+  - key: wzjy                    # name 用于搜狗搜索与账号过滤
     name: 东南大学文化素质教育中心
+    group_id: web-lecture        # 可选：讲座并入人文讲座频道（缺省 web-mp-<key>）
 extract_layer: big               # big=大模型代读 | small=小模型备用；未配置则降级原文入库
 ```
 

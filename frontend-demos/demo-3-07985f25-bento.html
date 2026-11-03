@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QQ消息集散 · Hash Design #3 (07985f25)</title>
+<style>
+/* ─────────────────────────────────────
+   Hash: 07985f25 → bento-dashboard + pulse-breathe
+   Palette: SEU Balanced (绿54.8% · 黄6.2% · 对比80)
+   Tokens: 脉冲5640ms · 呼吸 · 弹簧3150ms
+─────────────────────────────────────── */
+
+:root {
+  --seu-green: #057C66;
+  --seu-green2: #2CB497;
+  --seu-yellow: #ddd000;
+  --seu-black: #231815;
+  --bg: #f0f5f0;
+  --card: #ffffff;
+  --text: var(--seu-black);
+  --muted: #7a8a7a;
+  --border: #d8e4d8;
+  --s1: #e8f4eb;    /* green10 */
+  --s2: #d4ebd4;    /* green20 */
+  --s3: #e8f0d4;    /* yellow10 */
+  --s4: #fff9e6;    /* yellow20 */
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Source Han Sans CN", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* ═══ 页面呼吸 ═══ */
+.page-breath {
+  animation: breathe var(--pulse_ms, 5640ms) ease-in-out infinite;
+}
+@keyframes breathe {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .96; }
+}
+
+/* ═══ Navbar ═══ */
+.nav {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  height: 56px; padding: 0 20px;
+  background: #fff;
+  border-bottom: 2px solid var(--seu-green);
+  box-shadow: 0 1px 4px rgba(0,0,0,.04);
+}
+.nav-brand { display: flex; align-items: center; gap: 10px; }
+.nav-brand .bento-dot {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--seu-green), var(--seu-green2));
+  display: grid; place-items: center;
+  color: #fff; font-size: 14px; font-weight: 900;
+}
+.nav-brand span { font-size: 17px; font-weight: 700; letter-spacing: -.02em; }
+.nav-actions { display: flex; gap: 8px; }
+
+/* ═══ Bento Grid ═══ */
+.bento {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  padding: 24px 20px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+@media (max-width: 980px) {
+  .bento { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-width: 700px) {
+  .bento { grid-template-columns: repeat(2, 1fr); }
+}
+
+.bento-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: transform .15s, box-shadow .15s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.bento-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(5,124,102,.1);
+}
+
+/* Grid spans */
+.span-2  { grid-column: span 2; }
+.span-3  { grid-column: span 3; }
+.span-4  { grid-column: span 4; }
+.span-6  { grid-column: span 6; }
+@media (max-width: 980px) {
+  .span-2,.span-3 { grid-column: span 2; }
+}
+@media (max-width: 700px) {
+  .span-2,.span-3,.span-4,.span-6 { grid-column: span 1; }
+}
+
+/* Card internals */
+.bento-card h3 { font-size: 13px; font-weight: 700; color: var(--muted); }
+.bento-card .bento-val { font-size: 28px; font-weight: 800; color: var(--seu-green); }
+.bento-card .bento-sub { font-size: 11px; color: var(--muted); }
+.bento-card .bento-title { font-size: 14px; font-weight: 600; }
+.bento-card .bento-meta { font-size: 12px; color: var(--muted); }
+.bento-card .bento-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.bento-card .tag {
+  font-size: 10px; padding: 2px 6px;
+  border-radius: 4px; font-weight: 600;
+  background: var(--s1); color: var(--seu-green);
+}
+.bento-card .tag.y { background: var(--s3); }
+.bento-card .bento-list { display: flex; flex-direction: column; gap: 4px; }
+.bento-card .bento-list .mini {
+  display: flex; align-items: center;
+  gap: 8px; padding: 4px 0;
+  font-size: 12px; border-bottom: 1px solid var(--border);
+}
+.bento-card .bento-list .mini:last-of-type { border-bottom: none; }
+.bento-card .bento-list .mini .icon { font-size: 12px; }
+.bento-card .bento-list .mini .dl { font-size: 11px; color: #c04030; }
+
+/* ═══ 提示条 ═══ */
+.bento-card::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(120deg, transparent 0%, rgba(221,208,0,.04) 40%, transparent 100%);
+  pointer-events: none;
+}
+
+/* ═══ Footer ═══ */
+.footer {
+  text-align: center;
+  padding: 24px;
+  color: var(--muted);
+  font-size: 12px;
+  border-top: 1px solid var(--border);
+  background: #fff;
+}
+
+</style>
+</head>
+<body class="page-breath">
+
+<nav class="nav">
+  <div class="nav-brand">
+    <div class="bento-dot">南</div>
+    <span>QQ消息集散</span>
+  </div>
+  <div class="nav-actions">
+    <span style="font-size:12px;color:var(--muted)">07985f25 · bento</span>
+    <div class="btn" style="padding:6px 14px;background:var(--seu-green);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">扫描</div>
+  </div>
+</nav>
+
+<div class="bento">
+  <!-- 1. 今日总览 -->
+  <div class="bento-card span-3">
+    <h3>📊 今日概览</h3>
+    <div class="bento-val">27</div>
+    <div class="bento-sub">条新增信息 · 6 个源活跃</div>
+    <div class="bento-tags"><span class="tag">教务</span><span class="tag">学院</span><span class="tag y">讲座</span></div>
+  </div>
+
+  <!-- 2. 临期提醒 -->
+  <div class="bento-card span-2">
+    <h3>⚠️ 临期提醒</h3>
+    <div class="bento-list">
+      <div class="mini"><span class="icon">🎤</span><span>明清文学讲座</span><span class="dl">16h</span></div>
+      <div class="mini"><span class="icon">📝</span><span>数据结构 HW3</span><span class="dl">32h</span></div>
+      <div class="mini"><span class="icon">📐</span><span>高数期中考</span><span class="dl">48h</span></div>
+    </div>
+  </div>
+
+  <!-- 3. 订阅统计 -->
+  <div class="bento-card span-1">
+    <h3>👥 订阅</h3>
+    <div class="bento-val" style="font-size:22px">42</div>
+    <div class="bento-meta">active 订阅</div>
+    <div class="bento-tags"><span class="tag">31</span>同学<span class="tag">7</span>群</div>
+  </div>
+
+  <!-- 4. 采集源状态 -->
+  <div class="bento-card span-2">
+    <h3>📡 采集源</h3>
+    <div class="bento-list">
+      <div class="mini"><span class="icon">✅</span><span>教务处</span></div>
+      <div class="mini"><span class="icon">✅</span><span>学院官网</span></div>
+      <div class="mini"><span class="icon">✅</span><span>讲座预约</span></div>
+      <div class="mini"><span class="icon">✅</span><span>公众号</span></div>
+      <div class="mini"><span class="icon">⭕</span><span>QQ 群</span></div>
+      <div class="mini"><span class="icon">-</span><span>投稿</span></div>
+    </div>
+  </div>
+
+  <!-- 5. 分类分布 -->
+  <div class="bento-card span-2">
+    <h3>📋 分类分布</h3>
+    <div class="bento-list" style="flex:1">
+      <div class="mini"><span class="icon">🎤</span><span>讲座</span><span style="flex:1">8</span><span style="color:var(--seu-green);font-weight:700">29%</span></div>
+      <div class="mini"><span class="icon">📝</span><span>作业</span><span style="flex:1">9</span><span style="color:var(--seu-green);font-weight:700">33%</span></div>
+      <div class="mini"><span class="icon">📐</span><span>考试</span><span style="flex:1">6</span><span style="color:var(--seu-green);font-weight:700">22%</span></div>
+      <div class="mini"><span class="icon">🏆</span><span>竞赛</span><span style="flex:1">4</span><span style="color:var(--seu-green);font-weight:700">15%</span></div>
+    </div>
+  </div>
+
+  <!-- 6. 推送渠道 -->
+  <div class="bento-card span-1">
+    <h3>📤 推送渠道</h3>
+    <div class="bento-tags">
+      <span class="tag">PushPlus</span>
+      <span class="tag">QQ 私聊</span>
+      <span class="tag">file</span>
+    </div>
+    <div class="bento-sub" style="margin-top:6px">3 通道 · 活跃度 98%</div>
+  </div>
+
+  <!-- 7. 大类排行 -->
+  <div class="bento-card span-3">
+    <h3>🏆 本周热点类别</h3>
+    <div class="bento-list">
+      <div class="mini"><span class="icon">📐</span><span>高数下期中试通知</span><span style="color:var(--seu-green);font-weight:700;">33</span></div>
+      <div class="mini"><span class="icon">📝</span><span>OS 实验室 DHCP 服务器配置</span><span style="color:var(--seu-green);font-weight:700;">21</span></div>
+      <div class="mini"><span class="icon">🎤</span><span>AI for Science 专题讲座</span><span style="color:var(--seu-green);font-weight:700;">18</span></div>
+      <div class="mini"><span class="icon">🏆</span><span>蓝桥杯省赛报名</span><span style="color:var(--seu-green);font-weight:700;">15</span></div>
+    </div>
+  </div>
+
+  <!-- 8. 系统状态 -->
+  <div class="bento-card span-3">
+    <h3>🔧 系统健康</h3>
+    <div class="bento-list">
+      <div class="mini"><span class="icon">✅</span><span>采集管线</span><span style="flex:1">正常运行</span><span style="color:var(--seu-green);font-weight:700;">✔</span></div>
+      <div class="mini"><span class="icon">✅</span><span>分类模型 (JEV)</span><span style="flex:1">延迟 120ms</span><span style="color:var(--seu-green);font-weight:700;">✔</span></div>
+      <div class="mini"><span class="icon">✅</span><span>推送服务</span><span style="flex:1">今日 27 次</span><span style="color:var(--seu-green);font-weight:700;">✔</span></div>
+      <div class="mini"><span class="icon">🟡</span><span>OCR 服务</span><span style="flex:1">排队 3</span><span style="color:var(--muted);font-weight:600;">⚠</span></div>
+    </div>
+  </div>
+
+  <!-- 9. 底部广告位 -->
+  <div class="bento-card span-6" style="background:linear-gradient(135deg, var(--s1), #fff); border-color:var(--s1);">
+    <h3>🎯 一键订阅</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <input type="text" placeholder="输入 QQ 号" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;flex:1;min-width:120px;">
+      <input type="text" placeholder="订阅的类别，用逗号分隔" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;flex:2;min-width:160px;">
+      <button class="btn" style="padding:8px 20px;background:var(--seu-green);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">立即订阅</button>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  07985f25 · bento-dashboard · pulse-breathe ·
+  <a href="https://github.com/SEU_Alert" style="color:var(--seu-green);">SEU_Alert</a>
+</footer>
+
+</body>
+</html>

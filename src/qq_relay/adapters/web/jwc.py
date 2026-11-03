@@ -141,6 +141,24 @@ def load_columns(path: Path) -> list[dict]:
     return out or [dict(c) for c in DEFAULT_COLUMNS]
 
 
+def load_group(path: Path) -> tuple[str, str]:
+    """读同文件的群覆盖（默认教务处 web-jwc）。
+
+    用于复用同一套解析器开第二种频道：如人文讲座网站源：
+        group_id: web-lecture
+        group_name: 人文讲座（文化素质教育栏目）
+    """
+    p = Path(path)
+    data: dict = {}
+    if p.is_file():
+        try:
+            data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+        except (yaml.YAMLError, OSError):
+            data = {}
+    return (str(data.get("group_id") or "web-jwc"),
+            str(data.get("group_name") or "教务处（jwc.seu.edu.cn）"))
+
+
 def parse_list_page(html_text: str, column_id: str,
                     base: str) -> list[tuple[str, str, str, str]]:
     """列表页 → [(绝对URL, 标题, YYYYMMDD, 文章ID)]，按出现顺序去重。
@@ -279,6 +297,7 @@ async def scan(root: Path, *, client: Optional[httpx.AsyncClient] = None,
       - 文章页取不到正文 → 回退 `jwc:<栏目>:<文章ID>`（按链接去重）
     """
     columns = load_columns(root)
+    group_id, group_name = load_group(root)
     if not columns:
         return []
     owns = client is None
@@ -322,13 +341,15 @@ async def scan(root: Path, *, client: Optional[httpx.AsyncClient] = None,
                        else f"jwc:{col['id']}:{aid}")
                 out.append(WebNotice(
                     key=key,
-                    group_id="web-jwc",
-                    group_name="教务处（jwc.seu.edu.cn）",
+                    group_id=group_id,
+                    group_name=group_name,
                     title=title,
                     text=text,
                     url=url,
                     ts=ts,
                     sender="东南大学教务处",
+                    column=col["name"],
+                    notice_id=aid,
                 ))
     finally:
         if owns:

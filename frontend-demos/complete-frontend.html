@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QQ消息集散 · 后台管理</title>
+<style>
+/* ═══════════════════════════════════════════════
+   QQ消息集散 · 完整前端（驾驶舱 × bento 信息面板）
+   视觉基因：94f3664b cockpit-drawer（暗色操作台 + 脉冲呼吸）
+           × 07985f25 bento-dashboard（一目了然的信息卡片）
+   色系：SEU 黄绿  #057C66 #2CB497 #ddd000 #231815
+   ─────────────────────────────────────────── */
+
+:root{
+  /* 驾驶舱深色（默认） */
+  --bg:#0a1a16; --panel:#0d241f; --panel2:#0f2d26; --card:#103029;
+  --border:#1a3a31; --text:#c8e6db; --muted:#7fbfa8;
+  --accent:#2CB497; --accent2:#057C66; --yellow:#ddd000; --danger:#f87171;
+  --shadow:0 4px 20px rgba(0,0,0,.25);
+  --radius:12px;
+  --pulse:6000ms;
+}
+html[data-theme="light"]{
+  --bg:#f0f5f0; --panel:#ffffff; --panel2:#f7faf7; --card:#ffffff;
+  --border:#d8e4d8; --text:#231815; --muted:#7a8a7a;
+  --accent:#057C66; --accent2:#2CB497; --yellow:#ddd000; --danger:#d64541;
+  --shadow:0 2px 12px rgba(5,124,102,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:"Source Han Sans CN","Microsoft YaHei",system-ui,sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.6;
+  height:100vh;display:flex;flex-direction:column;overflow:hidden;
+  transition:background .3s,color .3s;
+}
+
+/* ── 呼吸光晕（极淡，不影响阅读） ── */
+.pulse-glow{
+  position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(circle at 12% -10%,rgba(44,180,151,.07),transparent 42%),
+             radial-gradient(circle at 88% 90%,rgba(5,124,102,.05),transparent 40%);
+  animation:breathe var(--pulse) ease-in-out infinite;
+}
+@keyframes breathe{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+
+/* ── 布局骨架 ── */
+.app{position:relative;z-index:1;display:flex;flex:1;overflow:hidden}
+
+/* ═══ 侧栏（驾驶舱抽屉） ═══ */
+.drawer{
+  width:232px;background:var(--panel);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;
+}
+.drawer-header{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--border)}
+.drawer-header .logo{
+  width:32px;height:32px;border-radius:8px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:grid;place-items:center;font-size:17px;font-weight:900;color:#fff;
+}
+.drawer-header h1{font-size:15px;font-weight:700;letter-spacing:-.02em}
+.drawer-nav{padding:10px;flex:1;overflow-y:auto}
+.drawer-nav .grp{font-size:10px;color:var(--muted);letter-spacing:.1em;padding:10px 10px 4px;text-transform:uppercase}
+.nav-item{
+  display:flex;align-items:center;gap:10px;width:100%;
+  padding:9px 12px;margin-bottom:2px;
+  background:none;border:none;border-radius:8px;cursor:pointer;
+  color:var(--muted);font-size:13.5px;text-align:left;
+  transition:background .15s,color .15s;
+}
+.nav-item:hover{background:var(--panel2);color:var(--text)}
+.nav-item.active{background:rgba(44,180,151,.16);color:var(--accent);font-weight:600}
+.nav-item .ic{width:18px;text-align:center;flex-shrink:0}
+.nav-item .badge{margin-left:auto;font-size:10px;background:rgba(248,113,113,.2);color:var(--danger);padding:1px 6px;border-radius:99px}
+.drawer-footer{padding:12px;border-top:1px solid var(--border);display:flex;gap:8px}
+.theme-btn{
+  flex:1;padding:7px;border-radius:7px;font-size:12px;cursor:pointer;
+  border:1px solid var(--border);background:var(--panel2);color:var(--muted);
+  transition:border-color .15s,color .15s;
+}
+.theme-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ═══ 主区 ═══ */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.header{
+  height:52px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.header .crumb{font-size:12.5px;color:var(--muted)}
+.header .crumb b{color:var(--accent);font-weight:600}
+.header-right{display:flex;align-items:center;gap:10px}
+.clock{font-family:"JetBrains Mono","Consolas",monospace;font-size:12px;color:var(--muted)}
+.status-dot{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--accent)}
+.status-dot .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 rgba(44,180,151,.6);animation:dotPulse 2s infinite}
+@keyframes dotPulse{0%{box-shadow:0 0 0 0 rgba(44,180,151,.5)}70%{box-shadow:0 0 0 8px rgba(44,180,151,0)}100%{box-shadow:0 0 0 0 rgba(44,180,151,0)}}
+
+.btn{
+  padding:7px 16px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;
+  border:1px solid transparent;transition:all .15s;white-space:nowrap;
+}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2)}
+.btn-ghost{background:var(--panel2);color:var(--text);border-color:var(--border)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ═══ 内容区与视图 ═══ */
+.content{flex:1;overflow-y:auto;padding:18px}
+.view{display:none;animation:fadeIn .3s ease}
+.view.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.section-title{font-size:15px;font-weight:700;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.section-title .hint{font-size:11px;color:var(--muted);font-weight:400}
+
+/* ═══ bento 网格（一目了然的信息面板） ═══ */
+.bento{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.span-2{grid-column:span 2}.span-3{grid-column:span 3}.span-4{grid-column:span 4}.span-6{grid-column:span 6}
+@media(max-width:1000px){.span-3,.span-4{grid-column:span 6}.span-2{grid-column:span 3}}
+@media(max-width:640px){.span-2{grid-column:span 6}}
+
+.panel{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;gap:8px;
+  transition:transform .15s,box-shadow .15s;
+}
+.panel:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(0,0,0,.18)}
+.panel h3{font-size:12.5px;font-weight:700;color:var(--muted);letter-spacing:.02em}
+.panel .kpi{font-size:34px;font-weight:800;color:var(--accent);line-height:1.1}
+.panel .kpi small{font-size:13px;font-weight:600;color:var(--muted);margin-left:6px}
+.panel .sub{font-size:11.5px;color:var(--muted)}
+.panel .kpi.danger{color:var(--danger)}
+.panel .kpi.yellow{color:var(--yellow)}
+
+/* 列表型 panel */
+.panel-list{display:flex;flex-direction:column;gap:2px;flex:1}
+.mini{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:12.5px;border-bottom:1px solid var(--border)}
+.mini:last-child{border-bottom:none}
+.mini .ic{flex-shrink:0}
+.mini .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini .dl{font-size:11px;color:var(--danger);flex-shrink:0}
+.mini .ok{color:var(--accent);font-size:11px;flex-shrink:0}
+.mini .muted{color:var(--muted);font-size:11px;flex-shrink:0}
+
+/* 标签 */
+.tag{display:inline-block;padding:2px 8px;border-radius:5px;font-size:10.5px;font-weight:700;background:rgba(44,180,151,.14);color:var(--accent)}
+.tag.y{background:rgba(221,208,0,.14);color:var(--yellow)}
+.tag.r{background:rgba(248,113,113,.14);color:var(--danger)}
+.tags{display:flex;gap:4px;flex-wrap:wrap}
+
+/* 进度条 */
+.bar{height:6px;border-radius:99px;background:var(--panel2);overflow:hidden;margin-top:2px}
+.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent2),var(--accent));width:0;transition:width .8s ease}
+.bar.y i{background:linear-gradient(90deg,var(--accent),var(--yellow))}
+
+/* ═══ 表格 ═══ */
+.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;padding:9px 14px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);background:var(--panel2);white-space:nowrap}
+td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr{transition:background .12s}
+tbody tr:hover{background:var(--panel2)}
+td .mini-tag{display:inline-block;padding:1px 7px;border-radius:4px;font-size:10.5px;background:rgba(44,180,151,.13);color:var(--accent);font-weight:600;margin-right:4px}
+.mono{font-family:"JetBrains Mono","Consolas",monospace;font-size:11.5px}
+
+/* 操作按钮（核验） */
+.op{padding:3px 9px;border-radius:5px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:var(--panel2);color:var(--text);transition:all .12s}
+.op:hover{border-color:var(--accent);color:var(--accent)}
+.op.done{background:rgba(44,180,151,.15);border-color:transparent;color:var(--accent);cursor:default}
+.op.err:hover{border-color:var(--danger);color:var(--danger)}
+
+/* 筛选条 */
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.fchip{padding:5px 14px;border-radius:99px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--muted);transition:all .12s}
+.fchip:hover{border-color:var(--accent);color:var(--accent)}
+.fchip.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+
+/* 订阅表单 */
+.sub-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.sub-form input,.sub-form select{
+  padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;
+  background:var(--panel2);color:var(--text);min-width:120px;
+}
+.sub-form input:focus,.sub-form select:focus{outline:none;border-color:var(--accent)}
+
+/* 规则说明 */
+.rule-list{display:flex;flex-direction:column;gap:10px}
+.rule{display:flex;gap:10px;align-items:flex-start;font-size:12.5px}
+.rule .r-num{width:20px;height:20px;border-radius:50%;background:rgba(44,180,151,.15);color:var(--accent);display:grid;place-items:center;font-size:10.5px;font-weight:700;flex-shrink:0;margin-top:1px}
+
+/* 配置项 */
+.cfg-item{display:flex;align-items:center;justify-content:space-between;padding:9px 2px;border-bottom:1px solid var(--border);font-size:12.5px;gap:12px}
+.cfg-item:last-child{border-bottom:none}
+.cfg-item .key{color:var(--muted);flex-shrink:0}
+.cfg-item .val{font-family:"JetBrains Mono","Consolas",monospace;font-size:11.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* 页脚 */
+.footer{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:7px 18px;background:var(--panel);border-top:1px solid var(--border);
+  font-size:11px;color:var(--muted);flex-shrink:0;flex-wrap:wrap;
+}
+.footer .hash{font-family:"JetBrains Mono","Consolas",monospace}
+
+/* Toast */
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+  background:var(--accent);color:#fff;padding:10px 20px;border-radius:9px;
+  font-size:13px;z-index:999;opacity:0;pointer-events:none;
+  transition:opacity .25s,transform .25s;box-shadow:0 6px 24px rgba(0,0,0,.3);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* 滚动条 */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+
+<div class="pulse-glow"></div>
+
+<div class="app">
+
+  <!-- ═══ 侧栏导航 ═══ -->
+  <aside class="drawer">
+    <div class="drawer-header">
+      <div class="logo">南</div>
+      <h1>QQ消息集散</h1>
+    </div>
+    <nav class="drawer-nav" id="drawerNav">
+      <div class="grp">概览</div>
+      <button class="nav-item active" data-view="dashboard"><span class="ic">📊</span>仪表盘</button>
+      <button class="nav-item" data-view="reminders"><span class="ic">🔔</span>提醒调度<span class="badge">5</span></button>
+      <button class="nav-item" data-view="stream"><span class="ic">📋</span>最近信息流</button>
+      <div class="grp">管理</div>
+      <button class="nav-item" data-view="sources"><span class="ic">📡</span>采集源</button>
+      <button class="nav-item" data-view="subscriptions"><span class="ic">👥</span>订阅管理</button>
+      <div class="grp">系统</div>
+      <button class="nav-item" data-view="config"><span class="ic">⚙️</span>配置概览</button>
+    </nav>
+    <div class="drawer-footer">
+      <button class="theme-btn" id="themeToggle">🌓 切换主题</button>
+    </div>
+  </aside>
+
+  <!-- ═══ 主区 ═══ -->
+  <main class="main">
+    <header class="header">
+      <div class="crumb">后台管理 / <b id="crumbNow">仪表盘</b></div>
+      <div class="header-right">
+        <span class="status-dot"><span class="dot"></span>运行中</span>
+        <span class="clock" id="clock">--:--:--</span>
+        <button class="btn btn-ghost" onclick="doRefresh()">🔄 刷新</button>
+        <button class="btn btn-primary" onclick="doScan()">▶ 立即扫描</button>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ═══ 视图：仪表盘 ═══ -->
+      <section class="view active" id="view-dashboard">
+        <div class="bento">
+
+          <div class="panel span-2">
+            <h3>📊 今日新增</h3>
+            <div class="kpi">27<small>条</small></div>
+            <div class="sub">↗ 12% 比昨日 · 覆盖 6 个源</div>
+            <div class="bar"><i style="width:72%"></i></div>
+            <div class="sub">今日扫描进度 72%</div>
+          </div>
+
+          <div class="panel">
+            <h3>⚠️ 临期提醒</h3>
+            <div class="kpi danger">5<small>条</small></div>
+            <div class="sub">3 条待触发 · 2 条已触发</div>
+          </div>
+
+          <div class="panel">
+            <h3>👥 订阅数</h3>
+            <div class="kpi">42<small>条</small></div>
+            <div class="sub">31 位同学 · 7 个群</div>
+          </div>
+
+          <div class="panel">
+            <h3>📤 推送通道</h3>
+            <div class="tags" style="margin-top:4px">
+              <span class="tag">PushPlus</span>
+              <span class="tag">QQ 私聊</span>
+              <span class="tag">file</span>
+            </div>
+            <div class="sub" style="margin-top:auto">今日推送 27 次 · 成功率 100%</div>
+          </div>
+
+          <div class="panel span-2">
+            <h3>📡 采集源健康</h3>
+            <div class="panel-list">
+              <div class="mini"><span class="ic">✅</span><span class="name">教务处（六栏目）</span><span class="ok">正常</span><span class="muted">2s 前</span></div>
+              <div class="mini"><span class="ic">✅</span><span class="name">学院官网（33 个）</span><span class="ok">正常</span><span class="muted">5m 前</span></div>
+              <div class="mini"><span class="ic">✅</span><span class="name">人文讲座预约</span><span class="ok">正常</span><span class="muted">11m 前</span></div>
+              <div class="mini"><span class="ic">✅</span><span class="name">公众号</span><span class="ok">正常</span><span class="muted">23m 前</span></div>
+              <div class="mini"><span class="ic">⭕</span><span class="name">QQ 群（OneBot）</span><span class="muted">可选 · 停用</span></div>
+              <div class="mini"><span class="ic">🟡</span><span class="name">劳动教育平台</span><span class="dl">重试中</span></div>
+            </div>
+          </div>
+
+          <div class="panel span-2">
+            <h3>📋 分类分布（今日）</h3>
+            <div class="panel-list">
+              <div class="mini"><span class="ic">🎤</span><span class="name">讲座</span><span class="ok">8</span><span style="width:70px;flex-shrink:0"><div class="bar"><i style="width:88%"></i></div></span></div>
+              <div class="mini"><span class="ic">📝</span><span class="name">作业</span><span class="ok">9</span><span style="width:70px;flex-shrink:0"><div class="bar"><i style="width:100%"></i></div></span></div>
+              <div class="mini"><span class="ic">📐</span><span class="name">考试</span><span class="ok">6</span><span style="width:70px;flex-shrink:0"><div class="bar"><i style="width:66%"></i></div></span></div>
+              <div class="mini"><span class="ic">🏆</span><span class="name">竞赛</span><span class="ok">4</span><span style="width:70px;flex-shrink:0"><div class="bar"><i style="width:44%"></i></div></span></div>
+            </div>
+          </div>
+
+          <div class="panel span-2">
+            <h3>⚠️ 临期提醒（即将触发）</h3>
+            <div class="panel-list">
+              <div class="mini"><span class="ic">🎤</span><span class="name">人文讲座 · 明清文学报名截止</span><span class="dl">16h 后</span></div>
+              <div class="mini"><span class="ic">📝</span><span class="name">数据结构 HW3 提交截止</span><span class="dl">32h 后</span></div>
+              <div class="mini"><span class="ic">📐</span><span class="name">高数下期中试</span><span class="dl">48h 后</span></div>
+              <div class="mini"><span class="ic">🏆</span><span class="name">蓝桥杯省赛报名截止</span><span class="dl">3d 后</span></div>
+            </div>
+          </div>
+
+          <div class="panel span-6">
+            <h3>🏆 本周热点 · <span style="font-weight:400">按订阅命中数排序</span></h3>
+            <div class="panel-list">
+              <div class="mini"><span class="ic">1️⃣</span><span class="name">高数下期中试通知</span><span class="muted">教务处</span><span class="ok">命中 33 人</span></div>
+              <div class="mini"><span class="ic">2️⃣</span><span class="name">OS 实验室 DHCP 服务器配置</span><span class="muted">计算机学院</span><span class="ok">命中 21 人</span></div>
+              <div class="mini"><span class="ic">3️⃣</span><span class="name">AI for Science 专题讲座</span><span class="muted">科普院</span><span class="ok">命中 18 人</span></div>
+              <div class="mini"><span class="ic">4️⃣</span><span class="name">蓝桥杯省赛报名</span><span class="muted">计算机学院</span><span class="ok">命中 15 人</span></div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ═══ 视图：采集源 ═══ -->
+      <section class="view" id="view-sources">
+        <div class="section-title">📡 监控源</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>源</th><th>方式</th><th>状态</th><th>上次扫描</th><th>累计新增</th><th>错误</th><th></th></tr></thead>
+            <tbody>
+              <tr><td>教务处（六栏目）</td><td><span class="mini-tag">直采 · WebPlus</span></td><td><span class="tag">✅ 正常</span></td><td class="mono">2s 前</td><td>128</td><td>0</td><td><button class="op" onclick="doScan()">立即扫描</button></td></tr>
+              <tr><td>学院官网（33 个）</td><td><span class="mini-tag">直采</span></td><td><span class="tag">✅ 正常</span></td><td class="mono">5m 前</td><td>64</td><td>1</td><td><button class="op" onclick="doScan()">立即扫描</button></td></tr>
+              <tr><td>人文讲座预约</td><td><span class="mini-tag">直采 · 仅监控</span></td><td><span class="tag">✅ 正常</span></td><td class="mono">11m 前</td><td>31</td><td>0</td><td><button class="op" onclick="doScan()">立即扫描</button></td></tr>
+              <tr><td>劳动教育平台</td><td><span class="mini-tag">CAS 登录</span></td><td><span class="tag r">🔄 重试中</span></td><td class="mono">43m 前</td><td>12</td><td>3</td><td><button class="op" onclick="doScan()">立即扫描</button></td></tr>
+              <tr><td>微信公众号</td><td><span class="mini-tag">免登录 + 模型代读</span></td><td><span class="tag">✅ 正常</span></td><td class="mono">23m 前</td><td>46</td><td>0</td><td><button class="op" onclick="doScan()">立即扫描</button></td></tr>
+              <tr><td>SEUdaily 输出库</td><td><span class="mini-tag">网页库消费</span></td><td><span class="tag">✅ 正常</span></td><td class="mono">1h 前</td><td>98</td><td>0</td><td><button class="op" onclick="doScan()">立即扫描</button></td></tr>
+              <tr><td>QQ 群消息</td><td><span class="mini-tag">OneBot 11 反向 WS</span></td><td><span class="tag y">⭕ 可选</span></td><td class="mono">—</td><td>0</td><td>0</td><td><button class="op" onclick="doScan()">立即扫描</button></td></tr>
+              <tr><td>用户投稿</td><td><span class="mini-tag">手动</span></td><td><span class="tag">✅ 就绪</span></td><td class="mono">—</td><td>6</td><td>0</td><td><button class="op" onclick="doScan()">立即扫描</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="panel" style="margin-top:12px">
+          <div class="sub">💡 采集源在 <span class="mono">config/web-sources.yml</span> 配置，<span class="mono">enabled: false</span> 的源不参与轮询。讲座模块只监控、不代预约、不抢票。</div>
+        </div>
+      </section>
+
+      <!-- ═══ 视图：最近信息流 ═══ -->
+      <section class="view" id="view-stream">
+        <div class="section-title">📋 最近信息流 <span class="hint">类别：作业 考试 竞赛 科研 交流 讲座 任务 通知</span></div>
+        <div class="filter-bar" id="filterBar">
+          <button class="fchip active" data-filter="all">全部</button>
+          <button class="fchip" data-filter="讲座">讲座</button>
+          <button class="fchip" data-filter="作业">作业</button>
+          <button class="fchip" data-filter="考试">考试</button>
+          <button class="fchip" data-filter="竞赛">竞赛</button>
+          <button class="fchip" data-filter="科研">科研</button>
+          <button class="fchip" data-filter="交流">交流</button>
+          <button class="fchip" data-filter="任务">任务</button>
+          <button class="fchip" data-filter="通知">通知</button>
+        </div>
+        <div class="table-wrap">
+          <table id="streamTable">
+            <thead><tr><th>时间</th><th>类别</th><th>题目</th><th>来源</th><th>截止</th><th>核验</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr data-cat="讲座"><td class="mono">10:23</td><td><span class="mini-tag">讲座</span></td><td>AI for Science 专题讲座（张三教授）</td><td>科普院</td><td class="mono">11-05 17:00</td><td><span class="op done">✓ 已核验 12</span></td><td><button class="op err" onclick="reportErr(this)">报错</button></td></tr>
+              <tr data-cat="作业"><td class="mono">09:47</td><td><span class="mini-tag">作业</span></td><td>数据结构 HW3 提交</td><td>CS 学院</td><td class="mono">11-08 23:59</td><td><button class="op" onclick="confirmOne(this)">+1 确认</button></td><td><button class="op err" onclick="reportErr(this)">报错</button></td></tr>
+              <tr data-cat="考试"><td class="mono">08:15</td><td><span class="mini-tag">考试</span></td><td>高数下期中试通知</td><td>教务处</td><td class="mono">11-04 10:00</td><td><span class="op done">✓ 已核验 8</span></td><td><button class="op err" onclick="reportErr(this)">报错</button></td></tr>
+              <tr data-cat="竞赛"><td class="mono">07:30</td><td><span class="mini-tag">竞赛</span></td><td>蓝桥杯省赛报名</td><td>计算机学院</td><td class="mono">11-10 18:00</td><td><button class="op" onclick="confirmOne(this)">+1 确认</button></td><td><button class="op err" onclick="reportErr(this)">报错</button></td></tr>
+              <tr data-cat="通知"><td class="mono">06:00</td><td><span class="mini-tag">通知</span></td><td>寒假调休安排</td><td>校办</td><td class="mono">—</td><td><span class="op done">✓ 已核验 5</span></td><td><button class="op err" onclick="reportErr(this)">报错</button></td></tr>
+              <tr data-cat="科研"><td class="mono">昨日 21:12</td><td><span class="mini-tag">科研</span></td><td>国家自然科学基金申报指南</td><td>科研院</td><td class="mono">2027-03-15</td><td><span class="op done">✓ 已核验 3</span></td><td><button class="op err" onclick="reportErr(this)">报错</button></td></tr>
+              <tr data-cat="讲座"><td class="mono">昨日 19:40</td><td><span class="mini-tag">讲座</span></td><td>人文讲座 · 明清文学（报名）</td><td>文学院</td><td class="mono">11-05 17:00</td><td><span class="op done">✓ 已核验 21</span></td><td><button class="op err" onclick="reportErr(this)">报错</button></td></tr>
+              <tr data-cat="交流"><td class="mono">昨日 17:05</td><td><span class="mini-tag">交流</span></td><td>暑期国际交流项目宣讲会</td><td>国际合作处</td><td class="mono">11-12 12:00</td><td><button class="op" onclick="confirmOne(this)">+1 确认</button></td><td><button class="op err" onclick="reportErr(this)">报错</button></td></tr>
+              <tr data-cat="任务"><td class="mono">昨日 15:33</td><td><span class="mini-tag">任务</span></td><td>课程设计选题确认（OS 实验）</td><td>计算机学院</td><td class="mono">11-09 23:59</td><td><span class="op done">✓ 已核验 6</span></td><td><button class="op err" onclick="reportErr(this)">报错</button></td></tr>
+              <tr data-cat="通知"><td class="mono">昨日 12:00</td><td><span class="mini-tag">通知</span></td><td>图书馆临时闭馆通知</td><td>图书馆</td><td class="mono">—</td><td><button class="op" onclick="confirmOne(this)">+1 确认</button></td><td><button class="op err" onclick="reportErr(this)">报错</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ═══ 视图：提醒调度 ═══ -->
+      <section class="view" id="view-reminders">
+        <div class="section-title">🔔 临期提醒调度 <span class="hint">带 DDL 的通知在截止前多轮提醒，到点即发、不重复发</span></div>
+        <div class="bento">
+          <div class="panel span-2">
+            <h3>⏰ 规则概览</h3>
+            <div class="kpi yellow">2<small>轮</small></div>
+            <div class="sub">默认提前 24h / 3h 触发</div>
+          </div>
+          <div class="panel">
+            <h3>📅 待触发</h3>
+            <div class="kpi danger">5</div>
+            <div class="sub">未来 7 天</div>
+          </div>
+          <div class="panel">
+            <h3>📤 今日已发</h3>
+            <div class="kpi">2</div>
+            <div class="sub">PushPlus · QQ 私聊</div>
+          </div>
+
+          <div class="panel span-3">
+            <h3>📅 未来 7 天 DDL 轨道</h3>
+            <div class="panel-list">
+              <div class="mini"><span class="ic">🎤</span><span class="name">人文讲座 · 明清文学报名</span><span class="muted">11-05 17:00</span><span class="dl">⏰ 16h 后</span></div>
+              <div class="mini"><span class="ic">📝</span><span class="name">数据结构 HW3</span><span class="muted">11-08 23:59</span><span class="dl">⏰ 32h 后</span></div>
+              <div class="mini"><span class="ic">📐</span><span class="name">高数下期中试</span><span class="muted">11-04 10:00</span><span class="dl">⏰ 48h 后</span></div>
+              <div class="mini"><span class="ic">🏆</span><span class="name">蓝桥杯省赛报名</span><span class="muted">11-10 18:00</span><span class="dl">⏰ 3d 后</span></div>
+              <div class="mini"><span class="ic">🌏</span><span class="name">国际交流项目宣讲会</span><span class="muted">11-12 12:00</span><span class="dl">⏰ 5d 后</span></div>
+            </div>
+          </div>
+
+          <div class="panel span-3">
+            <h3>🧭 触发机制</h3>
+            <div class="rule-list">
+              <div class="rule"><span class="r-num">1</span><div><b>截止前 24h</b>：首轮提醒，推送「即将截止」摘要 + 直达链接。</div></div>
+              <div class="rule"><span class="r-num">2</span><div><b>截止前 3h</b>：末轮提醒，高优先级强调，仅发一次。</div></div>
+              <div class="rule"><span class="r-num">3</span><div><b>免打扰时段</b>内的触发顺延到下一个可发送窗口，不丢提醒。</div></div>
+              <div class="rule"><span class="r-num">4</span><div>轮询调度为 <b>每分钟 tick</b>，检查 DDL 与发送状态，幂等去重。</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ 视图：订阅管理 ═══ -->
+      <section class="view" id="view-subscriptions">
+        <div class="section-title">👥 订阅管理（群 × 类别） <span class="hint">保存后重启软件生效</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>用户</th><th>群</th><th>类别</th><th>免打扰</th><th>粒度</th><th></th></tr></thead>
+            <tbody id="subTable">
+              <tr><td class="mono">114514</td><td>软件学院 23 级群</td><td><span class="mini-tag">作业</span><span class="mini-tag">考试</span><span class="mini-tag">讲座</span></td><td class="muted">23:00–07:00</td><td>即时</td><td><button class="op err" onclick="delSub(this)">删除</button></td></tr>
+              <tr><td class="mono">120514</td><td>计算机学院 24 级群</td><td><span class="mini-tag">讲座</span><span class="mini-tag">竞赛</span><span class="mini-tag">科研</span></td><td class="muted">—</td><td>Digest</td><td><button class="op err" onclick="delSub(this)">删除</button></td></tr>
+              <tr><td class="mono">1919810</td><td>全体本科生通知群</td><td><span class="mini-tag">通知</span><span class="mini-tag">任务</span></td><td class="muted">00:00–08:00</td><td>即时</td><td><button class="op err" onclick="delSub(this)">删除</button></td></tr>
+              <tr><td class="mono">8930500</td><td>讲座拼车交流群</td><td><span class="mini-tag">讲座</span></td><td class="muted">—</td><td>Digest</td><td><button class="op err" onclick="delSub(this)">删除</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel" style="margin-top:14px">
+          <h3>➕ 添加 / 修改订阅</h3>
+          <div class="sub-form">
+            <input id="fQq" placeholder="用户 QQ">
+            <input id="fGroups" placeholder="群名 / 群号，逗号分隔" style="min-width:200px">
+            <input id="fCats" placeholder="类别，逗号分隔（如 讲座,任务）" style="min-width:200px">
+            <select id="fGran"><option value="即时">即时</option><option value="Digest">Digest</option></select>
+            <button class="btn btn-primary" onclick="addSub()">添加订阅</button>
+          </div>
+          <div class="sub" style="margin-top:10px">类别可选：作业 考试 竞赛 科研 交流 讲座 任务 通知；群名须与「配置概览」中画像群一致。</div>
+        </div>
+      </section>
+
+      <!-- ═══ 视图：配置概览 ═══ -->
+      <section class="view" id="view-config">
+        <div class="section-title">⚙️ 配置概览 <span class="hint">敏感项已脱敏，可修改的配置仍在 config/*.yml 与 .env</span></div>
+        <div class="bento">
+          <div class="panel span-3">
+            <h3>🔐 环境变量（脱敏）</h3>
+            <div class="cfg-item"><span class="key">MODEL_API_KEY</span><span class="val">sk-***（已隐藏）</span></div>
+            <div class="cfg-item"><span class="key">PUSHPLUS_TOKEN</span><span class="val">***（已隐藏）</span></div>
+            <div class="cfg-item"><span class="key">QQ_WS_TOKEN</span><span class="val">***（已隐藏）</span></div>
+            <div class="cfg-item"><span class="key">CAS_PASSWORD</span><span class="val">***（已隐藏）</span></div>
+          </div>
+          <div class="panel span-3">
+            <h3>🗂️ 分类树（JEV）</h3>
+            <div class="tags" style="margin-top:2px">
+              <span class="tag">作业</span><span class="tag">考试</span><span class="tag">竞赛</span>
+              <span class="tag">科研</span><span class="tag">交流</span><span class="tag">讲座</span>
+              <span class="tag">任务</span><span class="tag">通知</span>
+            </div>
+            <div class="sub" style="margin-top:auto">封闭集判断交给结构化决策模型（根调用 + 按类别分支），开放集抽取交给小模型。</div>
+          </div>
+          <div class="panel span-3">
+            <h3>🧰 管线层级</h3>
+            <div class="rule-list">
+              <div class="rule"><span class="r-num">L0</span><div>采集 → 预筛（发送者过滤 / 去重 / 关键词）</div></div>
+              <div class="rule"><span class="r-num">L2</span><div>分类根调用 → 按类别分支 → 按需提取（DDL 等）</div></div>
+              <div class="rule"><span class="r-num">L5</span><div>订阅匹配（群/站点 × 类别）→ 分发（file / PushPlus / QQ）</div></div>
+              <div class="rule"><span class="r-num">T</span><div>临期提醒调度（每分钟 tick）</div></div>
+            </div>
+          </div>
+          <div class="panel span-3">
+            <h3>🚀 部署形态</h3>
+            <div class="tags" style="margin-top:2px">
+              <span class="tag">Windows 便携版</span>
+              <span class="tag">Linux 服务器版</span>
+              <span class="tag">源码运行</span>
+            </div>
+            <div class="sub" style="margin-top:auto">PyInstaller one-dir / systemd unit / <span class="mono">python -m qq_relay.admin</span></div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <footer class="footer">
+      <span>SEU_Alert · 校园信息聚合与强提醒引擎</span>
+      <span class="hash">94f3664b × 07985f25 · AGPL-3.0</span>
+    </footer>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══ 视图切换 ═══ */
+const VIEW_TITLES = {
+  dashboard: '仪表盘', reminders: '提醒调度', stream: '最近信息流',
+  sources: '采集源', subscriptions: '订阅管理', config: '配置概览'
+};
+document.getElementById('drawerNav').addEventListener('click', e => {
+  const btn = e.target.closest('.nav-item');
+  if (!btn) return;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  btn.classList.add('active');
+  const v = btn.dataset.view;
+  document.querySelectorAll('.view').forEach(s => s.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+  document.getElementById('crumbNow').textContent = VIEW_TITLES[v];
+});
+
+/* ═══ 时钟 ═══ */
+setInterval(() => {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  document.getElementById('clock').textContent =
+    `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}, 1000);
+
+/* ═══ Toast ═══ */
+let toastTimer = null;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* ═══ 操作反馈 ═══ */
+function doRefresh() {
+  const b = document.querySelector('.header .btn-ghost');
+  b.textContent = '🔄 刷新中…';
+  setTimeout(() => { b.textContent = '🔄 刷新'; toast('已刷新全部监控数据'); }, 800);
+}
+function doScan() { toast('已触发一次扫描任务'); }
+function confirmOne(btn) {
+  if (btn.classList.contains('done')) return;
+  btn.classList.add('done');
+  btn.textContent = '✓ 已核验 1';
+  toast('已 +1 确认');
+}
+function reportErr(btn) {
+  if (btn.textContent === '已上报') return;
+  btn.textContent = '已上报';
+  toast('已上报错误，等待复核');
+}
+function delSub(btn) {
+  btn.closest('tr').remove();
+  toast('已删除订阅');
+}
+function addSub() {
+  const qq = document.getElementById('fQq').value.trim();
+  const grp = document.getElementById('fGroups').value.trim();
+  const cats = document.getElementById('fCats').value.trim();
+  const gran = document.getElementById('fGran').value;
+  if (!qq || !grp || !cats) { toast('请填写 QQ、群与类别'); return; }
+  const tbody = document.getElementById('subTable');
+  const tr = document.createElement('tr');
+  tr.innerHTML =
+    `<td class="mono">${qq}</td><td>${grp}</td>` +
+    `<td>${cats.split(/[,，]/).map(c => `<span class="mini-tag">${c}</span>`).join('')}</td>` +
+    `<td class="muted">—</td><td>${gran}</td>` +
+    `<td><button class="op err" onclick="delSub(this)">删除</button></td>`;
+  tbody.appendChild(tr);
+  ['fQq','fGroups','fCats'].forEach(id => document.getElementById(id).value = '');
+  toast('已添加订阅（重启后生效）');
+}
+
+/* ═══ 信息流筛选 ═══ */
+document.getElementById('filterBar').addEventListener('click', e => {
+  const chip = e.target.closest('.fchip');
+  if (!chip) return;
+  document.querySelectorAll('.fchip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  const f = chip.dataset.filter;
+  document.querySelectorAll('#streamTable tbody tr').forEach(tr => {
+    tr.style.display = (f === 'all' || tr.dataset.cat === f) ? '' : 'none';
+  });
+});
+
+/* ═══ 主题切换 ═══ */
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  try { localStorage.setItem('qq-relay-theme', t); } catch (e) {}
+}
+applyTheme(localStorage.getItem('qq-relay-theme') || 'dark');
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const cur = document.documentElement.dataset.theme;
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
+});
+</script>
+</body>
+</html>

@@ -63,6 +63,11 @@ seu-projects-test/.tmp/
 # ---- 工具运行时产物 ----
 .dsh-ops/
 .dsh/
+.mimosa/
+
+# ---- 本地临时目录（扫描/测试产物，可能含本机路径）----
+/tmp*/
+/seu-arch-*/
 
 # ---- 内部工作文档（会话检查点：含本地路径与开发进度，勿入版本库）----
 important_view.*.md

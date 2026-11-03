@@ -242,3 +242,28 @@
 - **理由**：自研直采让 qq-relay **自包含**——不再需要先在 WSL 里跑一个 Go 程序生成 `store/` 才能工作，消除最脆弱的外部依赖；同时绕开无许可项目的复制风险。学院站（ADR-024）已是同构直采，教务处沿用同一套解析思路，架构统一。
 - **被否方案**：① 直接移植 SEU-Monitor 的 Go 源码（无许可，侵权）；② 继续只读其输出库（用户明确要求整合架构而非只读数据）；③ 等作者授权后再做（用户知晓风险后选择先推进可合法实现的部分）。
 - **后果**：新增 `adapters/web/jwc.py`（约 290 行）、`config/jwc.yml`、`tests/test_jwc.py`（15 项）、`tests/fixtures/jwc_list.html` + `jwc_article.html`；`WEB_KINDS` 加 `jwc`；`WebSourceCfg` 加 `enabled`；`web-sources.yml` 停用 `seu-monitor`、新增 `jwc`；测试 127 → **145 项全绿**。**遗留**：若要直接移植 SEU-Monitor 的 Go 代码，仍需先取得 miunerofrade 书面许可；SEUdaily 等三源仍是 MIT 合法移植，暂无变化。
+
+## ADR-030 采集错误自然语言化 + SEU-Monitor 源按需启用
+
+- **背景**：后台监控源表格直接展示 `repr(e)`——如 `ConnectError('[Errno 11001] getaddrinfo failed')`、`LectureError('讲座列表响应非 JSON: <!DOCTYPE html>…')`，运营人员无法判断原因；用户要求"为可能的报错都加上映射，映射到自然语言"。同时用户要求把 SEU-Monitor 归档源重新加入轮询。
+- **决定**：
+  1. **统一错误映射**（`adapters/web/errors.py`）：`friendly_error(exc)` 沿 `__cause__/__context__` 链收集类名与消息，映射 DNS 失败 / 连接拒绝·重置 / 超时 / TLS / HTTP 401·403·404·429·5xx / 返回 HTML 而非 JSON（登录页·反爬·接口改版）/ 账号未配置 / CAS 登录失败 / 验证码·短信 / 会话失效 / JSON 解析 / 本地文件缺失 / YAML 格式；兜底剥离 HTML 标签后截断。**UI 只说人话，原始 repr 仍打印到控制台**。
+  2. **接线**：`WebPoller.run_forever` 写 `stats["last_error"] = friendly_error(e)`；`admin.py` 的 API `guard` 同样映射（手动扫描失败不再抛原始 traceback）；手动扫描失败回写 poller 的 `errors`/`last_error`，表格立即刷新。
+  3. **待重启状态**：`status()` 增加 `pending_restart`（配置 enabled 但启动时未注册 poller）。前端显示「待重启」，手动扫描提示"改完配置需重启后台进程"，避免误判为"正常但无数据"。
+  4. **SEU-Monitor 重新启用**：`web-sources.yml` 的 `seu-monitor` 改 `enabled: true`（ADR-029 的 jwc 直采继续保留，重叠通知由内容去重合并）。归档为空时每轮新增 0、不报错；有 `web/教务处/<栏目>/<标题--ID>/meta.json` 即自动入库。
+- **理由**：错误信息是运营动作的入口，可读性直接决定排障效率；集中一处映射避免各 adapter 文案漂移；原始堆栈留控制台兼顾开发排障。SEU-Monitor 与 jwc 直采是不同通道（前者保留附件归档），并存成本低。
+- **被否方案**：在 UI 展示原始 traceback（吓人且泄露内部路径）；每个 adapter 各写错误文案（重复、易漂移）；删除 seu-monitor 源（用户明确要求保留）；为 SEU-Monitor 重写爬虫（ADR-022 只消费输出库，且 ADR-029 许可边界不允许复制源码）。
+- **后果**：新增 `errors.py`、`tests/test_web_errors.py`（9 项）；`base.py` / `admin.py` 接入；测试 145 → **160 项全绿**；README / docs/config.md / docs/runbook.md 同步 SEU-Monitor 已启用。**注意**：SEU-Monitor 需重启后台进程后注册 poller；归档数据仍由 Go 程序在 WSL 生成（本机暂无 Go/二进制，教务处内容已由 jwc 直采覆盖）。
+
+## ADR-031 Windows 原生 SEU 归档生成器 + 人文讲座三渠道
+
+- **背景**：① ADR-030 后 SEU-Monitor 源虽已启用，但归档需运行 Go 程序；用户环境是 Windows（无 Go/WSL），要求"优化成 Windows 支持"。② 用户要求人文讲座除预约系统外，还要有**公众号渠道**与**学校人文素质讲座网站渠道**。
+- **决定**：
+  1. **Windows 原生归档生成器**（`src/qq_relay/tools/seu_archive.py`）：复用 `jwc.py` 直采（ADR-029，公开页面、未复制 Go 源码），把结果写成 SEU-Monitor 兼容归档 `web/教务处/<栏目>/<标题--ID>/{meta.json,text.md}`。命令：`.venv\Scripts\python -m qq_relay.tools.seu_archive --once`。无需 Go/WSL。
+  2. **去重一致性**：`text.md` 只写正文（不含 `# 标题/来源`），使 `seu_monitor` 回读出的 `text` 与 `jwc` 直采逐字一致 → 内容哈希相同，两条通道自动去重合并（一条 item、多来源群），不产生重复信息流。
+  3. **站点 ID 安全**：部分栏目会转载站外公众号文章（`notice_id` 是 URL），归档目录名对 URL 取 `sha256[:10]` 短哈希，避免 Windows 非法路径字符。
+  4. **人文讲座网站渠道**：`jwc` 加载器支持同文件 `group_id/group_name` 覆盖；新增 `config/lecture-site.yml`（文化素质教育 + 六朝松大师讲堂）与 `lecture-site` 源，群 = `web-lecture`。
+  5. **公众号渠道**：`wechat-mp.yml` 账号支持可选 `group_id`；默认「东南大学文化素质教育中心」设为 `web-lecture`，讲座并入同一频道。
+- **理由**：本机与生产都可能没有 Go 环境，而教务处公开页面直采已在项目中成熟（ADR-029）；用同一解析器生成归档，既满足"消费 SEU-Monitor 归档"的架构，又消除外部二进制依赖。讲座三渠道共用 `web-lecture`，用户只需订阅一次。
+- **被否方案**：下载并运行 SEU-Monitor 第三方二进制（供应链风险、Windows 无官方产物）；继续要求 WSL/Go（用户环境不支持）；直接抓公众号链接作为网站渠道（不稳定且重复）；新写一个讲座站点专用解析器（与 jwc 同构，重复代码）。
+- **后果**：新增 `tools/seu_archive.py`、`config/lecture-site.yml`、`tests/test_seu_archive.py`（7 项）；`WebNotice` 增加 `column/notice_id`；`jwc.load_group`、`wechat_mp` 的 `group_id` 覆盖；`groups.yml` 的 `web-lecture` 更名并扩充预筛词；测试 160 → **166 项全绿**；真实站点实测：归档写入/回读 6 条、讲座网站渠道 2 条（群 `web-lecture`）。**注意**：`lecture-site`/`seu-monitor` 新源需重启后台进程后注册；公众号链路仍受搜狗风控影响。

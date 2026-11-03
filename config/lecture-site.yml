@@ -1,0 +1,15 @@
+# 人文讲座 · 学校网站渠道（Windows/服务器通用，直采，无需登录）
+# 复用教务处直采解析器（jwc.py），只抓与讲座/文化素质相关的两个栏目：
+#   cbxx   文化素质教育（讲座预告、四牌楼讲座、六朝松大师讲堂等）
+#   lcsdjt 六朝松大师讲堂（系列讲座专栏）
+# 群固定为 web-lecture，与「预约系统」「公众号」两个渠道共用同一讲座频道。
+group_id: web-lecture
+group_name: 人文讲座（文化素质教育栏目）
+
+columns:
+  - id: cbxx
+    name: 文化素质教育
+    url: https://jwc.seu.edu.cn/cbxx/list.htm
+  - id: lcsdjt
+    name: 六朝松大师讲堂
+    url: https://jwc.seu.edu.cn/lcsdjt/list.htm

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QQ消息集散 · Hash Design #1 (c55c38ef)</title>
+<style>
+/* ─────────────────────────────────────
+   Hash: c55c38ef → showcase-waterfall + parallax-scroll
+   Palette: SEU Yellow-green (绿29% · 黄62.5% · 对比80)
+   Tokens: 脉冲9280ms · 视差滚动 · 流光5200ms
+─────────────────────────────────────── */
+
+:root {
+  --seu-green: #057C66;   /* SEU 化工绿 */
+  --seu-green2: #2CB497;  /* SEU 环保绿 */
+  --seu-yellow: #ddd000;
+  --seu-black: #231815;
+  --bg: #fefcf8;
+  --card: #ffffff;
+  --text: var(--seu-black);
+  --muted: #5a5a5a;
+  --border: #e8e6df;
+  --yellow-62: #fff9d6;
+  --yellow-31: #fef9d6;
+  --shadow: 0 2px 12px rgba(5,124,102,.08);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Source Han Sans CN", "Microsoft YaHei", system-ui, sans-serif;
+  background: #fff;
+  color: var(--text);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ═══ 视差背景 ═══ */
+.parallax-bg {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 600px 300px at 10% -10%, var(--seu-yellow) 0%, transparent 50%),
+    radial-gradient(ellipse 800px 400px at 90% 60%, rgba(44,180,151,.08) 0%, transparent 50%);
+}
+
+/* ═══ 导航 ═══ */
+.nav {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 64px; padding: 0 32px;
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 2px solid var(--seu-yellow);
+  box-shadow: 0 2px 16px rgba(0,0,0,.04);
+}
+.nav-brand {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 18px; font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.nav-brand .seu-seal {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--seu-green), var(--seu-yellow));
+  display: grid; place-items: center;
+  font-size: 20px; color: #fff; font-weight: 900;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+}
+.nav-links { display: flex; gap: 24px; }
+.nav-links a {
+  text-decoration: none; color: var(--muted); font-size: 14px;
+  font-weight: 500; transition: color .2s;
+  position: relative;
+}
+.nav-links a:hover { color: var(--seu-green); }
+.nav-links a::after {
+  content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 2px;
+  background: var(--seu-green); transition: width .2s;
+}
+.nav-links a:hover::after { width: 100%; }
+
+/* ═══ 视差首屏 ═══ */
+.hero {
+  position: relative; z-index: 1;
+  text-align: center;
+  padding: 140px 20px 80px;
+  background: linear-gradient(180deg, var(--bg) 0%, #fff 70%);
+}
+.hero::before {
+  content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 600px; height: 280px;
+  background: linear-gradient(135deg, var(--seu-green), #1a8a70);
+  border-radius: 50% 50% 0 0 / 120px 120px 40px 40px;
+  opacity: .08; filter: blur(20px);
+}
+.hero h1 {
+  font-size: clamp(32px, 5vw, 64px);
+  font-weight: 900; letter-spacing: -0.03em;
+  background: linear-gradient(90deg, var(--seu-green), #1a8a70, var(--seu-yellow));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  margin-bottom: 16px; line-height: 1.15;
+}
+.hero .subtitle {
+  font-size: 16px; color: var(--muted); max-width: 600px; margin: 0 auto 32px;
+}
+.cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.btn {
+  display: inline-block; padding: 12px 28px;
+  border-radius: 999px; font-size: 15px; font-weight: 600;
+  text-decoration: none; cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform .15s, box-shadow .15s, background .2s;
+}
+.btn-primary {
+  background: var(--seu-green); color: #fff;
+  box-shadow: 0 4px 16px rgba(5,124,102,.25);
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(5,124,102,.35); }
+.btn-yellow {
+  background: var(--seu-yellow); color: var(--seu-black);
+}
+.btn-yellow:hover { filter: brightness(1.05); }
+
+/* ═══ 瀑布流展示 ═══ */
+.showcase {
+  position: relative; z-index: 1;
+  padding: 60px 20px;
+  max-width: 1100px; margin: 0 auto;
+}
+.showcase-header {
+  display: flex; align-items: flex-end;
+  justify-content: space-between; margin-bottom: 32px;
+  flex-wrap: wrap; gap: 12px;
+}
+.showcase-header h2 {
+  font-size: 22px; font-weight: 700;
+}
+.showcase-header .hash-tag {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 12px; color: var(--muted); background: var(--yellow-62);
+  padding: 4px 10px; border-radius: 6px;
+}
+
+.waterfall {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  transition: transform .25s, box-shadow .25s;
+  position: relative;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(5,124,102,.14); }
+
+.card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--seu-green), var(--seu-yellow));
+  opacity: 0; transition: opacity .2s;
+}
+.card:hover::before { opacity: 1; }
+
+.card-icon {
+  width: 44px; height: 44px; border-radius: 10px;
+  display: grid; place-items: center;
+  font-size: 20px; margin-bottom: 12px;
+  background: var(--yellow-31);
+}
+.card h3 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.card .meta { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.card .desc { font-size: 13px; color: #444; flex: 1; }
+.card-footer {
+  display: flex; gap: 8px; margin-top: 12px; padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.card-footer .chip {
+  flex: 1; text-align: center;
+  font-size: 11px; padding: 5px;
+  border-radius: 6px;
+  background: var(--yellow-62);
+  color: var(--seu-green);
+  font-weight: 600;
+}
+
+/* 瀑布流高度交错 */
+.w1 { height: 180px; }
+.w2 { height: 260px; }
+.w3 { height: 200px; }
+.w4 { height: 300px; }
+.w5 { height: 220px; }
+.w6 { height: 240px; }
+
+/* ═══ 临期提醒横幅 ═══ */
+.urgent-banner {
+  position: relative; z-index: 1;
+  max-width: 800px; margin: 40px auto 20px;
+  background: linear-gradient(135deg, rgba(255,249,214,.95), rgba(255,255,255,.95));
+  border: 1px solid var(--seu-yellow);
+  border-radius: 14px;
+  padding: 20px 28px;
+  display: flex; align-items: flex-start; gap: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.08);
+  overflow: hidden;
+}
+.urgent-banner::after {
+  content: ''; position: absolute; top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
+  animation: shimmer var(--shimmer_ms, 5200ms) infinite;
+}
+@keyframes shimmer { 0% { left: -100%; } 100% { left: 100%; } }
+
+.urgent-icon { flex-shrink: 0; font-size: 32px; }
+.urgent-content h3 {
+  font-size: 15px; font-weight: 700; color: var(--seu-green);
+  margin-bottom: 2px;
+}
+.urgent-content .deadline {
+  font-size: 13px; color: #c04030; font-weight: 600;
+}
+.urgent-content .hint { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* ═══ 数据看板 ═══ */
+.dashboard {
+  position: relative; z-index: 1;
+  max-width: 1000px; margin: 60px auto 20px;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+@media (max-width: 700px) { .dashboard { grid-template-columns: repeat(2, 1fr); } }
+
+.stat {
+  background: #fff; border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px;
+  text-align: center;
+  transition: transform .15s;
+}
+.stat:hover { transform: scale(1.02); }
+.stat .val { font-size: 28px; font-weight: 800; color: var(--seu-green); }
+.stat .lbl { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+/* ═══ 页脚 ═══ */
+.footer {
+  text-align: center; padding: 40px 20px;
+  color: var(--muted); font-size: 13px;
+  border-top: 1px solid var(--border);
+}
+.footer a { color: var(--seu-green); text-decoration: none; }
+
+/* ═══ 视差滚动区块 ═══ */
+.parallax-section {
+  position: relative;
+  height: 280px;
+  display: flex; align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin: 20px 0;
+}
+.parallax-bg-inner {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 500px 200px at 20% 0%, rgba(44,180,151,.15) 0%, transparent 50%),
+    radial-gradient(ellipse 700px 250px at 80% 100%, rgba(221,208,0,.12) 0%, transparent 50%);
+  transform: translateZ(0);
+}
+.parallax-section .content {
+  position: relative; z-index: 2;
+  text-align: center;
+  background: rgba(255,255,255,.9);
+  padding: 24px 32px;
+  border-radius: 14px;
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 30px rgba(0,0,0,.08);
+}
+.parallax-section .content h2 {
+  font-size: 20px; font-weight: 700;
+  margin-bottom: 8px;
+}
+.parallax-section .content p { font-size: 13px; color: var(--muted); }
+
+</style>
+</head>
+<body>
+
+<div class="parallax-bg"></div>
+
+<nav class="nav">
+  <div class="nav-brand">
+    <div class="seu-seal">东南</div>
+    QQ消息集散
+  </div>
+  <div class="nav-links">
+    <a href="#showcase">功能</a>
+    <a href="#urgent">临期提醒</a>
+    <a href="#dashboard">数据</a>
+    <a href="#source">来源</a>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero parallax-scroll">
+  <h1>校园信息 · 聚合与强提醒</h1>
+  <p class="subtitle">多源采集 → 智能分类 → 按需订阅 → 多渠道强提醒 <br>
+  别让重要通知从 QQ 群、教务处、公众号里溜走。</p>
+  <div class="cta-row">
+    <a class="btn btn-primary" href="#showcase">立刻订阅</a>
+    <a class="btn btn-yellow" href="#source">查看数据来源</a>
+  </div>
+</section>
+
+<!-- ═══ SHOWCASE ═══ -->
+<div class="parallax-section">
+  <div class="parallax-bg-inner" style="transform: translateY(-10px);"></div>
+</div>
+
+<section class="showcase" id="showcase">
+  <div class="showcase-header">
+    <h2>功能全景</h2>
+    <span class="hash-tag">c55c38ef · showcase-waterfall · parallax-scroll</span>
+  </div>
+  <div class="waterfall">
+    <!-- Card 1 -->
+    <div class="card w1">
+      <div class="card-icon">📡</div>
+      <h3>多源采集</h3>
+      <div class="meta">教务 · 学院 · 讲座 · 公众号 · QQ 群</div>
+      <div class="desc">自动轮询教务处六栏目、33 个学院官网、讲座预约系统、公众号与投稿群，一次采集全校园信息。</div>
+      <div class="card-footer"><span class="chip">自动</span><span class="chip">去重</span><span class="chip">画像</span></div>
+    </div>
+    <!-- Card 2 -->
+    <div class="card w2">
+      <div class="card-icon">🧠</div>
+      <h3>JEV 结构化决策</h3>
+      <div class="meta">Closed-set 封闭集分类 · 根调用 + 分支</div>
+      <div class="desc">按 JEV 分类树一次性判断类别，封闭集交给模型，开放集抽取交给小模型，调用量沿价递增。</div>
+      <div class="card-footer"><span class="chip">根调用</span><span class="chip">分支</span><span class="chip">降级链</span></div>
+    </div>
+    <!-- Card 3 -->
+    <div class="card w3">
+      <div class="card-icon">🔖</div>
+      <h3>投稿提取栈</h3>
+      <div class="meta">OCR → 视觉模型 → 大模型 · 可降级</div>
+      <div class="desc">图片与口语化投稿转成规范通知，提取 DDL、课程、评分等关键字段，OCR 到 LLM 三级降级。</div>
+      <div class="card-footer"><span class="chip">OCR</span><span class="chip">视觉</span><span class="chip">LLM</span></div>
+    </div>
+    <!-- Card 4 -->
+    <div class="card w4">
+      <div class="card-icon">🔔</div>
+      <h3>订阅 & 强提醒</h3>
+      <div class="meta">群 × 类别 × 关键词 × 免打扰</div>
+      <div class="desc">按需订阅 + 多渠道分发（file/PushPlus/QQ 私聊），临期多轮提醒：默认 24h / 3h，到点即发。</div>
+      <div class="card-footer"><span class="chip">订阅</span><span class="chip">PushPlus</span><span class="chip">定时</span></div>
+    </div>
+    <!-- Card 5 -->
+    <div class="card w3">
+      <div class="card-icon">📋</div>
+      <h3>核验反馈</h3>
+      <div class="meta">+1 确认 / 报错 · 双向反馈</div>
+      <div class="desc">多人确认标记已核验，错误上报触发重判，闭环管理消息质量。</div>
+      <div class="card-footer"><span class="chip">确认</span><span class="chip">报错</span><span class="chip">闭环</span></div>
+    </div>
+    <!-- Card 6 -->
+    <div class="card w5">
+      <div class="card-icon">🔧</div>
+      <h3>便携与服务器</h3>
+      <div class="meta">Windows 便携 · Linux 无头 · PyInstaller</div>
+      <div class="desc">Windows 便携版双击即跑，Linux 服务器版绑定 0.0.0.0:8000 常驻，CI 自动构建双平台。</div>
+      <div class="card-footer"><span class="chip">Windows</span><span class="chip">Linux</span><span class="chip">CI</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ URGENT ═══ -->
+<section class="parallax-section" id="urgent">
+  <div class="parallax-bg-inner" style="transform: translateY(15px);"></div>
+</section>
+
+<div class="urgent-banner">
+  <div class="urgent-icon">⚠️</div>
+  <div class="urgent-content">
+    <h3>临期提醒已触发 · 人文讲座报名</h3>
+    <div class="deadline">📅 截止 2026-11-05 17:00 · 剩余 48h</div>
+    <div class="hint">订阅该讲座的同学已通过 PushPlus 收到强提醒</div>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD ═══ -->
+<section class="parallax-section" id="dashboard">
+  <div class="parallax-bg-inner" style="transform: translateY(-8px);"></div>
+</section>
+
+<div class="dashboard">
+  <div class="stat"><div class="val">6</div><div class="lbl">采集源</div></div>
+  <div class="stat"><div class="val">33</div><div class="lbl">学院官网</div></div>
+  <div class="stat"><div class="val">7</div><div class="lbl">类别</div></div>
+  <div class="stat"><div class="val">3</div><div class="lbl">分发通道</div></div>
+</div>
+
+<!-- ═══ SOURCE ═══ -->
+<section class="showcase" id="source" style="margin-top:40px;">
+  <div class="showcase-header">
+    <h2>采集来源</h2>
+    <span class="hash-tag">东南大学 · 多源聚合</span>
+  </div>
+  <div class="waterfall">
+    <div class="card w3"><div class="card-icon">🏛️</div><h3>教务处</h3><div class="meta">六栏目 · 直采 WebPlus CMS</div><div class="desc">最新动态 / 教务信息 / 学籍管理 / 实践教学 / 国际交流 / 文化素质教育</div><div class="card-footer"><span class="chip">默认</span></div></div>
+    <div class="card w4"><div class="card-icon">🎓</div><h3>学院官网</h3><div class="meta">33 个学院 · 自动发现列表页</div><div class="desc">每个学院独立轮询，自动发现最新通知列表，覆盖全校院系。</div><div class="card-footer"><span class="chip">默认</span></div></div>
+    <div class="card w3"><div class="card-icon">🎤</div><h3>讲座预约</h3><div class="meta">监控模式 · 不抢票</div><div class="desc">仅监控预约系统与讲座列表，提醒即将开始的讲座与报名截止。</div><div class="card-footer"><span class="chip">默认</span></div></div>
+    <div class="card w2"><div class="card-icon">📱</div><h3>公众号</h3><div class="meta">免登录发现 · 模型代读</div><div class="desc">推送内容自动提取，结构化字段入库，覆盖校务与学院公众号。</div><div class="card-footer"><span class="chip">默认</span></div></div>
+    <div class="card w2"><div class="card-icon">💬</div><h3>QQ 群</h3><div class="meta">OneBot 11 · 反向 WebSocket</div><div class="desc">自建薄层接入 OneBot，群内消息进入采集管线，可选内部通道。</div><div class="card-footer"><span class="chip">可选</span></div></div>
+    <div class="card w2"><div class="card-icon">✍️</div><h3>投稿</h3><div class="meta">手动投稿 · OCR 提取</div><div class="desc">用户手动投稿通知，OCR + 视觉模型 + LLM 三级提取，补全缺失字段。</div><div class="card-footer"><span class="chip">手动</span></div></div>
+  </div>
+</section>
+
+<footer class="footer">
+  SEU_Alert · 东南大学 · 校园信息聚合与强提醒引擎<br>
+  <a href="https://github.com/SEU_Alert" target="_blank">GitHub</a> ·
+  AGPL-3.0 ·
+  Hash Design #1 (c55c38ef)
+</footer>
+
+</body>
+</html>
