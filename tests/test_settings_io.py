@@ -102,7 +102,7 @@ class TestAdminSettings:
         ctx = self._ctx(tmp_path, monkeypatch)
         d = ctx.settings_view()
         assert d["env"]["PUSHPLUS_TOKEN_SET"] is True
-        assert "PUSHPLUS_TOKEN" not in d["env"]          # 不回明文
+        assert d["env"]["PUSHPLUS_TOKEN"] == ""          # 只回空值，不回明文
         assert d["env"]["DELIVER_MODE"] == ["file"]
         assert d["sources"][0]["id"] == "jwc"
 

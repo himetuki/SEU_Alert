@@ -280,3 +280,15 @@
 - **理由**：来源决定类别空间——课程作业只可能来自 QQ 课程群或投稿；把这条约束放进配置而不是代码，后续加源/加频道不用改分类器。标题优先解决了网站正文噪音，重分类脚本让历史数据与新规则一致。
 - **被否方案**：继续硬编码关键词（不可运维）；只按正文匹配（误判率高）；给每个站点写独立分类器（重复且难维护）；只修数据库不改线上分类器（新数据继续错）。
 - **后果**：新增 `config/classification.yml`、`tests/test_classifier_rules.py`（8 项）、`scripts/reclassify_items.py`；`tree.yml` 增补 categories/thresholds；`classifier_stub.py` 改为配置驱动（Rule/RuleSet）。历史 247 条重分类：变更 115 条，作业 51 → 0，最终分布 notice 178 / task 33 / lecture 13 / exchange 9 / exam 7 / competition 4 / research 3。**注意**：`items` 表在 `.gitignore` 的 `data/` 下，数据库修正不随 git 提交；规则改动重启后台生效。
+
+## ADR-033 控制台全量配置（env 表单 + YAML 结构化 + 高级原文编辑）
+
+- **背景**：用户要求“所有可配置项都放到控制台里”。此前配置页只覆盖分发/提醒/模型/源开关等子集，目录、OneBot、OCR、视觉/大/小模型、讲座与劳动教育会话、公众号账号、教务处栏目、劳动过滤、群画像/学院清单/分类树等仍需手工改文件。
+- **决定**：
+  1. **`.env` 全量 schema**（`settings_schema.ENV_SCHEMA`）：40 个键按 10 个分组渲染；控件类型 multi/radio/text/password/number/slider/offsets；密钥只回“是否已配置”，留空保持原值；`.env` 中额外存在的键自动进入「其他」分组。
+  2. **YAML 结构化**：`web-sources.yml` 源开关/间隔；`wechat-mp.yml` 账号增删/提取层/间隔；`jwc.yml` Base URL/栏目增删；`lecture-site.yml` 频道/栏目；`labor.yml` 白名单/黑名单；`seu-lectures.yml` 关键词。写回保留文件头部注释。
+  3. **高级 YAML**：`groups.yml` / `colleges.yml` / `tree.yml` / `classification.yml` 提供原文编辑器，保存前 `yaml.safe_load` 校验，失败不落盘。
+  4. **统一保存语义**：先全量校验（含 URL 协议、数字范围、多选非空、未知源拒绝、YAML 可解析），再按文件原子写；四键「重置默认 / 取消 / 保存 / 确定」；保存后提示重启生效。
+- **理由**：配置的唯一入口应是控制台，减少手工编辑 YAML 的格式事故；结构化字段给常用项以控件，复杂树结构保留原文编辑以覆盖“所有项”；校验前置保证不会写半套配置。
+- **被否方案**：全部用原文 textarea（不满足“传统配置页控件”要求）；全部结构化（groups/colleges/tree/classification 结构过深，短期无法可靠建模）；只读展示（用户明确要求可改）。
+- **后果**：新增 `settings_schema.py`、`tests/test_settings_schema.py`（3 项）；`settings_io` 增加 `write_text`；配置页重写为 10 个 env 分组 + 6 个 YAML 分区 + 4 个高级编辑器；测试 182 → **185 项全绿**。**注意**：结构化 YAML 写回会丢文件内部注释（仅保留头部注释块）；复杂文件请用高级编辑器。
