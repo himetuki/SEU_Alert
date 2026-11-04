@@ -10,5 +10,5 @@ accounts:
     # - key: jwc
     #   name: 东南大学教务处
 
-extract_layer: big        # big | small；模型未配置时自动降级为原文入库（low_conf）
-interval: 1800            # 秒；搜狗有风控，别低于 900
+extract_layer: big  # big | small；模型未配置时自动降级为原文入库（low_conf）
+interval: 1800  # 秒；搜狗有风控，别低于 900
