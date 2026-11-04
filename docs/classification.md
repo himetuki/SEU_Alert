@@ -1,6 +1,13 @@
 # 分类体系与分类树
 
 > 版本 v0.1 · 2026-10-25 · 分类规则与题干的唯一权威
+>
+> 实现见 `config/classification.yml`（本地规则，来源/频道白名单）与
+> `config/tree.yml`（JEV 分类树），两者独立配置。
+
+**来源差异**：`web_crawl`（教务处/学院/讲座网站/公众号）不产 `homework`——
+课程作业只可能来自 QQ 课程群或用户投稿；网站与频道允许的类别由
+`source_categories` / `group_categories` 白名单约束，规则命中不在白名单内则降级。
 
 ## 9 类总览
 

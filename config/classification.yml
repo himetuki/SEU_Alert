@@ -1,0 +1,111 @@
+# 本地规则分类树（CLASSIFIER=stub 时使用；与 JEV 分类树 config/tree.yml 相互独立）
+#
+# 匹配方式：命中关键词数 ×100 + priority，取最高分；命中 exclude 的规则整体作废。
+# 公示/名单/获奖/结果类通知会被 task/competition/homework 的 exclude 挡掉，落到 notice。
+# 改完配置后重启后台即可生效（规则按文件 mtime 缓存）。
+
+version: 1
+fallback: { cat: notice, urg: 1, action: know }
+
+# 来源 → 允许类别（分类器只在白名单内选类别）
+source_categories:
+  web_crawl: [notice, exam, competition, research, exchange, lecture, task]
+  qq_group: [homework, exam, competition, research, exchange, lecture, task, notice, chat]
+  user_report: [homework, exam, competition, research, exchange, lecture, task, notice]
+
+# 频道级进一步收紧（优先级高于来源；未列出的频道用来源白名单）
+group_categories:
+  web-lecture: [lecture, task, notice]
+  web-labor: [task, lecture, notice]
+  web-mp-wzjy: [lecture, task, notice]
+
+# 标题级覆盖：优先级高于关键词评分
+overrides:
+  # 公示/名单/获奖类 → 强制 notice
+  notice_title: [公示, 名单, 获奖, 评奖结果, 评审结果, 评选结果, 通过名单,
+                 拟推荐, 表彰名单, 结果公布]
+  # 新闻/报道类标题 → 忽略正文命中，避免正文里的“作业/大赛/交流”造成误判
+  news_title: [顺利举办, 成功举办, 举行, 开幕, 启幕, 仪式, 集体备课, 实践研修,
+               荣获, 称号, 走访, 慰问, 视察, 安全检查, 调研, 工作纪实,
+               专题报道, 喜报, 入选, 获评, 新进展, 取得进展, 研究进展,
+               研究成果, 第一名]
+
+# 栏目前缀直判（标题开头【…】里的内容）
+prefix_categories:
+  讲座: lecture
+  讲座预告: lecture
+  六朝松大师讲堂: lecture
+  文化素质教育: lecture
+  国际交流: exchange
+  公示: notice
+  考试: exam
+
+rules:
+  - cat: exam
+    priority: 100
+    urg: 3
+    action: attend
+    keywords: [考试, 补考, 缓考, 重修, 考场, 考点, 期中, 期末, 四六级, 成绩查询,
+               成绩公布, 绩点, 复试, 免修, 学位课]
+    exclude: [获奖, 公示, 名单, 结果, 讲座, 竞赛, 奖学金]
+
+  - cat: competition
+    priority: 90
+    urg: 2
+    action: signup
+    keywords: [竞赛, 大赛, 比赛, 挑战赛, 数学建模, 蓝桥杯, ACM, 程序设计竞赛,
+               创新创业, 互联网+, 电子设计, 智能车, 机器人, 选拔赛, 招新, 海选,
+               初赛, 复赛, 决赛, 汉语桥, 汉语大会]
+    exclude: [获奖, 公示, 名单, 结果, 讲座, 宣讲, 报告会, 观摩, 表彰, 方案]
+
+  - cat: research
+    priority: 88
+    urg: 2
+    action: submit
+    keywords: [SRTP, 大创, 国创, 省创, 科研训练, 科研项目, 立项, 开题, 中期检查,
+               结题, 项目申报, 创新训练, 科研助理]
+    exclude: [获奖, 公示, 名单, 结果, 办法, 经费, 管理办法, 公派]
+
+  - cat: exchange
+    priority: 86
+    urg: 2
+    action: signup
+    keywords: [交流, 访学, 交换生, 交换项目, 国际, 赴海外, 海外交流, 海外学习,
+               海外研学, 留学, 暑期学校, 国际会议, 港澳台, 中外合作, 南洋理工,
+               剑桥, 牛津, 加州, 出国, 境外, 新加坡, 研学, 国际课程, 公派, CSC]
+    exclude: [获奖, 公示, 名单, 结果, 科学家, 手册, 学习手册]
+
+  - cat: homework
+    priority: 80
+    urg: 2
+    action: submit
+    keywords: [作业, 习题, 实验报告, 大作业, 上机, 课程论文, 实验, 编程作业,
+               提交至, 学习通, 雨课堂, 超星, 课堂派, 课程设计, 课设]
+    exclude: [公示, 名单, 获奖, 评审, 奖学金, 讲座, 竞赛, 转专业, 面试, 表彰]
+
+  - cat: lecture
+    priority: 76
+    urg: 1
+    action: attend
+    keywords: [讲座, 宣讲会, 报告会, 讲堂, 论坛, 沙龙, 分享会, 演出, 音乐会,
+               话剧, 展览, 观摩, 运动会, 大会, 活动, 公开课, 大师讲堂, 六朝松]
+    exclude: [获奖, 公示, 名单, 结果, 招聘, 表彰, 安全检查, 视察, 慰问, 走访,
+              调研, 培育计划, 申报, 新进展]
+
+  - cat: task
+    priority: 70
+    urg: 2
+    action: submit
+    keywords: [填写, 填报, 收集, 接龙, 问卷, 打卡, 截图, 上报, 统计表, 数据统计,
+               报名, 申请, 申报, 提交材料, 材料提交, 评审, 评选, 推荐, 选拔,
+               班会, 签到, 团课, 青年大学习, 志愿, 献血, 招募, 选课, 退课,
+               注册, 承诺书, 汇总]
+    exclude: [公示, 名单, 获奖, 结果, 讲座, 宣讲, 竞赛, 大赛, 考试, 招聘]
+
+  - cat: notice
+    priority: 10
+    urg: 1
+    action: know
+    keywords: [公示, 名单, 获奖, 结果, 安排, 通知, 公告, 停水, 停电, 放假,
+               缴费, 调课, 闭馆, 开放, 招聘, 招标, 采购, 值班, 假期, 补办,
+               领取, 发放, 细则, 办法, 管理办法, 方案, 安全检查, 视察, 慰问, 走访]

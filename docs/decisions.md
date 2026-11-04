@@ -267,3 +267,16 @@
 - **理由**：本机与生产都可能没有 Go 环境，而教务处公开页面直采已在项目中成熟（ADR-029）；用同一解析器生成归档，既满足"消费 SEU-Monitor 归档"的架构，又消除外部二进制依赖。讲座三渠道共用 `web-lecture`，用户只需订阅一次。
 - **被否方案**：下载并运行 SEU-Monitor 第三方二进制（供应链风险、Windows 无官方产物）；继续要求 WSL/Go（用户环境不支持）；直接抓公众号链接作为网站渠道（不稳定且重复）；新写一个讲座站点专用解析器（与 jwc 同构，重复代码）。
 - **后果**：新增 `tools/seu_archive.py`、`config/lecture-site.yml`、`tests/test_seu_archive.py`（7 项）；`WebNotice` 增加 `column/notice_id`；`jwc.load_group`、`wechat_mp` 的 `group_id` 覆盖；`groups.yml` 的 `web-lecture` 更名并扩充预筛词；测试 160 → **166 项全绿**；真实站点实测：归档写入/回读 6 条、讲座网站渠道 2 条（群 `web-lecture`）。**注意**：`lecture-site`/`seu-monitor` 新源需重启后台进程后注册；公众号链路仍受搜狗风控影响。
+
+## ADR-032 分类配置拆分 + 来源白名单 + 历史信息流重分类
+
+- **背景**：用户指出项目缺少分类配置，信息流里“作业/竞赛/通知”大量误判，并明确“不同信息源要有不同的分类方法，来自网站的不可能有作业分类”。原实现把关键词规则硬编码在 `classifier_stub.py`，且用全文匹配，网站正文里的“作业/大赛/交流”等词污染标题判断。
+- **决定**：
+  1. **两份独立配置**：`config/classification.yml`（本地规则分类树：rules / overrides / prefix_categories / source_categories / group_categories / fallback）与 `config/tree.yml`（JEV 分类配置：categories / root / branches / thresholds）。规则分类器读前者，JEV 读后者，互不耦合。
+  2. **标题优先**：标题命中 ×200、正文命中 ×100；只要标题有命中就不再考虑正文。`web_crawl` 只看标题（正文常是新闻稿噪音），QQ 群消息才回退正文；剥离标题开头的【学院/栏目】前缀，避免“统计学院/国际学院”被当成关键词。
+  3. **标题级覆盖**：公示/名单/获奖 → 强制 notice；新闻/报道（顺利举办、荣获、开幕、获评…）→ 强制 notice；`prefix_categories` 让【讲座】【国际交流】等前缀直判类别。
+  4. **来源/频道白名单**：`source_categories.web_crawl` 不含 `homework`；`qq_group` 才允许 homework；`group_categories` 对 `web-lecture`（lecture/task/notice）、`web-labor`（task/lecture/notice）进一步收紧。命中类别不在白名单时整条规则跳过，最终落到白名单内的 notice。
+  5. **历史重分类**：新增 `scripts/reclassify_items.py`，逐条读 `items.raw_text`（网站条目按 group 前缀推断来源），按新规则重算 `cat/cat2`；默认 dry-run，`--apply` 写回。
+- **理由**：来源决定类别空间——课程作业只可能来自 QQ 课程群或投稿；把这条约束放进配置而不是代码，后续加源/加频道不用改分类器。标题优先解决了网站正文噪音，重分类脚本让历史数据与新规则一致。
+- **被否方案**：继续硬编码关键词（不可运维）；只按正文匹配（误判率高）；给每个站点写独立分类器（重复且难维护）；只修数据库不改线上分类器（新数据继续错）。
+- **后果**：新增 `config/classification.yml`、`tests/test_classifier_rules.py`（8 项）、`scripts/reclassify_items.py`；`tree.yml` 增补 categories/thresholds；`classifier_stub.py` 改为配置驱动（Rule/RuleSet）。历史 247 条重分类：变更 115 条，作业 51 → 0，最终分布 notice 178 / task 33 / lecture 13 / exchange 9 / exam 7 / competition 4 / research 3。**注意**：`items` 表在 `.gitignore` 的 `data/` 下，数据库修正不随 git 提交；规则改动重启后台生效。
