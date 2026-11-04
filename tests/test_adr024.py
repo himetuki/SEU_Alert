@@ -9,7 +9,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from qq_relay.adapters.web.labor import (
+from seu_alert.adapters.web.labor import (
     FilterOptions,
     LaborSession,
     course_to_notice,
@@ -17,7 +17,7 @@ from qq_relay.adapters.web.labor import (
     parse_courses,
     rsa_encrypt_password,
 )
-from qq_relay.adapters.web.seu_colleges import (
+from seu_alert.adapters.web.seu_colleges import (
     load_colleges,
     parse_article_page,
     parse_list_page,

@@ -10,19 +10,19 @@ from datetime import datetime, timedelta
 import httpx
 import pytest
 
-from qq_relay.adapters.user_report import SubmissionIntake
-from qq_relay.config import Subscription, SubscriptionsConfig
-from qq_relay.contracts import ClassifiedEvent
-from qq_relay.deliver.file import FileDeliverer
-from qq_relay.deliver.multi import MultiDeliverer
-from qq_relay.deliver.pushplus import DeliverError, PushPlusDeliverer
-from qq_relay.pipeline.extract_stack import SubmissionExtractor
-from qq_relay.pipeline.llm import ChatClient, ChatError
-from qq_relay.pipeline.ocr import HttpOcrProvider, XunfeiOcrProvider, xunfei_auth_header
-from qq_relay.pipeline.reminder import ReminderScheduler
-from qq_relay.pipeline.runner import Runner
-from qq_relay.store import db as store_db
-from qq_relay.store import queries
+from seu_alert.adapters.user_report import SubmissionIntake
+from seu_alert.config import Subscription, SubscriptionsConfig
+from seu_alert.contracts import ClassifiedEvent
+from seu_alert.deliver.file import FileDeliverer
+from seu_alert.deliver.multi import MultiDeliverer
+from seu_alert.deliver.pushplus import DeliverError, PushPlusDeliverer
+from seu_alert.pipeline.extract_stack import SubmissionExtractor
+from seu_alert.pipeline.llm import ChatClient, ChatError
+from seu_alert.pipeline.ocr import HttpOcrProvider, XunfeiOcrProvider, xunfei_auth_header
+from seu_alert.pipeline.reminder import ReminderScheduler
+from seu_alert.pipeline.runner import Runner
+from seu_alert.store import db as store_db
+from seu_alert.store import queries
 
 
 # ---------- 假 ChatClient（不发网络，按脚本返回） ----------
@@ -40,7 +40,7 @@ class FakeChat:
         text = self.replies.pop(0)
         if text.startswith("!"):
             raise ChatError(text[1:])
-        from qq_relay.pipeline.llm import ChatResult
+        from seu_alert.pipeline.llm import ChatResult
         return ChatResult(text=text, model="fake", latency_ms=1)
 
 
@@ -80,7 +80,7 @@ class TestExtractStack:
         class FakeOcr:
             enabled = True
             async def image_to_text(self, b64):
-                from qq_relay.pipeline.ocr import OcrError
+                from seu_alert.pipeline.ocr import OcrError
                 raise OcrError("挂了")
         ex = SubmissionExtractor(vision=FakeChat(["视觉转录的文字"]), ocr=FakeOcr(),
                                  chain=("ocr", "vision"))
@@ -161,7 +161,7 @@ class TestReminder:
                                    quiet=(), instant_min_urg=2, digest=True)})
 
         async def scenario():
-            from qq_relay.contracts import RawEvent
+            from seu_alert.contracts import RawEvent
 
             conn = await store_db.connect(settings)
             await store_db.init_schema(conn)
@@ -224,7 +224,7 @@ class TestSubmissionEndToEnd:
 
 class TestVotes:
     def test_confirm_report_and_verified(self, tmp_path, settings, groups_cfg):
-        from qq_relay.botcmd import handle_private
+        from seu_alert.botcmd import handle_private
 
         async def scenario():
             subs = SubscriptionsConfig(subs={

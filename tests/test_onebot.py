@@ -9,8 +9,8 @@ from __future__ import annotations
 import asyncio
 import json
 
-from qq_relay.adapters.onebot import OneBotServer, parse_group_message
-from qq_relay.contracts import RawEvent
+from seu_alert.adapters.onebot import OneBotServer, parse_group_message
+from seu_alert.contracts import RawEvent
 
 GROUP_MSG = {
     "post_type": "message",

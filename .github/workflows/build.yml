@@ -73,7 +73,7 @@ jobs:
       - name: 校验产物
         shell: pwsh
         run: |
-          if (-not (Test-Path "dist/seu_alert-portable-win/qq-relay.exe")) { throw "缺少 qq-relay.exe" }
+          if (-not (Test-Path "dist/seu_alert-portable-win/seu_alert.exe")) { throw "缺少 seu_alert.exe" }
           if (-not (Test-Path "dist/seu_alert-portable-win.zip")) { throw "缺少 seu_alert-portable-win.zip" }
           "win 产物 OK"
       - uses: actions/upload-artifact@v4
@@ -101,7 +101,7 @@ jobs:
         run: bash linux/build_server.sh
       - name: 校验产物
         run: |
-          test -x dist/seu_alert-portable-server/qq-relay-server || { echo "缺少可执行文件" >&2; exit 1; }
+          test -x dist/seu_alert-portable-server/seu_alert-server || { echo "缺少可执行文件" >&2; exit 1; }
           test -f dist/seu_alert-portable-server.tar.gz || { echo "缺少 tar.gz" >&2; exit 1; }
           echo "linux 产物 OK"
       - uses: actions/upload-artifact@v4

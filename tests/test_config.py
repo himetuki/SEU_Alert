@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from qq_relay.config import (
+from seu_alert.config import (
     ConfigError,
     Settings,
     load_groups,
@@ -14,7 +14,7 @@ from qq_relay.config import (
     load_tree,
     load_web_sources,
 )
-from qq_relay.contracts import ClassifiedEvent, RawEvent
+from seu_alert.contracts import ClassifiedEvent, RawEvent
 
 GOOD_GROUPS = """
 groups:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from qq_relay.admin import AdminContext, create_app
+from seu_alert.admin import AdminContext, create_app
 
 
 class StubCtx:

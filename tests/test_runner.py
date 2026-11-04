@@ -7,11 +7,11 @@ import asyncio
 import time
 from datetime import datetime
 
-from qq_relay.config import Subscription, SubscriptionsConfig
-from qq_relay.contracts import RawEvent
-from qq_relay.deliver.file import FileDeliverer
-from qq_relay.pipeline.runner import Runner
-from qq_relay.store import db as store_db
+from seu_alert.config import Subscription, SubscriptionsConfig
+from seu_alert.contracts import RawEvent
+from seu_alert.deliver.file import FileDeliverer
+from seu_alert.pipeline.runner import Runner
+from seu_alert.store import db as store_db
 
 NOTICE = "高等数学第五章习题册作业已发布，请于11月15日23:59前提交至学习通，逾期不计分。"
 CHATTER = "哈哈今天天气真不错啊大家歇歇"

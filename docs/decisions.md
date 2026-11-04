@@ -163,7 +163,7 @@
 
 - **背景**：本引擎定位为「校园信息聚合与强提醒」类产品的内容与决策引擎，前端触点由独立仓库负责：个人公众号投稿 + OCR+LLM 提取 + 双按钮核验 + PushPlus 微信强推送（截止前 24h/3h）+ 临期提醒。
 - **决定**（2026-10-25 拍板）：
-  1. **定位**：qq-relay 作为**内容与决策引擎**（多源采集 → JEV 分类树 → 提取 → 订阅匹配 → 提醒调度），公众号/H5/PushPlus 为前端触点；bot 保留为**内部增强通道**（我方主动接入部分群，不专门维护适配，NapCat 登录暂缓）；
+  1. **定位**：seu_alert 作为**内容与决策引擎**（多源采集 → JEV 分类树 → 提取 → 订阅匹配 → 提醒调度），公众号/H5/PushPlus 为前端触点；bot 保留为**内部增强通道**（我方主动接入部分群，不专门维护适配，NapCat 登录暂缓）；
   2. **OCR 纳入**：投稿提取层 = **OCR/视觉模型（Chat Completion 协议）→ 大模型（可选层）→ 小模型（备用层）** 的降级链；JEV 分类树**保留用于分类**（不替代）；
   3. **模型接入统一走 Chat Completion 协议**（大模型/小模型/免费视觉模型/讯飞类 OCR）；专用 OCR 协议接口（如讯飞通用 OCR）作为 provider 之一可插拔；
   4. QQ 私聊仅内部测试通道；先本地实现全部引擎侧能力。
@@ -197,8 +197,8 @@
 
 - **背景**：需要把引擎做成**便携版软件**分发给校内非技术用户（无需安装 Python 即可运行），以便验证**人文讲座与劳动教育的监控与订阅**；要求**先做后台管理人员界面**、PushPlus 分发、**先打基础后续再配置**。
 - **决定**：
-  1. **后台管理**（`src/qq_relay/admin.py`，Flask + 自包含单页，无构建无外部静态文件）：监控源状态（上次扫描/新增/错误/立即扫描）、最近信息流、订阅管理（群×类别 增删查，原子写 YAML）、PushPlus 测试推送（token 页内可填）、配置概览（密钥脱敏）。items 查询走**独立 SQLite 连接**，不与监控 loop 争抢（学院源一轮扫描数分钟，走 loop 会堵死页面）。
-  2. **便携打包**：PyInstaller **one-dir**（符合用户 one-dir 偏好）；`runtime_root()` 冻结模式下把数据/配置解析到 **exe 同级目录**（不写 %APPDATA%、不写系统目录）；构建脚本 `scripts/build_portable.ps1` 产出 `dist/qq-relay-portable/`（exe + config/ + .env.example + 使用说明.md），整 folder 发给使用者，无需 Python。
+  1. **后台管理**（`src/seu_alert/admin.py`，Flask + 自包含单页，无构建无外部静态文件）：监控源状态（上次扫描/新增/错误/立即扫描）、最近信息流、订阅管理（群×类别 增删查，原子写 YAML）、PushPlus 测试推送（token 页内可填）、配置概览（密钥脱敏）。items 查询走**独立 SQLite 连接**，不与监控 loop 争抢（学院源一轮扫描数分钟，走 loop 会堵死页面）。
+  2. **便携打包**：PyInstaller **one-dir**（符合用户 one-dir 偏好）；`runtime_root()` 冻结模式下把数据/配置解析到 **exe 同级目录**（不写 %APPDATA%、不写系统目录）；构建脚本 `scripts/build_portable.ps1` 产出 `dist/seu_alert-portable/`（exe + config/ + .env.example + 使用说明.md），整 folder 发给使用者，无需 Python。
   3. **使用者文档** `docs/portable-readme.md`：双击 exe → 浏览器开后台 → 填 PushPlus token 与讲座/劳动教育 CAS 账号 → 观察监控与推送；日志在 logs/。
   4. **基础版边界**：可改配置仍在 config/*.yml 与 .env（页内只读展示）；订阅保存后重启生效（P3 配置管理器落地前）；QQ 通道（main.py）与便携版（admin.py）双入口并存。
 - **理由**：校内使用者是实际使用者，后台界面让他们能自证链路（扫描→信息流→推送）并回传日志；PyInstaller one-dir 是 Windows 零依赖分发的标准解；焦点源（讲座/劳动教育）需校内网，恰好由他们验证。
@@ -222,10 +222,10 @@
 - **背景**：① 用户要求增加 GitHub 工作流，自动构建并分发便携版；② Windows 平台专用构建源码需归置到项目内 `win/` 目录；③ 再补一份 Linux 服务器版，同样由工作流构建分发。
 - **决定**：
   1. **源码归置**：Windows 便携版构建源码移入 `win/`——`win/build_portable.ps1`（原 `scripts/build_portable.ps1`）、`win/portable_entry.py`（原根目录）、新增 `win/README.md`；**产物仍输出到项目根 `dist/`**（`dist/` 已 gitignore），符合用户"产物不散落"的偏好。
-  2. **Linux 服务器版**（`linux/`）：新增无头入口 `server_entry.py`（`admin.main(host=0.0.0.0, open_browser=False)`，`ADMIN_HOST`/`ADMIN_PORT` 可覆盖）、构建脚本 `build_server.sh`（PyInstaller one-dir，不加 `--windowed`）、systemd unit `qq-relay-server.service`、`linux/README.md`；产物 `dist/qq-relay-server/` + `dist/qq-relay-server.tar.gz`。
+  2. **Linux 服务器版**（`linux/`）：新增无头入口 `server_entry.py`（`admin.main(host=0.0.0.0, open_browser=False)`，`ADMIN_HOST`/`ADMIN_PORT` 可覆盖）、构建脚本 `build_server.sh`（PyInstaller one-dir，不加 `--windowed`）、systemd unit `seu_alert-server.service`、`linux/README.md`；产物 `dist/seu_alert-server/` + `dist/seu_alert-server.tar.gz`。
   3. **工作流** `.github/workflows/build.yml`：`test`（ubuntu，pytest）→ `win`（windows-latest）+ `linux`（ubuntu-latest）并行构建 → 上传 artifact；`release` job（`needs: [win, linux]`）在 **tag `v*`** 或手动勾选时用 `softprops/action-gh-release` 上传两份产物。`permissions: contents: write`。
   4. **脚本 CI 兼容**：构建脚本支持参数/环境变量（`-Python`/`$PYTHON`/`$OUT`），本地优先用项目内 `.venv`，CI 回退到 runner 的 `python`/`python3`；统一设 `PYTHONPATH=src` + `--paths src`，避免依赖 `pip install -e .`。
-  5. **产物校验**：win 校验 `qq-relay.exe` 与 zip 存在，linux 校验可执行文件与 tar.gz 存在，缺失即 fail。
+  5. **产物校验**：win 校验 `seu_alert.exe` 与 zip 存在，linux 校验可执行文件与 tar.gz 存在，缺失即 fail。
 - **理由**：GitHub Actions 是零自建服务器的标准分发通道；`win/`/`linux/` 按平台分目录使仓库结构清晰；无头服务器版复用同一 admin 后端（Flask），只改绑定地址与浏览器行为，改动最小；先跑 pytest 再构建，避免把测试失败的产物发出去。
 - **被否方案**：用 GitHub Pages / 自建 NAS 分发（无 Release 语义）；Linux 版用 Docker 镜像（用户明确要二进制 + systemd，且镜像构建在 runner 上更重）；把构建产物也提交进仓库（体积膨胀且不可追溯）。
 - **后果**：新增 `win/`（3 文件）、`linux/`（4 文件）、`.github/workflows/build.yml`；`scripts/build_portable.ps1` 与根 `portable_entry.py` 迁移；runbook 新增第 12/13 节；测试仍 127 项全绿（本 ADR 未改业务代码）；**注意**：仓库尚无 git remote，工作流在首次推送到 GitHub 后生效。
@@ -239,7 +239,7 @@
   3. **新 kind `jwc`** 加入 `WEB_KINDS` 与 `SCANNERS`；`web-sources.yml` 新增 `jwc` 源替换旧的 `seu-monitor` 源。
   4. **旧通道保留但默认停用**：新增 `WebSourceCfg.enabled`（`enabled: false` 不参与轮询），`seu_monitor` 源标为 false。若仍想在 WSL 跑 SEU-Monitor，改回 true 即可继续消费其归档。
   5. **NOTICE 如实记录**：SEU-Monitor 条目写明「许可未声明 / 未获作者授权 / 本次未复制其源码」，并澄清那个 AGPL 文件属于 zju-connect。
-- **理由**：自研直采让 qq-relay **自包含**——不再需要先在 WSL 里跑一个 Go 程序生成 `store/` 才能工作，消除最脆弱的外部依赖；同时绕开无许可项目的复制风险。学院站（ADR-024）已是同构直采，教务处沿用同一套解析思路，架构统一。
+- **理由**：自研直采让 seu_alert **自包含**——不再需要先在 WSL 里跑一个 Go 程序生成 `store/` 才能工作，消除最脆弱的外部依赖；同时绕开无许可项目的复制风险。学院站（ADR-024）已是同构直采，教务处沿用同一套解析思路，架构统一。
 - **被否方案**：① 直接移植 SEU-Monitor 的 Go 源码（无许可，侵权）；② 继续只读其输出库（用户明确要求整合架构而非只读数据）；③ 等作者授权后再做（用户知晓风险后选择先推进可合法实现的部分）。
 - **后果**：新增 `adapters/web/jwc.py`（约 290 行）、`config/jwc.yml`、`tests/test_jwc.py`（15 项）、`tests/fixtures/jwc_list.html` + `jwc_article.html`；`WEB_KINDS` 加 `jwc`；`WebSourceCfg` 加 `enabled`；`web-sources.yml` 停用 `seu-monitor`、新增 `jwc`；测试 127 → **145 项全绿**。**遗留**：若要直接移植 SEU-Monitor 的 Go 代码，仍需先取得 miunerofrade 书面许可；SEUdaily 等三源仍是 MIT 合法移植，暂无变化。
 
@@ -259,7 +259,7 @@
 
 - **背景**：① ADR-030 后 SEU-Monitor 源虽已启用，但归档需运行 Go 程序；用户环境是 Windows（无 Go/WSL），要求"优化成 Windows 支持"。② 用户要求人文讲座除预约系统外，还要有**公众号渠道**与**学校人文素质讲座网站渠道**。
 - **决定**：
-  1. **Windows 原生归档生成器**（`src/qq_relay/tools/seu_archive.py`）：复用 `jwc.py` 直采（ADR-029，公开页面、未复制 Go 源码），把结果写成 SEU-Monitor 兼容归档 `web/教务处/<栏目>/<标题--ID>/{meta.json,text.md}`。命令：`.venv\Scripts\python -m qq_relay.tools.seu_archive --once`。无需 Go/WSL。
+  1. **Windows 原生归档生成器**（`src/seu_alert/tools/seu_archive.py`）：复用 `jwc.py` 直采（ADR-029，公开页面、未复制 Go 源码），把结果写成 SEU-Monitor 兼容归档 `web/教务处/<栏目>/<标题--ID>/{meta.json,text.md}`。命令：`.venv\Scripts\python -m seu_alert.tools.seu_archive --once`。无需 Go/WSL。
   2. **去重一致性**：`text.md` 只写正文（不含 `# 标题/来源`），使 `seu_monitor` 回读出的 `text` 与 `jwc` 直采逐字一致 → 内容哈希相同，两条通道自动去重合并（一条 item、多来源群），不产生重复信息流。
   3. **站点 ID 安全**：部分栏目会转载站外公众号文章（`notice_id` 是 URL），归档目录名对 URL 取 `sha256[:10]` 短哈希，避免 Windows 非法路径字符。
   4. **人文讲座网站渠道**：`jwc` 加载器支持同文件 `group_id/group_name` 覆盖；新增 `config/lecture-site.yml`（文化素质教育 + 六朝松大师讲堂）与 `lecture-site` 源，群 = `web-lecture`。

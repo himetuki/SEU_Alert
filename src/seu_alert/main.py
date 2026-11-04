@@ -1,7 +1,7 @@
 """装配 + 启动（ADR-023 版）：多出口分发 + 投稿提取栈 + 临期提醒调度。
 
-    .venv\\Scripts\\python -m qq_relay.main [--seconds N] [--forever]
-    .venv\\Scripts\\python -m qq_relay.submit --text/--image/--course ...   # 本地投稿
+    .venv\\Scripts\\python -m seu_alert.main [--seconds N] [--forever]
+    .venv\\Scripts\\python -m seu_alert.submit --text/--image/--course ...   # 本地投稿
 
 DELIVER_MODE 逗号组合：file（测试期留档）| pushplus（微信强推送）| qq（内部测试）。
 QQ 私聊为内部测试通道，不专门维护适配（ADR-023）。
@@ -214,7 +214,7 @@ async def amain(seconds: int | None) -> int:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="qq-relay 主管道（ADR-023）")
+    ap = argparse.ArgumentParser(description="seu_alert 主管道（ADR-023）")
     ap.add_argument("--seconds", type=int, default=0, help="运行秒数，0=持续")
     ap.add_argument("--forever", action="store_true", help="持续运行（默认）")
     args = ap.parse_args()

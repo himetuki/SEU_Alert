@@ -6,7 +6,7 @@
     "websocketClients": [
       {
         "enable": true,
-        "name": "qq-relay",
+        "name": "seu_alert",
         "url": "ws://127.0.0.1:3001",
         "messagePostFormat": "array",
         "reportSelfMessage": false,

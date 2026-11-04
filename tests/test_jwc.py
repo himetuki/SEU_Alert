@@ -11,8 +11,8 @@ from pathlib import Path
 import httpx
 import pytest
 
-from qq_relay.adapters.web import jwc
-from qq_relay.adapters.web.jwc import (
+from seu_alert.adapters.web import jwc
+from seu_alert.adapters.web.jwc import (
     DEFAULT_COLUMNS,
     load_columns,
     parse_article_page,
@@ -272,23 +272,23 @@ class TestFingerprint:
     """内容指纹：忽略排版空白，用于跨文章 ID 去重。"""
 
     def test_whitespace_insensitive(self):
-        from qq_relay.adapters.web.jwc import _fingerprint
+        from seu_alert.adapters.web.jwc import _fingerprint
         assert (_fingerprint("标题", "正文 内容")
                 == _fingerprint("标题", "正文\n\n内容")
                 == _fingerprint("标题", " 正文\t内容 "))
 
     def test_content_sensitive(self):
-        from qq_relay.adapters.web.jwc import _fingerprint
+        from seu_alert.adapters.web.jwc import _fingerprint
         assert _fingerprint("标题", "正文") != _fingerprint("标题", "别的正文")
         assert _fingerprint("标题", "正文") != _fingerprint("别标题", "正文")
 
     def test_stable_length(self):
-        from qq_relay.adapters.web.jwc import _fingerprint
+        from seu_alert.adapters.web.jwc import _fingerprint
         assert len(_fingerprint("t", "c")) == 16
 
 
 class TestRegistry:
     def test_jwc_registered(self):
-        from qq_relay.adapters.web import SCANNERS
+        from seu_alert.adapters.web import SCANNERS
         assert "jwc" in SCANNERS
         assert SCANNERS["jwc"] is jwc.scan

@@ -1,8 +1,8 @@
 """本地投稿 CLI（ADR-023）：文字/图片 → 提取栈 → 分类管道 → 分发出口。
 
-    .venv\\Scripts\\python -m qq_relay.submit --text "高等数学作业 11月15日截止"
-    .venv\\Scripts\\python -m qq_relay.submit --image shots\\notice.png --course 高等数学
-    .venv\\Scripts\\python -m qq_relay.submit --text "..." --user 100001 --group 123456789
+    .venv\\Scripts\\python -m seu_alert.submit --text "高等数学作业 11月15日截止"
+    .venv\\Scripts\\python -m seu_alert.submit --image shots\\notice.png --course 高等数学
+    .venv\\Scripts\\python -m seu_alert.submit --text "..." --user 100001 --group 123456789
 
 供内部测试与后续公众号/前端回调复用（HTTP 入口接入时调用同一 intake）。
 """

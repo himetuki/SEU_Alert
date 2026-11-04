@@ -252,7 +252,7 @@ class LaborSession:
             "service": CAS_SERVICE, "username": self.username,
             "password": enc, "captcha": "", "rememberMe": False,
             "loginType": "account", "wxBinded": False,
-            "mobilePhoneNum": "", "fingerPrint": "stable_qq_relay",
+            "mobilePhoneNum": "", "fingerPrint": "stable_seu_alert",
         })
         data = r.json() if r.status_code == 200 else {}
         if not data.get("success"):

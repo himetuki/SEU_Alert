@@ -1,4 +1,4 @@
-QQ消息集散（qq-relay）第三方与衍生来源声明
+QQ消息集散（seu_alert）第三方与衍生来源声明
 ==================================================
 
 本项目以 GNU Affero General Public License v3.0（AGPL-3.0）发布，见 LICENSE。
@@ -33,21 +33,21 @@ QQ消息集散（qq-relay）第三方与衍生来源声明
    许可：MIT（Copyright (c) 2026 miunerofrade）
    来源：https://github.com/miunerofrade/SEUdaily
    借鉴：jwc/cse/news 输出库结构与通知 markdown + metadata 形态
-         → src/qq_relay/adapters/web/seudaily.py
+         → src/seu_alert/adapters/web/seudaily.py
    说明：仅参考输出库结构，未复制其可执行分发物。
 
 3. zz6zz666/SEU-Labor-Course-Pusher
    许可：MIT（Copyright (c) 2026 zz6zz666）
    来源：https://github.com/zz6zz666/SEU-Labor-Course-Pusher
    借鉴：site.rs 课程表解析 + login.rs CAS 登录（RSA）语义
-         → src/qq_relay/adapters/web/labor.py
+         → src/seu_alert/adapters/web/labor.py
    说明：移植源码语义（登录流程与解析规则），未使用其 exe/安装包。
 
 4. wynter-yaxley/seu-lecture-cli
    许可：MIT（Copyright (c) 2026 wynter-yaxley and seu-lecture-cli contributors）
    来源：https://github.com/wynter-yaxley/seu-lecture-cli
    借鉴：parse_lectures + queryActivityList.do 分页解析
-         → src/qq_relay/adapters/web/seu_lectures.py
+         → src/seu_alert/adapters/web/seu_lectures.py
    说明：仅移植**监控**能力，未移植 reserve/captcha/clock（不预约、不抢票）。
 
 --------------------------------------------------

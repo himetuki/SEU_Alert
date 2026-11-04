@@ -9,7 +9,7 @@ py -V:3.13 -m venv .venv
 set PIP_CACHE_DIR=%CD%\.pipcache
 .venv\Scripts\python -m pip install -r requirements.txt
 .venv\Scripts\python -m pip install -e .
-.venv\Scripts\python -m qq_relay.store.db      # 建 10 张表
+.venv\Scripts\python -m seu_alert.store.db      # 建 10 张表
 .venv\Scripts\python -m pytest                 # 22 项测试
 ```
 
@@ -40,8 +40,8 @@ set PIP_CACHE_DIR=%CD%\.pipcache
 ## 2. 冒烟（验收 A1）
 
 ```bash
-.venv\Scripts\python -m qq_relay.smoke --seconds 300     # 5 分钟观察
-.venv\Scripts\python -m qq_relay.smoke --forever         # 持续跑，Ctrl-C 退出
+.venv\Scripts\python -m seu_alert.smoke --seconds 300     # 5 分钟观察
+.venv\Scripts\python -m seu_alert.smoke --forever         # 持续跑，Ctrl-C 退出
 ```
 
 **通过的判据**：控制台逐条打印群消息（含群名/发送者/延迟秒数），`data/logs/smoke-*.jsonl` 有原始事件。
@@ -62,8 +62,8 @@ set PIP_CACHE_DIR=%CD%\.pipcache
 ## 4. P1 主管道（冒烟通过后）
 
 ```bash
-.venv\Scripts\python -m qq_relay.main --seconds 300     # 5 分钟观察
-.venv\Scripts\python -m qq_relay.main --forever         # 持续跑
+.venv\Scripts\python -m seu_alert.main --seconds 300     # 5 分钟观察
+.venv\Scripts\python -m seu_alert.main --forever         # 持续跑
 ```
 
 **会发生什么**：
@@ -79,7 +79,7 @@ set PIP_CACHE_DIR=%CD%\.pipcache
 
 ## 5. web 采集源（教务处直采 / SEU-Monitor / SEUdaily，ADR-022/029）
 
-各源在 `config/web-sources.yml` 配好，`python -m qq_relay.main` 启动时自动开始轮询（首次全量 backfill，之后按各自的 `interval` 增量）。`enabled: false` 的源不参与轮询。
+各源在 `config/web-sources.yml` 配好，`python -m seu_alert.main` 启动时自动开始轮询（首次全量 backfill，之后按各自的 `interval` 增量）。`enabled: false` 的源不参与轮询。
 
 - **教务处六栏目直采**（ADR-029，已就绪）：`kind: jwc`，配置 `config/jwc.yml`，直接抓 `jwc.seu.edu.cn` 六个栏目（最新动态/教务信息/学籍管理/实践教学/国际交流/文化素质教育），群 = `web-jwc`。**自包含，不需要任何外部程序**。
 - **SEUdaily 网页库**（已就绪）：`seu-projects-test/SEUdaily/.seudaily/web-files` 里已有的通知会自动流入（已验证：免试公示通知 → Digest 文件）。库会随你使用 SEUdaily 增长，新增自动接入。
@@ -87,7 +87,7 @@ set PIP_CACHE_DIR=%CD%\.pipcache
 
   ```powershell
   # Windows 直接生成一轮归档（抓教务处六栏目 → 写 store/web/教务处/…）
-  .venv\Scripts\python -m qq_relay.tools.seu_archive --once
+  .venv\Scripts\python -m seu_alert.tools.seu_archive --once
   # 可选参数：--root <归档目录> --config config/jwc.yml --max-articles 15
   ```
 
@@ -99,9 +99,9 @@ set PIP_CACHE_DIR=%CD%\.pipcache
 
 ```bash
 # 文字投稿
-.venv\Scripts\python -m qq_relay.submit --text "高等数学作业 11月15日截止" --course 马原 --user 100001
+.venv\Scripts\python -m seu_alert.submit --text "高等数学作业 11月15日截止" --course 马原 --user 100001
 # 图片投稿（走 OCR/视觉层；.env 配了才生效，没配自动降级为原文+low_conf）
-.venv\Scripts\python -m qq_relay.submit --image shots\note.png --course 高等数学
+.venv\Scripts\python -m seu_alert.submit --image shots\note.png --course 高等数学
 ```
 
 - 层顺序 `SUBMIT_EXTRACT_CHAIN`（默认 `vision,big,small`）：OCR 专用协议（`OCR_PROVIDER=http|xunfei`，如讯飞）→ 视觉模型（`VISION_*`，Chat Completion 看图）→ 大模型（`BIG_*`，可选层）→ 小模型（`SMALL_*`，备用层；neohorse-1-9b 已强制禁思考参数）
@@ -147,15 +147,15 @@ Windows 构建源码在 [win/](../win/)；产物仍输出到项目根 `dist/`。
 pwsh -NoProfile -ExecutionPolicy Bypass -File win/build_portable.ps1
 ```
 
-产物 `dist/seu_alert-portable-win/`：`qq-relay.exe`（双击即跑，自带 Python 运行时）+
+产物 `dist/seu_alert-portable-win/`：`seu_alert.exe`（双击即跑，自带 Python 运行时）+
 `_internal/` + `config/` + `.env.example` + `使用说明.md` + `WIN-README.md`；另产出
 `dist/seu_alert-portable-win.zip` 供分发。数据/配置在 **exe 同级目录**
 （`data/`、`.env`、`logs/`），不写 %APPDATA%、不写系统目录——整个文件夹拷走即用。
 
-注意：`src/qq_relay/store/schema.sql` 是非 .py 数据文件，构建脚本已用 `--add-data`
+注意：`src/seu_alert/store/schema.sql` 是非 .py 数据文件，构建脚本已用 `--add-data`
 （绝对路径，PyInstaller 会把相对路径解析到 spec 目录）打入；以后新增非 .py 资源
-要同步改 `win/build_portable.ps1`。后台管理入口：`python -m qq_relay.admin`
-或便携版 exe；主管道（含 QQ 内部通道）仍是 `python -m qq_relay.main`。
+要同步改 `win/build_portable.ps1`。后台管理入口：`python -m seu_alert.admin`
+或便携版 exe；主管道（含 QQ 内部通道）仍是 `python -m seu_alert.main`。
 
 ## 12. 打包 Linux 服务器版（ADR-028）
 
@@ -165,9 +165,9 @@ Linux 构建源码在 [linux/](../linux/)（WSL / Linux 上执行）：
 bash linux/build_server.sh
 ```
 
-产物 `dist/seu_alert-portable-server/`：无头二进制 `qq-relay-server`（不开浏览器，绑
+产物 `dist/seu_alert-portable-server/`：无头二进制 `seu_alert-server`（不开浏览器，绑
 `0.0.0.0:8000`，可用 `ADMIN_HOST`/`ADMIN_PORT` 覆盖）+ `_internal/` + `config/` +
-`.env.example` + `qq-relay-server.service`（systemd unit）+ `LINUX-README.md`；
+`.env.example` + `seu_alert-server.service`（systemd unit）+ `LINUX-README.md`；
 另产出 `dist/seu_alert-portable-server.tar.gz` 供分发。部署见 [linux/README.md](../linux/README.md)。
 
 ## 13. CI 自动构建与分发（ADR-028）

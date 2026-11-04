@@ -7,10 +7,10 @@ from __future__ import annotations
 
 import json
 
-from qq_relay.adapters.web.base import WebNotice
-from qq_relay.adapters.web.jwc import load_group
-from qq_relay.adapters.web.seu_monitor import scan as scan_archive
-from qq_relay.tools.seu_archive import write_archive
+from seu_alert.adapters.web.base import WebNotice
+from seu_alert.adapters.web.jwc import load_group
+from seu_alert.adapters.web.seu_monitor import scan as scan_archive
+from seu_alert.tools.seu_archive import write_archive
 
 
 def _notice(**kw) -> WebNotice:

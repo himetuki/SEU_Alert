@@ -502,7 +502,7 @@ td .mini-tag{display:inline-block;padding:1px 7px;border-radius:4px;font-size:10
               <span class="tag">Linux 服务器版</span>
               <span class="tag">源码运行</span>
             </div>
-            <div class="sub" style="margin-top:auto">PyInstaller one-dir / systemd unit / <span class="mono">python -m qq_relay.admin</span></div>
+            <div class="sub" style="margin-top:auto">PyInstaller one-dir / systemd unit / <span class="mono">python -m seu_alert.admin</span></div>
           </div>
         </div>
       </section>
@@ -608,9 +608,9 @@ document.getElementById('filterBar').addEventListener('click', e => {
 /* ═══ 主题切换 ═══ */
 function applyTheme(t) {
   document.documentElement.dataset.theme = t;
-  try { localStorage.setItem('qq-relay-theme', t); } catch (e) {}
+  try { localStorage.setItem('seu_alert-theme', t); } catch (e) {}
 }
-applyTheme(localStorage.getItem('qq-relay-theme') || 'dark');
+applyTheme(localStorage.getItem('seu_alert-theme') || 'dark');
 document.getElementById('themeToggle').addEventListener('click', () => {
   const cur = document.documentElement.dataset.theme;
   applyTheme(cur === 'dark' ? 'light' : 'dark');

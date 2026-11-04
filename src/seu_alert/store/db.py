@@ -1,7 +1,7 @@
 """SQLite 存取：WAL 单文件。
 
 用法：
-    python -m qq_relay.store.db        # 初始化 / 校验 schema
+    python -m seu_alert.store.db        # 初始化 / 校验 schema
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ import aiosqlite
 from ..config import Settings
 
 SCHEMA_PATH = Path(__file__).resolve().parent / "schema.sql"
-DB_NAME = "qq-relay.db"
+DB_NAME = "seu_alert.db"
 
 
 def db_path(settings: Settings) -> Path:

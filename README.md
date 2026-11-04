@@ -76,8 +76,8 @@ cp .env.example .env          # 模型密钥、PushPlus token、各源会话
 cp config/subscriptions.yml.example config/subscriptions.yml   # 首次启动也会自动生成
 
 # 3. 运行
-python -m qq_relay.main       # 主管道（采集 + 分发 + 提醒）
-python -m qq_relay.admin      # 后台管理界面（浏览器打开 127.0.0.1:8000）
+python -m seu_alert.main       # 主管道（采集 + 分发 + 提醒）
+python -m seu_alert.admin      # 后台管理界面（浏览器打开 127.0.0.1:8000）
 
 # 4. 测试
 python -m pytest -q
@@ -92,7 +92,7 @@ python -m pytest -q
 |---|---|---|
 | **Windows 便携版** | `dist/seu_alert-portable-win/`（zip） | PyInstaller one-dir，双击即跑，无需 Python；数据与配置在 exe 同级目录 |
 | **Linux 服务器版** | `dist/seu_alert-portable-server/`（tar.gz） | 无头二进制 + systemd unit；绑定 `0.0.0.0:8000`，适合常驻服务器 |
-| **源码运行** | — | `python -m qq_relay.main` / `-m qq_relay.admin` |
+| **源码运行** | — | `python -m seu_alert.main` / `-m seu_alert.admin` |
 
 构建源码分别在 [`win/`](win/) 与 [`linux/`](linux/)；产物一律输出到 `dist/`（已 gitignore）。
 
@@ -119,7 +119,7 @@ push / PR 时跑测试并构建两个平台，打 `v*` tag 时发布 GitHub Rele
 ## 项目结构
 
 ```
-src/qq_relay/
+src/seu_alert/
 ├── adapters/            # 采集：onebot（QQ 反向 WS）、web/*（各站点直采）、user_report（投稿）
 ├── pipeline/            # 预筛 → 分类 → 提取栈 → 匹配 → 提醒 → 编排
 ├── deliver/             # 分发出口：file / pushplus / qq

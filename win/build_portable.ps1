@@ -21,36 +21,36 @@ if (-not $Python) {
 }
 if (-not $OutDir) { $OutDir = Join-Path $Root "dist\seu_alert-portable-win" }
 
-# 让 PyInstaller 能找到 src 下的 qq_relay（本地 venv 已装时亦无害）
+# 让 PyInstaller 能找到 src 下的 seu_alert（本地 venv 已装时亦无害）
 $env:PYTHONPATH = "$Root\src" + $(if ($env:PYTHONPATH) { ";$env:PYTHONPATH" } else { "" })
 
 Write-Host "[1/5] 使用 Python: $Python"
-& $Python -c "import qq_relay" 2>$null
-if ($LASTEXITCODE -ne 0) { Write-Error "qq_relay 不可导入（先 pip install -e . 或设 PYTHONPATH=src）" }
+& $Python -c "import seu_alert" 2>$null
+if ($LASTEXITCODE -ne 0) { Write-Error "seu_alert 不可导入（先 pip install -e . 或设 PYTHONPATH=src）" }
 
 Write-Host "[2/5] 安装构建依赖 pyinstaller ..."
 & $Python -m pip install -q pyinstaller
 if ($LASTEXITCODE -ne 0) { Write-Error "pyinstaller 安装失败" }
 
 Write-Host "[3/5] PyInstaller one-dir 打包 ..."
-$Schema = Join-Path $Root "src\qq_relay\store\schema.sql"
-if (Test-Path "build\qq-relay") { Remove-Item -Recurse -Force "build\qq-relay" }
-if (Test-Path "dist\qq-relay") { Remove-Item -Recurse -Force "dist\qq-relay" }
-& $Python -m PyInstaller --noconfirm --clean --onedir --windowed --name qq-relay `
+$Schema = Join-Path $Root "src\seu_alert\store\schema.sql"
+if (Test-Path "build\seu_alert") { Remove-Item -Recurse -Force "build\seu_alert" }
+if (Test-Path "dist\seu_alert") { Remove-Item -Recurse -Force "dist\seu_alert" }
+& $Python -m PyInstaller --noconfirm --clean --onedir --windowed --name seu_alert `
   --distpath dist --workpath build --specpath build `
-  --add-data "$Schema;qq_relay/store" `
+  --add-data "$Schema;seu_alert/store" `
   --paths "$Root\src" `
   --hidden-import flask --hidden-import jinja2 --hidden-import yaml `
   --hidden-import httpx --hidden-import aiosqlite --hidden-import cryptography `
   --hidden-import dateparser --hidden-import apscheduler --hidden-import websockets `
-  --collect-submodules qq_relay `
+  --collect-submodules seu_alert `
   win\portable_entry.py
 if ($LASTEXITCODE -ne 0) { Write-Error "PyInstaller 打包失败" }
 
 Write-Host "[4/5] 组装便携目录 dist\seu_alert-portable-win ..."
 if (Test-Path $OutDir) { Remove-Item -Recurse -Force $OutDir }
 New-Item -ItemType Directory -Path $OutDir | Out-Null
-Copy-Item -Recurse "dist\qq-relay\*" $OutDir
+Copy-Item -Recurse "dist\seu_alert\*" $OutDir
 New-Item -ItemType Directory -Path (Join-Path $OutDir "config") -Force | Out-Null
 Copy-Item "config\*.yml" $OutDir\config\
 Copy-Item "config\subscriptions.yml.example" $OutDir\config\   # 订阅模板（真实 subscriptions.yml 首次运行自动生成）
@@ -69,4 +69,4 @@ Compress-Archive -Path (Join-Path $OutDir "*") -DestinationPath $Zip
 
 Write-Host "完成：$OutDir（含 $Zip）"
 Get-ChildItem $OutDir | Select-Object Mode, Length, Name | Format-Table -AutoSize
-Write-Host "把整个 seu_alert-portable-win 文件夹（或 zip）发给使用者；使用者双击 qq-relay.exe 即可。"
+Write-Host "把整个 seu_alert-portable-win 文件夹（或 zip）发给使用者；使用者双击 seu_alert.exe 即可。"

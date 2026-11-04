@@ -10,8 +10,8 @@
 
 "只打基础"：可改的配置仍在 config/*.yml 与 .env；本页负责运行态操作。
 
-    python -m qq_relay.admin          # 开发运行
-    qq-relay.exe                      # 便携版（PyInstaller one-dir）
+    python -m seu_alert.admin          # 开发运行
+    seu_alert.exe                      # 便携版（PyInstaller one-dir）
 """
 
 from __future__ import annotations
@@ -651,8 +651,8 @@ setInterval(()=>{
 
 /* ═══ 主题 ═══ */
 function applyTheme(t){document.documentElement.dataset.theme=t;
-  try{localStorage.setItem("qq-relay-theme",t)}catch(e){}}
-applyTheme((function(){try{return localStorage.getItem("qq-relay-theme")||"dark"}catch(e){return "dark"}})());
+  try{localStorage.setItem("seu_alert-theme",t)}catch(e){}}
+applyTheme((function(){try{return localStorage.getItem("seu_alert-theme")||"dark"}catch(e){return "dark"}})());
 $("themeToggle").addEventListener("click",()=>{
   const cur=document.documentElement.dataset.theme;
   applyTheme(cur==="dark"?"light":"dark");

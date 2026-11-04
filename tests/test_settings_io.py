@@ -7,9 +7,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from qq_relay import admin as admin_mod
-from qq_relay.admin import AdminContext
-from qq_relay.settings_io import (
+from seu_alert import admin as admin_mod
+from seu_alert.admin import AdminContext
+from seu_alert.settings_io import (
     read_env,
     update_env,
     update_simple_yaml,

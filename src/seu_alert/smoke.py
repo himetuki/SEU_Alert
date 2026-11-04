@@ -1,9 +1,9 @@
 """P0 冒烟：起 OneBot 反向 WS 服务，打印群消息事件并落原始日志。
 
 用法：
-    python -m qq_relay.smoke                 # 默认 60 秒
-    python -m qq_relay.smoke --seconds 300   # 自定义时长
-    python -m qq_relay.smoke --forever       # 一直跑（Ctrl-C 退出）
+    python -m seu_alert.smoke                 # 默认 60 秒
+    python -m seu_alert.smoke --seconds 300   # 自定义时长
+    python -m seu_alert.smoke --forever       # 一直跑（Ctrl-C 退出）
 
 出口判据（验收 A1）：能看到 NapCat 连入、群消息逐条到达、延迟可观测。
 """

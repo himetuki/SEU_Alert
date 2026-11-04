@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from qq_relay.contracts import RawEvent
-from qq_relay.pipeline.prefilter import Deduper, Prefilter, Stage
+from seu_alert.contracts import RawEvent
+from seu_alert.pipeline.prefilter import Deduper, Prefilter, Stage
 
 NOTICE = "高等数学第五章习题册作业已发布，11月15日23:59前提交至学习通"
 CHATTER = "哈哈今天天气真不错啊大家辛苦了"
@@ -31,7 +31,7 @@ class TestSenderFilter:
         assert d.passed and d.dry_run_would_drop and d.stage is Stage.SENDER_FILTER
 
     def test_whitelist_miss_drops(self, groups_yaml_path):
-        from qq_relay.config import load_groups
+        from seu_alert.config import load_groups
 
         text = groups_yaml_path.read_text(encoding="utf-8").replace(
             'sender_filter: { mode: blacklist, blacklist: ["999"], roles: { allow: [], deny: [] }, dry_run: true, log_filtered: true }',

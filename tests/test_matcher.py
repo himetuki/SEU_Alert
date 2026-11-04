@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from qq_relay.config import Subscription
-from qq_relay.contracts import ClassifiedEvent
-from qq_relay.pipeline.matcher import _in_quiet, match
+from seu_alert.config import Subscription
+from seu_alert.contracts import ClassifiedEvent
+from seu_alert.pipeline.matcher import _in_quiet, match
 
 NOW = datetime(2026, 10, 25, 14, 0)          # 下午两点，非免打扰
 NIGHT = datetime(2026, 10, 25, 23, 30)       # 免打扰时段内
