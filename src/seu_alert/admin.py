@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import re
 import threading
 import time
@@ -599,10 +600,14 @@ function esc(s){
     .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 async function api(p,opt){
+  const ctl=new AbortController();
+  const timer=setTimeout(()=>ctl.abort(),12000);
   try{
-    const r=await fetch(p,Object.assign({headers:{"Content-Type":"application/json"}},opt));
+    const r=await fetch(p,Object.assign({headers:{"Content-Type":"application/json"}},opt,{signal:ctl.signal}));
     return await r.json();
-  }catch(e){return {ok:false,error:"网络异常"}}
+  }catch(e){
+    return {ok:false,error:e.name==="AbortError"?"请求超时（12s）":"网络异常"};
+  }finally{clearTimeout(timer)}
 }
 function fmtTs(ts){
   return ts?new Date(ts*1000).toLocaleString("zh-CN",{hour12:false}):"—";
@@ -995,7 +1000,6 @@ class AdminContext:
         self.pollers = pollers
         self.loop = loop
         self.started_at = time.time()
-        self._read_conn = None
 
     def status(self) -> dict:
         s = self.runtime.settings
@@ -1026,22 +1030,23 @@ class AdminContext:
             "reminders": reminders,
         }
 
-    async def _reader(self):
-        if self._read_conn is None:
-            from .store import db as store_db
-            self._read_conn = await store_db.connect(self.runtime.settings)
-        return self._read_conn
-
     def items(self, limit: int = 50) -> list[dict]:
-        """独立连接同步读取（run_coroutine_threadsafe 到本线程的私有 loop 上跑，
-        绝不占用监控 loop）。"""
+        """每次调用开独立连接（独立线程 + 独立事件循环），绝不占用监控 loop。
+
+        注意：aiosqlite 连接绑定创建它的事件循环，不能跨 loop 复用；
+        因此这里每次都新建连接并在同一 loop 内关闭。
+        """
         import json
 
         async def _q():
-            conn = await self._reader()
-            rows = await (await conn.execute(
-                "SELECT * FROM items ORDER BY created_at DESC LIMIT ?",
-                (limit,))).fetchall()
+            from .store import db as store_db
+            conn = await store_db.connect(self.runtime.settings)
+            try:
+                rows = await (await conn.execute(
+                    "SELECT * FROM items ORDER BY created_at DESC LIMIT ?",
+                    (limit,))).fetchall()
+            finally:
+                await conn.close()
             return [{
                 "event_id": r["event_id"], "cat": r["cat"], "cat2": r["cat2"],
                 "title": r["raw_text"].split("\n", 1)[0][:80],
@@ -1054,11 +1059,16 @@ class AdminContext:
         box: dict = {}
 
         def _worker():
-            box["result"] = asyncio.run(_q())
+            try:
+                box["result"] = asyncio.run(_q())
+            except Exception as e:                  # 读库失败不拖垮后台页面
+                box["error"] = repr(e)
 
-        t = threading.Thread(target=_worker)
+        t = threading.Thread(target=_worker, daemon=True)
         t.start()
         t.join(timeout=15)
+        if "error" in box:
+            print(f"[admin] 读取信息流失败: {box['error']}")
         return box.get("result", [])
 
     def subs(self) -> list[dict]:
@@ -1413,8 +1423,16 @@ def main(host: str = "127.0.0.1", port: int = 8000, open_browser: bool = True) -
     app = create_app(ctx)
     url = f"http://{host}:{port}"
     print(f"[admin] 后台管理 → {url} （数据目录：{runtime_root()}）")
-    if open_browser:
-        threading.Timer(1.0, lambda: webbrowser.open(url)).start()
+    auto = open_browser and not os.environ.get("SEU_ALERT_NO_BROWSER")
+    if auto:
+        def _open() -> None:
+            try:
+                webbrowser.open(url)
+            except Exception as e:          # 浏览器拒绝启动（如 Edge 以管理员运行）不影响服务
+                print(f"[admin] 自动打开浏览器失败：{e!r}；请手动访问 {url}")
+        threading.Timer(1.0, _open).start()
+    else:
+        print("[admin] 已禁用自动打开浏览器（--no-browser / SEU_ALERT_NO_BROWSER=1）")
     app.run(host=host, port=port, debug=False, use_reloader=False)
 
 
@@ -1430,4 +1448,7 @@ async def _build(s: Settings):
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    # 默认自动开浏览器；管理员权限下 Edge 常拒绝启动，可用 --no-browser 手动打开
+    main(open_browser="--no-browser" not in sys.argv)

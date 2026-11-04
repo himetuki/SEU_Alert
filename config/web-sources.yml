@@ -4,12 +4,14 @@
 
 sources:
   - id: jwc
+    enabled: true
     kind: jwc                    # 教务处六栏目**直采**（ADR-029，自包含，无需外部程序）
     name: 教务处通知（直采）
     root: config/jwc.yml
-    interval: 900                # 秒；≥60
+    interval: 900  # 秒；≥60
 
   - id: lecture-site
+    enabled: true
     kind: jwc                    # 人文讲座·学校网站渠道（复用 jwc 解析器，群=web-lecture）
     name: 人文讲座（文化素质教育栏目）
     root: config/lecture-site.yml
@@ -21,35 +23,40 @@ sources:
     kind: seu_monitor
     name: 教务处通知（SEU-Monitor）
     root: seu-projects-test/SEU-Monitor/store
-    interval: 900                # 真实部署在 Linux：root 改 ~/.local/share/seu-monitor
+    interval: 900  # 真实部署在 Linux：root 改 ~/.local/share/seu-monitor
     enabled: true
 
   - id: seudaily
+    enabled: true
     kind: seudaily               # SEUdaily 网页库：metadata/*.json + files/<host>/<section>/<notice>/*.md
     name: SEUdaily 网页库
     root: seu-projects-test/SEUdaily/.seudaily/web-files
     interval: 900
 
   - id: seu-colleges
+    enabled: true
     kind: seu_colleges           # 全院系 33 个学院官网通知（ADR-024；root=colleges.yml）
     name: 各学院通知（33 院系）
     root: config/colleges.yml
-    interval: 1800                # 学院站低频，30 分钟一轮
+    interval: 1800  # 学院站低频，30 分钟一轮
 
   - id: labor
+    enabled: true
     kind: labor                  # 劳动教育课程平台（ADR-024，移植 SEU-Labor-Course-Pusher 源码逻辑）
     name: 劳动教育课程
     root: config/labor.yml
-    interval: 300                 # 选课抢名额，5 分钟一轮
+    interval: 300  # 选课抢名额，5 分钟一轮
 
   - id: wechat-mp
+    enabled: true
     kind: wechat_mp              # 公众号监控（ADR-025，免登录+模型代读；默认 东南大学文化素质教育中心）
     name: 公众号文章
     root: config/wechat-mp.yml
-    interval: 1800                # 搜狗有风控，30 分钟一轮
+    interval: 1800  # 搜狗有风控，30 分钟一轮
 
   - id: seu-lectures
+    enabled: true
     kind: seu_lectures           # 人文讲座预约系统监控（ADR-025，移植 seu-lecture-cli 监控能力）
     name: 人文讲座
     root: config/seu-lectures.yml
-    interval: 900                 # 15 分钟一轮（预约开放时间敏感）
+    interval: 900  # 15 分钟一轮（预约开放时间敏感）

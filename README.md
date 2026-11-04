@@ -78,6 +78,7 @@ cp config/subscriptions.yml.example config/subscriptions.yml   # 首次启动也
 # 3. 运行
 python -m seu_alert.main       # 主管道（采集 + 分发 + 提醒）
 python -m seu_alert.admin      # 后台管理界面（浏览器打开 127.0.0.1:8000）
+python -m seu_alert.admin --no-browser   # 不自动开浏览器（Edge 以管理员运行时常用）
 
 # 4. 测试
 python -m pytest -q
