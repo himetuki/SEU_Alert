@@ -250,6 +250,24 @@ keyword: ""        # 可选：只监控标题含关键词的讲座
 
 移植 seu-lecture-cli **仅监控**（queryActivityList.do 分页 + CAS，**不预约不抢票**）。会话：`SEU_LECTURE_USERNAME/PASSWORD` 或 `SEU_LECTURE_COOKIES`（与劳动教育共用 cas.py）。讲座 → `web-lecture` 群，文案含预约开放时间与余量。
 
+## 控制台配置页（全量，ADR-033）
+
+后台「配置」页通过 `/api/settings` 覆盖全部可配置项，不需要手工改文件：
+
+| 范围 | 控件 |
+|---|---|
+| `.env` 全量（`settings_schema.ENV_SCHEMA`） | 运行 / OneBot / 目录 / 模型 / 投稿提取 / OCR / PushPlus / 提醒 / 讲座会话 / 劳动教育；单选、多选、开关、填空、密码、滑块 |
+| `web-sources.yml` | 每个源的启停开关 + 扫描间隔 |
+| `wechat-mp.yml` | 账号增删（key/name/group_id）+ 提取层 + 间隔 |
+| `jwc.yml` | Base URL + 栏目增删（id/name/url） |
+| `lecture-site.yml` | 频道 + 栏目增删 |
+| `labor.yml` | 地点白名单 / 类别黑名单 |
+| `seu-lectures.yml` | 讲座关键词 |
+| 高级 YAML | `groups.yml` / `colleges.yml` / `tree.yml` / `classification.yml` 原文编辑（保存前 `yaml.safe_load` 校验） |
+
+密钥类字段只返回「是否已配置」，输入留空 = 保持原值。保存先全量校验，再按文件原子写；
+「重置默认 / 取消 / 保存 / 确定」四键齐全。改完需重启后台进程生效。
+
 ## bot 命令表
 
 | 命令 | 作用 |

@@ -29,6 +29,11 @@ def _atomic_text(path: Path, text: str) -> None:
     os.replace(tmp, path)
 
 
+def write_text(path: Path, text: str) -> None:
+    """原子写任意文本（高级 YAML 编辑器用）。"""
+    _atomic_text(path, text)
+
+
 def read_env(path: Path) -> dict[str, str]:
     """读 .env（不导出到进程环境）。忽略注释与空行，去引号。"""
     p = Path(path)

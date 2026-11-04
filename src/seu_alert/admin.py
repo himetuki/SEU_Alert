@@ -246,6 +246,14 @@ pre.cfg-body{background:var(--panel2);border:1px solid var(--border);border-radi
 .src-row .src-name{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .src-row .src-kind{font-size:10.5px;color:var(--muted);font-weight:400;margin-left:6px}
 .src-row input[type=number]{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--panel2);color:var(--text);font-size:12px}
+.list-row{display:grid;grid-template-columns:110px 1fr 160px 34px;gap:8px;align-items:center;margin-bottom:6px}
+.list-row input{padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--panel2);color:var(--text);font-size:12px;min-width:0}
+.list-row .del{width:30px;height:30px;border-radius:6px;border:1px solid transparent;background:rgba(248,113,113,.14);color:var(--danger);cursor:pointer;font-size:14px}
+.yaml-editor{width:100%;min-height:220px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-family:"JetBrains Mono","Consolas",monospace;font-size:11.5px;line-height:1.5;white-space:pre;overflow:auto;resize:vertical}
+details.cfg-section summary{cursor:pointer;font-weight:700;font-size:14px;list-style:none}
+details.cfg-section summary::-webkit-details-marker{display:none}
+details.cfg-section summary::before{content:"▸ ";color:var(--accent)}
+details.cfg-section[open] summary::before{content:"▾ "}
 .settings-bar{position:sticky;bottom:0;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:12px 0 2px;background:linear-gradient(180deg,transparent,var(--bg) 40%);z-index:5}
 .dirty-badge{font-size:11px;color:var(--yellow);margin-right:auto;opacity:0;transition:opacity .2s}
 .dirty-badge.show{opacity:1}
@@ -440,65 +448,81 @@ pre.cfg-body{background:var(--panel2);border:1px solid var(--border);border-radi
 
       <!-- ═══ 配置概览 ═══ -->
       <section class="view" id="view-config">
-        <div class="section-title">⚙️ 配置 <span class="hint">保存后重启后台进程生效；密钥留空表示保持原值</span></div>
+        <div class="section-title">⚙️ 配置 <span class="hint">全量配置；保存后重启后台生效，密钥留空表示保持原值</span></div>
         <div id="settingsForm">
 
+          <!-- .env 全量字段：按 schema 动态渲染 -->
+          <div id="envSections"></div>
+
           <section class="cfg-section">
-            <h2>🚀 运行</h2>
-            <div class="cfg-row">
-              <div class="cfg-label">分发方式<small>可多选，至少一个</small></div>
-              <div class="ctl" id="sDeliver">
-                <label class="opt"><input type="checkbox" value="file"> 文件落盘</label>
-                <label class="opt"><input type="checkbox" value="pushplus"> PushPlus</label>
-                <label class="opt"><input type="checkbox" value="qq"> QQ 私聊</label>
+            <h2>📡 采集源 <small>开关控制是否轮询；间隔 60–86400 秒</small></h2>
+            <div id="sSources"></div>
+          </section>
+
+          <section class="cfg-section">
+            <h2>📰 公众号账号 <small>key 用于群标识；group_id 可并入讲座频道</small></h2>
+            <div id="sWechatAccounts"></div>
+            <button class="btn btn-ghost" style="margin-top:8px" onclick="addWx()">＋ 添加公众号</button>
+            <div class="cfg-row" style="margin-top:8px">
+              <div class="cfg-label">提取层</div>
+              <div class="ctl" id="sWechatLayer">
+                <label class="opt"><input type="radio" name="wechatLayer" value="big"> 大模型</label>
+                <label class="opt"><input type="radio" name="wechatLayer" value="small"> 小模型</label>
               </div>
             </div>
             <div class="cfg-row">
-              <div class="cfg-label">分类器<small>stub 用于联调；tree 走 JEV 分类树</small></div>
-              <div class="ctl" id="sClassifier">
-                <label class="opt"><input type="radio" name="classifier" value="stub"> Stub 假分类</label>
-                <label class="opt"><input type="radio" name="classifier" value="tree"> JEV 分类树</label>
-              </div>
-            </div>
-            <div class="cfg-row">
-              <div class="cfg-label">管理员 QQ<small>告警与复核队列接收人，可留空</small></div>
-              <div class="ctl"><input id="sAdminQq" type="text" placeholder="例如 10001"></div>
+              <div class="cfg-label">扫描间隔<small>秒（60–86400，建议 ≥900）</small></div>
+              <div class="ctl"><input id="sWechatInterval" type="number" min="60" max="86400" step="60" style="width:140px"></div>
             </div>
           </section>
 
           <section class="cfg-section">
-            <h2>⏰ 临期提醒</h2>
+            <h2>🏛️ 教务处栏目 <small>id 用于去重键；name 是推送【栏目】前缀</small></h2>
             <div class="cfg-row">
-              <div class="cfg-label">提前提醒<small>两轮，单位小时（1–168）</small></div>
+              <div class="cfg-label">Base URL</div>
+              <div class="ctl"><input id="sJwcBase" type="text" style="min-width:280px"></div>
+            </div>
+            <div id="sJwcColumns"></div>
+            <button class="btn btn-ghost" style="margin-top:8px" onclick="addJwc()">＋ 添加栏目</button>
+          </section>
+
+          <section class="cfg-section">
+            <h2>🎤 讲座网站栏目 <small>文化素质教育 / 六朝松大师讲堂 等</small></h2>
+            <div class="cfg-row">
+              <div class="cfg-label">频道</div>
               <div class="ctl">
-                <span class="sub">第一轮</span>
-                <input id="sOff1" type="number" min="1" max="168" step="1" style="width:88px">
-                <span class="sub">小时 · 第二轮</span>
-                <input id="sOff2" type="number" min="1" max="168" step="1" style="width:88px">
-                <span class="sub">小时</span>
+                <input id="sLsGroupId" type="text" placeholder="web-lecture" style="width:150px">
+                <input id="sLsGroupName" type="text" placeholder="人文讲座" style="min-width:180px">
               </div>
             </div>
+            <div id="sLsColumns"></div>
+            <button class="btn btn-ghost" style="margin-top:8px" onclick="addLs()">＋ 添加栏目</button>
+          </section>
+
+          <section class="cfg-section">
+            <h2>🧹 劳动教育过滤 <small>逗号分隔；白名单空 = 不限</small></h2>
             <div class="cfg-row">
-              <div class="cfg-label">扫描间隔<small>调度器 tick 间隔，15–600 秒</small></div>
-              <div class="ctl slider">
-                <input id="sRemInterval" type="range" min="15" max="600" step="5">
-                <output id="sRemIntervalOut">60 秒</output>
-              </div>
+              <div class="cfg-label">地点白名单</div>
+              <div class="ctl"><input id="sLaborLoc" type="text" style="min-width:300px" placeholder="如 九龙湖,四牌楼"></div>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-label">类别黑名单</div>
+              <div class="ctl"><input id="sLaborCat" type="text" style="min-width:300px" placeholder="如 讲座,活动"></div>
             </div>
           </section>
 
           <section class="cfg-section">
-            <h2>📤 PushPlus</h2>
+            <h2>📚 人文讲座预约 <small>只监控标题含关键词的讲座，空 = 全部</small></h2>
             <div class="cfg-row">
-              <div class="cfg-label">Token<small>留空保持原值；已配置时显示占位提示</small></div>
-              <div class="ctl"><input id="sPushToken" type="password" placeholder="未配置" autocomplete="new-password"></div>
+              <div class="cfg-label">关键词</div>
+              <div class="ctl"><input id="sLectureKeyword" type="text" placeholder="空 = 全部" style="min-width:260px"></div>
             </div>
+          </section>
+
+          <section class="cfg-section">
+            <h2>📤 推送测试 <small>发一条测试消息验证通道</small></h2>
             <div class="cfg-row">
-              <div class="cfg-label">群组主题<small>可选，PUSHPLUS_TOPIC</small></div>
-              <div class="ctl"><input id="sPushTopic" type="text" placeholder="留空则不使用主题"></div>
-            </div>
-            <div class="cfg-row">
-              <div class="cfg-label">测试推送<small>发送一条测试消息验证通道</small></div>
+              <div class="cfg-label">测试推送</div>
               <div class="ctl">
                 <input id="tQq" placeholder="接收人 QQ" style="min-width:130px">
                 <input id="tToken" placeholder="临时 token（可空）" style="min-width:170px">
@@ -507,57 +531,11 @@ pre.cfg-body{background:var(--panel2);border:1px solid var(--border);border-radi
             </div>
           </section>
 
-          <section class="cfg-section">
-            <h2>🤖 模型服务</h2>
-            <div class="cfg-row">
-              <div class="cfg-label">JEV 分类服务<small>Base URL + API Key（留空保持）</small></div>
-              <div class="ctl">
-                <input id="sJevBase" type="text" placeholder="https://…" style="min-width:220px">
-                <input id="sJevKey" type="password" placeholder="API Key（留空保持）" style="min-width:200px" autocomplete="new-password">
-              </div>
-            </div>
-            <div class="cfg-row">
-              <div class="cfg-label">对话模型<small>Base URL + API Key + 模型名</small></div>
-              <div class="ctl">
-                <input id="sChatBase" type="text" placeholder="https://…" style="min-width:220px">
-                <input id="sChatKey" type="password" placeholder="API Key（留空保持）" style="min-width:200px" autocomplete="new-password">
-                <input id="sChatModel" type="text" placeholder="模型名" style="min-width:150px">
-              </div>
-            </div>
-            <div class="cfg-row">
-              <div class="cfg-label">投稿提取栈<small>按勾选顺序启用，可多选</small></div>
-              <div class="ctl" id="sExtractChain">
-                <label class="opt"><input type="checkbox" value="vision"> 视觉</label>
-                <label class="opt"><input type="checkbox" value="big"> 大模型</label>
-                <label class="opt"><input type="checkbox" value="small"> 小模型</label>
-              </div>
-            </div>
-          </section>
-
-          <section class="cfg-section">
-            <h2>📡 采集源</h2>
-            <div class="sub" style="margin-bottom:4px">开关控制是否参与轮询；间隔单位秒（60–86400）</div>
-            <div id="sSources"></div>
-          </section>
-
-          <section class="cfg-section">
-            <h2>📰 公众号 · 人文讲座</h2>
-            <div class="cfg-row">
-              <div class="cfg-label">提取层<small>公众号文章字段抽取模型</small></div>
-              <div class="ctl" id="sWechatLayer">
-                <label class="opt"><input type="radio" name="wechatLayer" value="big"> 大模型</label>
-                <label class="opt"><input type="radio" name="wechatLayer" value="small"> 小模型</label>
-              </div>
-            </div>
-            <div class="cfg-row">
-              <div class="cfg-label">公众号间隔<small>秒（60–86400，建议 ≥900）</small></div>
-              <div class="ctl"><input id="sWechatInterval" type="number" min="60" max="86400" step="60" style="width:140px"></div>
-            </div>
-            <div class="cfg-row">
-              <div class="cfg-label">讲座关键词<small>只监控标题含该词的讲座，空=全部</small></div>
-              <div class="ctl"><input id="sLectureKeyword" type="text" placeholder="空 = 全部"></div>
-            </div>
-          </section>
+          <details class="cfg-section">
+            <summary>🧾 高级 YAML（groups / colleges / tree / classification）</summary>
+            <div class="sub" style="margin:8px 0">保存前会校验 YAML；这些文件结构复杂，用原文编辑。</div>
+            <div id="sRawEditors"></div>
+          </details>
 
           <div class="settings-bar">
             <span class="dirty-badge" id="dirtyBadge">● 有未保存的修改</span>
@@ -791,43 +769,123 @@ function renderSubs(){
   ).join("")||'<tr><td colspan="6" class="muted">暂无订阅</td></tr>';
 }
 
-/* ═══ 配置页（传统表单） ═══ */
+/* ═══ 配置页（全量配置） ═══ */
 let settingsData=null, settingsDirty=false;
 
 function setDirty(v){settingsDirty=v;$("dirtyBadge").classList.toggle("show",v)}
 
-function fillSettings(d){
-  settingsData=d;
-  const env=d.env||{};
-  document.querySelectorAll("#sDeliver input").forEach(el=>{el.checked=(env.DELIVER_MODE||[]).includes(el.value)});
-  document.querySelectorAll("#sClassifier input").forEach(el=>{el.checked=env.CLASSIFIER===el.value});
-  $("sAdminQq").value=env.ADMIN_QQ||"";
-  const offs=env.REMINDER_OFFSETS||[24,3];
-  $("sOff1").value=offs[0]??24;
-  $("sOff2").value=offs[1]??"";
-  $("sRemInterval").value=env.REMINDER_INTERVAL??60;
-  $("sRemIntervalOut").textContent=(env.REMINDER_INTERVAL??60)+" 秒";
-  $("sPushToken").value="";
-  $("sPushToken").placeholder=env.PUSHPLUS_TOKEN_SET?"已配置（留空保持原值）":"未配置";
-  $("sPushTopic").value=env.PUSHPLUS_TOPIC||"";
-  $("sJevBase").value=env.JEV_BASE_URL||"";
-  $("sJevKey").value="";
-  $("sJevKey").placeholder=env.JEV_API_KEY_SET?"已配置（留空保持原值）":"未配置";
-  $("sChatBase").value=env.CHAT_BASE_URL||"";
-  $("sChatKey").value="";
-  $("sChatKey").placeholder=env.CHAT_API_KEY_SET?"已配置（留空保持原值）":"未配置";
-  $("sChatModel").value=env.CHAT_MODEL||"";
-  const chain=env.SUBMIT_EXTRACT_CHAIN||["vision","big","small"];
-  document.querySelectorAll("#sExtractChain input").forEach(el=>{el.checked=chain.includes(el.value)});
+function envControl(item, values){
+  const k=item.key, v=values[k];
+  if(item.type==="multi"){
+    return '<div class="ctl">'+(item.options||[]).map(([val,label])=>
+      `<label class="opt"><input type="checkbox" data-env-key="${k}" data-multi value="${esc(val)}" ${(v||[]).includes(val)?"checked":""}> ${esc(label)}</label>`
+    ).join("")+'</div>';
+  }
+  if(item.type==="radio"){
+    return '<div class="ctl">'+(item.options||[]).map(([val,label])=>
+      `<label class="opt"><input type="radio" data-env-key="${k}" name="env_${k}" value="${esc(val)}" ${v===val?"checked":""}> ${esc(label)}</label>`
+    ).join("")+'</div>';
+  }
+  if(item.type==="offsets"){
+    const a=Array.isArray(v)?v:[24,3];
+    return '<div class="ctl">'+
+      `<span class="sub">第一轮</span><input type="number" data-env-key="${k}" data-offset min="1" max="168" value="${a[0]??24}" style="width:88px">`+
+      `<span class="sub">小时 · 第二轮</span><input type="number" data-env-key="${k}" data-offset min="1" max="168" value="${a[1]??""}" style="width:88px">`+
+      '<span class="sub">小时</span></div>';
+  }
+  if(item.type==="slider"){
+    return '<div class="ctl slider">'+
+      `<input type="range" data-env-key="${k}" data-slider min="${item.min}" max="${item.max}" step="${item.step||1}" value="${v}">`+
+      `<output data-out="${k}">${v} ${esc(item.unit||"")}</output></div>`;
+  }
+  const pwd=item.type==="password", num=item.type==="number";
+  const ph=pwd?(values[k+"_SET"]?"已配置（留空保持原值）":"未配置"):(item.help||"");
+  return '<div class="ctl">'+
+    `<input type="${pwd?'password':num?'number':'text'}" data-env-key="${k}" value="${pwd?'':esc(v??'')}"`+
+    (num?` min="${item.min??''}" max="${item.max??''}"`:"")+
+    ` placeholder="${esc(ph)}" autocomplete="off" style="min-width:220px"></div>`;
+}
+
+function renderEnv(d){
+  const schema=d.env_schema||[], values=d.env||{}, secs=[];
+  schema.forEach(i=>{if(!secs.includes(i.section))secs.push(i.section)});
+  let html=secs.map(sec=>'<section class="cfg-section"><h2>'+esc(sec)+'</h2>'+
+    schema.filter(i=>i.section===sec).map(i=>
+      '<div class="cfg-row"><div class="cfg-label">'+esc(i.label)+
+      (i.help?`<small>${esc(i.help)}</small>`:"")+'</div>'+envControl(i,values)+'</div>'
+    ).join("")+'</section>').join("");
+  const extras=d.env_extras||[];
+  if(extras.length){
+    html+='<section class="cfg-section"><h2>其他</h2>'+extras.map(e=>
+      '<div class="cfg-row"><div class="cfg-label">'+esc(e.key)+'</div><div class="ctl">'+
+      `<input type="${e.secret?'password':'text'}" data-env-key="${esc(e.key)}" value="${e.secret?'':esc(e.value)}"`+
+      ` placeholder="${e.secret?(e.set?'已配置（留空保持原值）':'未配置'):''}" autocomplete="off" style="min-width:260px"></div></div>`
+    ).join("")+'</section>';
+  }
+  $("envSections").innerHTML=html;
+}
+
+function renderSources(d){
   $("sSources").innerHTML=(d.sources||[]).map(s=>
     `<div class="src-row" data-id="${esc(s.id)}">`+
     `<div><span class="src-name">${esc(s.name)}</span><span class="src-kind">${esc(s.kind)}</span></div>`+
     `<label class="switch"><input type="checkbox" data-src-enabled ${s.enabled?"checked":""}><span></span></label>`+
     `<input type="number" min="60" max="86400" step="60" value="${s.interval}" data-src-interval title="扫描间隔（秒）"></div>`
   ).join("")||'<div class="sub">暂无采集源</div>';
-  document.querySelectorAll("#sWechatLayer input").forEach(el=>{el.checked=(d.wechat?.extract_layer||"big")===el.value});
-  $("sWechatInterval").value=d.wechat?.interval??1800;
-  $("sLectureKeyword").value=d.lectures?.keyword||"";
+}
+
+function renderWechat(d){
+  const w=d.yaml?.wechat||{};
+  $("sWechatAccounts").innerHTML=(w.accounts||[]).map(a=>
+    `<div class="list-row" data-wx>`+
+    `<input data-wx-key placeholder="key" value="${esc(a.key)}">`+
+    `<input data-wx-name placeholder="公众号名称" value="${esc(a.name)}">`+
+    `<input data-wx-group placeholder="group_id（可空）" value="${esc(a.group_id)}">`+
+    `<button class="del" onclick="delRow(this)">×</button></div>`
+  ).join("")||'<div class="sub">暂无公众号账号</div>';
+  document.querySelectorAll("#sWechatLayer input").forEach(el=>{el.checked=(w.extract_layer||"big")===el.value});
+  $("sWechatInterval").value=w.interval??1800;
+}
+
+function renderJwc(d){
+  const j=d.yaml?.jwc||{};
+  $("sJwcBase").value=j.base_url||"https://jwc.seu.edu.cn";
+  $("sJwcColumns").innerHTML=(j.columns||[]).map(c=>
+    `<div class="list-row" data-jwc>`+
+    `<input data-jwc-id placeholder="id" value="${esc(c.id)}">`+
+    `<input data-jwc-name placeholder="栏目名" value="${esc(c.name)}">`+
+    `<input data-jwc-url placeholder="列表页 URL" value="${esc(c.url)}">`+
+    `<button class="del" onclick="delRow(this)">×</button></div>`
+  ).join("");
+}
+
+function renderLs(d){
+  const l=d.yaml?.lecture_site||{};
+  $("sLsGroupId").value=l.group_id||"web-lecture";
+  $("sLsGroupName").value=l.group_name||"人文讲座";
+  $("sLsColumns").innerHTML=(l.columns||[]).map(c=>
+    `<div class="list-row" data-ls>`+
+    `<input data-ls-id placeholder="id" value="${esc(c.id)}">`+
+    `<input data-ls-name placeholder="栏目名" value="${esc(c.name)}">`+
+    `<input data-ls-url placeholder="列表页 URL" value="${esc(c.url)}">`+
+    `<button class="del" onclick="delRow(this)">×</button></div>`
+  ).join("");
+}
+
+function renderRaw(d){
+  $("sRawEditors").innerHTML=Object.entries(d.raw||{}).map(([name,text])=>
+    `<div style="margin-top:12px"><b class="mono">${esc(name)}</b>`+
+    `<textarea class="yaml-editor" data-raw="${esc(name)}">${esc(text)}</textarea></div>`
+  ).join("");
+}
+
+function fillSettings(d){
+  settingsData=d;
+  renderEnv(d); renderSources(d); renderWechat(d); renderJwc(d); renderLs(d); renderRaw(d);
+  const l=d.yaml?.labor||{}, lec=d.yaml?.seu_lectures||{};
+  $("sLaborLoc").value=(l.location_whitelist||[]).join(",");
+  $("sLaborCat").value=(l.category_blacklist||[]).join(",");
+  $("sLectureKeyword").value=lec.keyword||"";
   setDirty(false);
 }
 
@@ -838,43 +896,74 @@ async function loadSettings(){
 }
 
 function collectSettings(){
-  const env={
-    DELIVER_MODE:[...document.querySelectorAll("#sDeliver input:checked")].map(e=>e.value),
-    CLASSIFIER:(document.querySelector("#sClassifier input:checked")||{}).value||"stub",
-    ADMIN_QQ:$("sAdminQq").value.trim(),
-    REMINDER_OFFSETS:[$("sOff1").value,$("sOff2").value].filter(v=>v!=="").map(Number),
-    REMINDER_INTERVAL:Number($("sRemInterval").value),
-    PUSHPLUS_TOKEN:$("sPushToken").value.trim(),
-    PUSHPLUS_TOPIC:$("sPushTopic").value.trim(),
-    JEV_BASE_URL:$("sJevBase").value.trim(),
-    JEV_API_KEY:$("sJevKey").value.trim(),
-    CHAT_BASE_URL:$("sChatBase").value.trim(),
-    CHAT_API_KEY:$("sChatKey").value.trim(),
-    CHAT_MODEL:$("sChatModel").value.trim(),
-    SUBMIT_EXTRACT_CHAIN:[...document.querySelectorAll("#sExtractChain input:checked")].map(e=>e.value),
-  };
+  const env={};
+  document.querySelectorAll("#envSections [data-env-key]").forEach(el=>{
+    const k=el.dataset.envKey;
+    if(el.dataset.multi!==undefined){
+      if(el.checked)(env[k]=env[k]||[]).push(el.value);
+    }else if(el.type==="radio"){
+      if(el.checked)env[k]=el.value;
+    }else if(el.type==="range"||el.dataset.slider!==undefined){
+      env[k]=Number(el.value);
+    }else if(el.dataset.offset!==undefined){
+      if(el.value!=="")(env[k]=env[k]||[]).push(Number(el.value));
+    }else{
+      env[k]=el.value;
+    }
+  });
   const sources=[...document.querySelectorAll("#sSources .src-row")].map(row=>({
     id:row.dataset.id,
     enabled:row.querySelector("[data-src-enabled]").checked,
     interval:Number(row.querySelector("[data-src-interval]").value),
   }));
-  return {
-    env, sources,
-    wechat:{extract_layer:(document.querySelector("#sWechatLayer input:checked")||{}).value||"big",
-            interval:Number($("sWechatInterval").value)},
-    lectures:{keyword:$("sLectureKeyword").value.trim()},
+  const yaml={
+    wechat:{
+      accounts:[...document.querySelectorAll("#sWechatAccounts .list-row")].map(row=>({
+        key:row.querySelector("[data-wx-key]").value.trim(),
+        name:row.querySelector("[data-wx-name]").value.trim(),
+        group_id:row.querySelector("[data-wx-group]").value.trim(),
+      })).filter(a=>a.name),
+      extract_layer:(document.querySelector("#sWechatLayer input:checked")||{}).value||"big",
+      interval:Number($("sWechatInterval").value),
+    },
+    jwc:{
+      base_url:$("sJwcBase").value.trim(),
+      columns:[...document.querySelectorAll("#sJwcColumns .list-row")].map(row=>({
+        id:row.querySelector("[data-jwc-id]").value.trim(),
+        name:row.querySelector("[data-jwc-name]").value.trim(),
+        url:row.querySelector("[data-jwc-url]").value.trim(),
+      })).filter(c=>c.id&&c.name&&c.url),
+    },
+    lecture_site:{
+      group_id:$("sLsGroupId").value.trim(),
+      group_name:$("sLsGroupName").value.trim(),
+      columns:[...document.querySelectorAll("#sLsColumns .list-row")].map(row=>({
+        id:row.querySelector("[data-ls-id]").value.trim(),
+        name:row.querySelector("[data-ls-name]").value.trim(),
+        url:row.querySelector("[data-ls-url]").value.trim(),
+      })).filter(c=>c.id&&c.name&&c.url),
+    },
+    labor:{
+      location_whitelist:$("sLaborLoc").value.split(/[,，]/).map(x=>x.trim()).filter(Boolean),
+      category_blacklist:$("sLaborCat").value.split(/[,，]/).map(x=>x.trim()).filter(Boolean),
+    },
+    seu_lectures:{keyword:$("sLectureKeyword").value.trim()},
   };
+  const raw={};
+  document.querySelectorAll("#sRawEditors [data-raw]").forEach(el=>{
+    raw[el.dataset.raw]=el.value;
+  });
+  return {env,sources,yaml,raw};
 }
 
 async function saveSettings(){
   if(!settingsData)return false;
   const body=collectSettings();
-  if(!body.env.DELIVER_MODE.length){toast("分发方式至少选一个");return false}
+  if(!body.env.DELIVER_MODE||!body.env.DELIVER_MODE.length){toast("分发方式至少选一个");return false}
   const r=await api("/api/settings",{method:"POST",body:JSON.stringify(body)});
   if(!r.ok){toast("保存失败："+(r.error||""));return false}
   toast("已保存，重启后台进程后生效");
-  await loadSettings();
-  refreshAll();
+  await loadSettings(); refreshAll();
   return true;
 }
 
@@ -888,32 +977,60 @@ async function confirmSettings(){
   }
 }
 
+function addWx(){
+  $("sWechatAccounts").insertAdjacentHTML("beforeend",
+    '<div class="list-row" data-wx><input data-wx-key placeholder="key"><input data-wx-name placeholder="公众号名称">'+
+    '<input data-wx-group placeholder="group_id（可空）"><button class="del" onclick="delRow(this)">×</button></div>');
+  setDirty(true);
+}
+function addJwc(){
+  $("sJwcColumns").insertAdjacentHTML("beforeend",
+    '<div class="list-row" data-jwc><input data-jwc-id placeholder="id"><input data-jwc-name placeholder="栏目名">'+
+    '<input data-jwc-url placeholder="列表页 URL"><button class="del" onclick="delRow(this)">×</button></div>');
+  setDirty(true);
+}
+function addLs(){
+  $("sLsColumns").insertAdjacentHTML("beforeend",
+    '<div class="list-row" data-ls><input data-ls-id placeholder="id"><input data-ls-name placeholder="栏目名">'+
+    '<input data-ls-url placeholder="列表页 URL"><button class="del" onclick="delRow(this)">×</button></div>');
+  setDirty(true);
+}
+function delRow(btn){btn.closest(".list-row").remove();setDirty(true)}
+
+function applyEnvDefaults(){
+  const defs=settingsData?.defaults?.env||{};
+  document.querySelectorAll("#envSections [data-env-key]").forEach(el=>{
+    const k=el.dataset.envKey, v=defs[k];
+    if(el.dataset.multi!==undefined){
+      el.checked=Array.isArray(v)?v.includes(el.value):false;
+    }else if(el.type==="radio"){
+      el.checked=String(v??"")===el.value;
+    }else if(el.type==="range"||el.dataset.slider!==undefined){
+      if(v!==undefined){el.value=v;const out=document.querySelector(`[data-out="${k}"]`);if(out)out.textContent=v+" 秒";}
+    }else if(el.dataset.offset!==undefined){
+      const arr=Array.isArray(v)?v:[24,3];
+      el.value=el===document.querySelectorAll(`[data-env-key="${k}"][data-offset]`)[0]?(arr[0]??24):(arr[1]??"");
+    }else if(el.type==="password"){
+      el.value="";
+    }else if(v!==undefined){
+      el.value=v;
+    }
+  });
+}
+
 function resetSettings(){
   if(!settingsData)return;
   if(!confirm("恢复默认配置？未保存前可通过「取消」放弃。"))return;
-  const d=settingsData.defaults||{}, env=d.env||{};
-  document.querySelectorAll("#sDeliver input").forEach(el=>{el.checked=(env.DELIVER_MODE||["file"]).includes(el.value)});
-  document.querySelectorAll("#sClassifier input").forEach(el=>{el.checked=env.CLASSIFIER===el.value});
-  $("sAdminQq").value=env.ADMIN_QQ||"";
-  $("sOff1").value=(env.REMINDER_OFFSETS||[24,3])[0];
-  $("sOff2").value=(env.REMINDER_OFFSETS||[24,3])[1]??"";
-  $("sRemInterval").value=env.REMINDER_INTERVAL??60;
-  $("sRemIntervalOut").textContent=(env.REMINDER_INTERVAL??60)+" 秒";
-  $("sPushToken").value="";
-  $("sPushTopic").value=env.PUSHPLUS_TOPIC||"";
-  $("sJevBase").value=env.JEV_BASE_URL||"";$("sJevKey").value="";
-  $("sChatBase").value=env.CHAT_BASE_URL||"";$("sChatKey").value="";
-  $("sChatModel").value=env.CHAT_MODEL||"";
-  document.querySelectorAll("#sExtractChain input").forEach(el=>{
-    el.checked=(env.SUBMIT_EXTRACT_CHAIN||[]).includes(el.value)});
+  applyEnvDefaults();
+  const d=settingsData.defaults||{};
   document.querySelectorAll("#sSources .src-row").forEach(row=>{
     row.querySelector("[data-src-enabled]").checked=true;
     row.querySelector("[data-src-interval]").value=d.source_interval||900;
   });
-  document.querySelectorAll("#sWechatLayer input").forEach(el=>{
-    el.checked=(d.wechat?.extract_layer||"big")===el.value});
-  $("sWechatInterval").value=d.wechat?.interval??1800;
-  $("sLectureKeyword").value=d.lectures?.keyword||"";
+  document.querySelectorAll("#sWechatLayer input").forEach(el=>{el.checked=el.value==="big"});
+  $("sWechatInterval").value=1800;
+  $("sLaborLoc").value="";$("sLaborCat").value="";
+  $("sLectureKeyword").value="";
   setDirty(true);
   toast("已填入默认值，保存后生效");
 }
@@ -926,7 +1043,10 @@ async function cancelSettings(){
 
 document.getElementById("settingsForm").addEventListener("input",e=>{
   setDirty(true);
-  if(e.target.id==="sRemInterval")$("sRemIntervalOut").textContent=e.target.value+" 秒";
+  if(e.target.dataset.slider!==undefined){
+    const out=document.querySelector(`[data-out="${e.target.dataset.envKey}"]`);
+    if(out)out.textContent=e.target.value+" 秒";
+  }
 });
 document.getElementById("settingsForm").addEventListener("change",()=>setDirty(true));
 
@@ -1155,162 +1275,18 @@ class AdminContext:
     # ------------------------------------------------------------ 结构化配置
 
     def settings_view(self) -> dict:
-        """配置页数据（密钥只回「是否已配置」，不回明文）。"""
-        s = self.runtime.settings
-        env = settings_io.read_env(runtime_root() / ".env")
-
-        def _split(v: str) -> list[str]:
-            return [x.strip() for x in str(v).split(",") if x.strip()]
-
-        def _int(v, default: int) -> int:
-            try:
-                return int(v)
-            except (TypeError, ValueError):
-                return default
-
-        offsets = []
-        for x in _split(env.get("REMINDER_OFFSETS", "24,3")):
-            try:
-                offsets.append(int(x))
-            except ValueError:
-                continue
-        wechat = settings_io.read_yaml(s.config_dir / "wechat-mp.yml")
-        lectures = settings_io.read_yaml(s.config_dir / "seu-lectures.yml")
-        sources = [{
-            "id": src.id, "name": src.name, "kind": src.kind,
-            "enabled": src.enabled, "interval": src.interval,
-        } for src in load_web_sources(s.config_dir / "web-sources.yml").sources]
-        return {
-            "ok": True,
-            "env": {
-                "DELIVER_MODE": _split(env.get("DELIVER_MODE", s.deliver_mode)),
-                "CLASSIFIER": env.get("CLASSIFIER", s.classifier),
-                "ADMIN_QQ": env.get("ADMIN_QQ", s.admin_qq),
-                "REMINDER_OFFSETS": offsets or [24, 3],
-                "REMINDER_INTERVAL": _int(env.get("REMINDER_INTERVAL"), s.reminder_interval),
-                "PUSHPLUS_TOKEN_SET": bool(env.get("PUSHPLUS_TOKEN") or s.pushplus_token),
-                "PUSHPLUS_TOPIC": env.get("PUSHPLUS_TOPIC", s.pushplus_topic),
-                "JEV_BASE_URL": env.get("JEV_BASE_URL", s.jev_base_url),
-                "JEV_API_KEY_SET": bool(env.get("JEV_API_KEY") or s.jev_api_key),
-                "CHAT_BASE_URL": env.get("CHAT_BASE_URL", s.chat_base_url),
-                "CHAT_API_KEY_SET": bool(env.get("CHAT_API_KEY") or s.chat_api_key),
-                "CHAT_MODEL": env.get("CHAT_MODEL", s.chat_model),
-                "SUBMIT_EXTRACT_CHAIN": _split(
-                    env.get("SUBMIT_EXTRACT_CHAIN", ",".join(s.submit_extract_chain))),
-            },
-            "sources": sources,
-            "wechat": {
-                "extract_layer": str(wechat.get("extract_layer") or "big"),
-                "interval": _int(wechat.get("interval"), 1800),
-            },
-            "lectures": {"keyword": str(lectures.get("keyword") or "")},
-            "defaults": {
-                "env": {
-                    "DELIVER_MODE": ["file"], "CLASSIFIER": "stub", "ADMIN_QQ": "",
-                    "REMINDER_OFFSETS": [24, 3], "REMINDER_INTERVAL": 60,
-                    "PUSHPLUS_TOPIC": "",
-                    "JEV_BASE_URL": "https://tokenrhythm.studio",
-                    "CHAT_BASE_URL": "https://tokenrhythm.studio",
-                    "CHAT_MODEL": "neohorse-1-9b",
-                    "SUBMIT_EXTRACT_CHAIN": ["vision", "big", "small"],
-                },
-                "wechat": {"extract_layer": "big", "interval": 1800},
-                "lectures": {"keyword": ""},
-                "source_interval": 900,
-            },
-        }
+        """全量配置：.env 表单 schema + YAML 结构化字段 + 高级 YAML 原文。"""
+        from . import settings_schema
+        view = settings_schema.read_settings(
+            runtime_root() / ".env", self.runtime.settings.config_dir)
+        return {"ok": True, **view}
 
     def save_settings(self, payload: dict) -> dict:
-        """校验并写回 .env / web-sources.yml / wechat-mp.yml / seu-lectures.yml。"""
-        s = self.runtime.settings
-        env_in = payload.get("env") or {}
-
-        modes = [m for m in (env_in.get("DELIVER_MODE") or [])
-                 if m in ("file", "pushplus", "qq")]
-        if not modes:
-            raise ValueError("分发方式至少选择一个（file / pushplus / qq）")
-        classifier = str(env_in.get("CLASSIFIER") or "stub")
-        if classifier not in ("stub", "tree"):
-            raise ValueError("分类器只能是 stub 或 tree")
-        admin_qq = str(env_in.get("ADMIN_QQ") or "").strip()
-        if admin_qq and not admin_qq.isdigit():
-            raise ValueError("管理员 QQ 只能填数字")
-
-        offsets: list[int] = []
-        for x in env_in.get("REMINDER_OFFSETS") or []:
-            try:
-                v = int(x)
-            except (TypeError, ValueError):
-                raise ValueError("提醒提前量必须是整数小时")
-            if not 1 <= v <= 168:
-                raise ValueError("提醒提前量需在 1–168 小时之间")
-            offsets.append(v)
-        if not offsets or len(offsets) > 4:
-            raise ValueError("提醒提前量需 1–4 个")
-        interval = int(env_in.get("REMINDER_INTERVAL") or 60)
-        if not 15 <= interval <= 3600:
-            raise ValueError("提醒扫描间隔需在 15–3600 秒之间")
-
-        updates = {
-            "DELIVER_MODE": ",".join(modes),
-            "CLASSIFIER": classifier,
-            "ADMIN_QQ": admin_qq,
-            "REMINDER_OFFSETS": ",".join(str(v) for v in offsets),
-            "REMINDER_INTERVAL": str(interval),
-            "PUSHPLUS_TOPIC": str(env_in.get("PUSHPLUS_TOPIC") or "").strip(),
-            "CHAT_MODEL": str(env_in.get("CHAT_MODEL") or "").strip(),
-            "SUBMIT_EXTRACT_CHAIN": ",".join(
-                [x for x in (env_in.get("SUBMIT_EXTRACT_CHAIN") or [])
-                 if x in ("vision", "big", "small")] or ["vision", "big", "small"]),
-        }
-        # 密钥：留空表示保持原值，绝不把占位符写回
-        for key in ("PUSHPLUS_TOKEN", "JEV_API_KEY", "CHAT_API_KEY"):
-            val = str(env_in.get(key) or "").strip()
-            if val:
-                updates[key] = val
-        for key in ("JEV_BASE_URL", "CHAT_BASE_URL"):
-            val = str(env_in.get(key) or "").strip().rstrip("/")
-            if val and not val.startswith(("http://", "https://")):
-                raise ValueError(f"{key} 必须以 http:// 或 https:// 开头")
-            updates[key] = val
-
-        valid_ids = {src.id for src in
-                     load_web_sources(s.config_dir / "web-sources.yml").sources}
-        src_changes: dict[str, dict] = {}
-        for item in payload.get("sources") or []:
-            sid = str(item.get("id") or "").strip()
-            if sid not in valid_ids:
-                raise ValueError(f"未知采集源：{sid}")
-            iv = int(item.get("interval") or 900)
-            if not 60 <= iv <= 86400:
-                raise ValueError(f"{sid} 的扫描间隔需在 60–86400 秒之间")
-            src_changes[sid] = {"enabled": bool(item.get("enabled")),
-                                "interval": iv}
-
-        wechat = payload.get("wechat") or {}
-        layer = str(wechat.get("extract_layer") or "big")
-        if layer not in ("big", "small"):
-            raise ValueError("公众号提取层只能是 big 或 small")
-        w_interval = int(wechat.get("interval") or 1800)
-        if not 60 <= w_interval <= 86400:
-            raise ValueError("公众号扫描间隔需在 60–86400 秒之间")
-
-        lectures = payload.get("lectures") or {}
-        keyword = str(lectures.get("keyword") or "").strip()
-
-        # 全部校验通过后再落盘，避免半写状态
-        settings_io.update_env(runtime_root() / ".env", updates)
-        settings_io.update_web_sources(
-            s.config_dir / "web-sources.yml", src_changes)
-        settings_io.update_simple_yaml(
-            s.config_dir / "wechat-mp.yml",
-            {"extract_layer": layer, "interval": w_interval})
-        settings_io.update_simple_yaml(
-            s.config_dir / "seu-lectures.yml", {"keyword": keyword})
-
-        return {"ok": True, "restart_required": True,
-                "updated": ["env", "web-sources.yml", "wechat-mp.yml",
-                            "seu-lectures.yml"]}
+        """全量校验后写回 .env / 各 YAML（高级 YAML 先解析再落盘）。"""
+        from . import settings_schema
+        result = settings_schema.save_settings(
+            runtime_root() / ".env", self.runtime.settings.config_dir, payload)
+        return {"ok": True, "restart_required": True, **result}
 
     def config_view(self) -> dict:
         root = self.runtime.settings.config_dir
