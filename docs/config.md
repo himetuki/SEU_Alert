@@ -263,7 +263,10 @@ keyword: ""        # 可选：只监控标题含关键词的讲座
 | `lecture-site.yml` | 频道 + 栏目增删 |
 | `labor.yml` | 地点白名单 / 类别黑名单 |
 | `seu-lectures.yml` | 讲座关键词 |
-| 高级 YAML | `groups.yml` / `colleges.yml` / `tree.yml` / `classification.yml` 原文编辑（保存前 `yaml.safe_load` 校验） |
+| `groups.yml` | 群画像卡片：群号/群名/类型/课程/范围/预筛词/默认类别/角色表/发送者过滤；角色先验表 |
+| `colleges.yml` | 33 个学院行：key/学院名/列表页/预筛词，可增删 |
+| `tree.yml` | JEV 类别定义、阈值、根调用、分支、提取字段 |
+| `classification.yml` | 规则表（类别/优先级/urg/动作/关键词/排除词）、来源与频道白名单、标题覆盖词、栏目前缀、默认类别 |
 
 密钥类字段只返回「是否已配置」，输入留空 = 保持原值。保存先全量校验，再按文件原子写；
 「重置默认 / 取消 / 保存 / 确定」四键齐全。改完需重启后台进程生效。

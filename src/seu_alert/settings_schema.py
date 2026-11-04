@@ -108,6 +108,13 @@ _SECRET_RE = re.compile(r"TOKEN|SECRET|PASSWORD|COOKIES|API_KEY", re.I)
 
 RAW_FILES = ("groups.yml", "colleges.yml", "tree.yml", "classification.yml")
 
+CATS = ("homework", "exam", "competition", "research", "exchange",
+        "lecture", "task", "notice", "chat")
+KINDS = ("course", "grade", "cadre", "class", "program", "club", "other")
+SCOPES = ("course", "grade", "class", "school")
+ACTIONS = ("submit", "signup", "attend", "know")
+FILTER_MODES = ("off", "whitelist", "blacklist")
+
 
 def _split(value: str) -> list[str]:
     return [x.strip() for x in str(value or "").split(",") if x.strip()]
@@ -118,6 +125,127 @@ def _int(value, default: int) -> int:
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def _cats(value) -> list[str]:
+    return [str(x) for x in (value or []) if str(x) in CATS]
+
+
+def _norm_groups(raw: dict) -> dict:
+    groups = []
+    for gid, g in (raw.get("groups") or {}).items():
+        if not isinstance(g, dict):
+            continue
+        sf = g.get("sender_filter") or {}
+        roles = g.get("roles") or {}
+        groups.append({
+            "id": str(gid),
+            "name": str(g.get("name") or ""),
+            "kind": str(g.get("kind") or "other"),
+            "course": str(g.get("course") or ""),
+            "scope": str(g.get("scope") or "school"),
+            "prefilter": [str(x) for x in (g.get("prefilter") or [])],
+            "default_cats": _cats(g.get("default_cats")),
+            "roles": [{"user_id": str(k), "role": str(v.get("role") or ""),
+                       "note": str(v.get("note") or "")}
+                      for k, v in roles.items() if isinstance(v, dict)],
+            "filter_mode": str(sf.get("mode") or "off"),
+            "whitelist": [str(x) for x in (sf.get("whitelist") or [])],
+            "blacklist": [str(x) for x in (sf.get("blacklist") or [])],
+            "roles_allow": [str(x) for x in ((sf.get("roles") or {}).get("allow") or [])],
+            "roles_deny": [str(x) for x in ((sf.get("roles") or {}).get("deny") or [])],
+            "dry_run": bool(sf.get("dry_run", False)),
+            "log_filtered": bool(sf.get("log_filtered", True)),
+        })
+    prior = [{"role": str(k), "cats": _cats(v)}
+             for k, v in (raw.get("role_prior") or {}).items()]
+    return {"groups": groups, "role_prior": prior}
+
+
+def _norm_colleges(raw: dict) -> list[dict]:
+    out = []
+    for c in raw.get("colleges") or []:
+        if isinstance(c, dict):
+            out.append({"key": str(c.get("key") or ""),
+                        "name": str(c.get("name") or ""),
+                        "list": str(c.get("list") or ""),
+                        "prefilter": [str(x) for x in (c.get("prefilter") or [])]})
+    return out
+
+
+def _norm_tree(raw: dict) -> dict:
+    cats = raw.get("categories") or {}
+    categories = []
+    for cat in CATS:
+        item = cats.get(cat) or {}
+        categories.append({"cat": cat,
+                           "label": str(item.get("label") or cat),
+                           "criteria": str(item.get("criteria") or "")})
+    root = raw.get("root") or {}
+    drop = root.get("drop_if") or {}
+    branches = []
+    for b in raw.get("branches") or []:
+        if isinstance(b, dict):
+            branches.append({
+                "cats": _cats((b.get("when") or {}).get("cat")),
+                "questions": [str(x) for x in (b.get("questions") or [])],
+                "course_noul_when": str(b.get("course_noul_when") or ""),
+            })
+    extract = raw.get("extract") or {}
+    fields = extract.get("fields") or {}
+    return {
+        "categories": categories,
+        "cat2_policy": str(raw.get("cat2_policy") or ""),
+        "thresholds": {"is_info_below": float((raw.get("thresholds") or {}).get("is_info_below", 0.6)),
+                       "low_conf_margin": float((raw.get("thresholds") or {}).get("low_conf_margin", 0.15))},
+        "root": {"call": str(root.get("call") or "jev"),
+                 "questions": [str(x) for x in (root.get("questions") or [])],
+                 "is_info_below": float(drop.get("is_info_below", 0.6)),
+                 "drop_cats": _cats(drop.get("cat_in")),
+                 "state_max_chars": int(root.get("state_max_chars") or 1500)},
+        "branches": branches,
+        "extract": {"trigger": str(extract.get("trigger") or ""),
+                    "call": str(extract.get("call") or "chat"),
+                    "fields": {cat: [str(x) for x in (fields.get(cat) or [])]
+                               for cat in CATS},
+                    "fallback": str(extract.get("fallback") or "")},
+    }
+
+
+def _norm_classification(raw: dict) -> dict:
+    ov = raw.get("overrides") or {}
+    fb = raw.get("fallback") or {}
+    source_cats = [{"source": str(k), "cats": _cats(v)}
+                   for k, v in (raw.get("source_categories") or {}).items()]
+    group_cats = [{"group": str(k), "cats": _cats(v)}
+                  for k, v in (raw.get("group_categories") or {}).items()]
+    prefix = [{"prefix": str(k), "cat": str(v)}
+              for k, v in (raw.get("prefix_categories") or {}).items()
+              if str(v) in CATS]
+    rules = []
+    for r in raw.get("rules") or []:
+        if not isinstance(r, dict) or str(r.get("cat")) not in CATS:
+            continue
+        rules.append({
+            "cat": str(r.get("cat")),
+            "priority": int(r.get("priority") or 0),
+            "urg": int(r.get("urg") or 1),
+            "action": str(r.get("action") or "know"),
+            "keywords": [str(x) for x in (r.get("keywords") or [])],
+            "exclude": [str(x) for x in (r.get("exclude") or [])],
+        })
+    return {
+        "version": int(raw.get("version") or 1),
+        "fallback": {"cat": str(fb.get("cat") or "notice"),
+                     "urg": int(fb.get("urg") or 1),
+                     "action": str(fb.get("action") or "know")},
+        "source_categories": source_cats,
+        "group_categories": group_cats,
+        "notice_title": [str(x) for x in (ov.get("notice_title") or [])],
+        "news_title": [str(x) for x in (ov.get("news_title") or [])],
+        "prefix_categories": prefix,
+        "rules": rules,
+    }
 
 
 # ---------------------------------------------------------------- read
@@ -184,10 +312,10 @@ def read_settings(env_path: Path, config_dir: Path) -> dict:
                             "url": str(c.get("url") or "")})
         return out
 
-    raw = {}
-    for name in RAW_FILES:
-        p = config_dir / name
-        raw[name] = p.read_text(encoding="utf-8") if p.is_file() else ""
+    groups_raw = settings_io.read_yaml(config_dir / "groups.yml")
+    colleges_raw = settings_io.read_yaml(config_dir / "colleges.yml")
+    tree_raw = settings_io.read_yaml(config_dir / "tree.yml")
+    cls_raw = settings_io.read_yaml(config_dir / "classification.yml")
 
     return {
         "env": values,
@@ -220,7 +348,10 @@ def read_settings(env_path: Path, config_dir: Path) -> dict:
             },
             "seu_lectures": {"keyword": str(lectures.get("keyword") or "")},
         },
-        "raw": raw,
+        "groups": _norm_groups(groups_raw),
+        "colleges": _norm_colleges(colleges_raw),
+        "tree": _norm_tree(tree_raw),
+        "classification": _norm_classification(cls_raw),
         "defaults": {
             "env": {
                 "DELIVER_MODE": ["file"], "CLASSIFIER": "stub", "ADMIN_QQ": "",
@@ -278,6 +409,172 @@ def _dump_with_header(path: Path, data: dict) -> str:
                 break
         header = "\n".join(block).rstrip() + "\n\n" if block else ""
     return header + yaml.safe_dump(data, allow_unicode=True, sort_keys=False, width=120)
+
+
+def _build_groups(payload: dict) -> dict:
+    data = payload.get("groups") or {}
+    rows = data.get("groups") or []
+    out: dict[str, dict] = {}
+    for g in rows:
+        gid = _clean(g.get("id"))
+        name = _clean(g.get("name"))
+        if not gid or not name:
+            raise ValueError("群画像需要群号/群名")
+        if gid in out:
+            raise ValueError(f"群号重复：{gid}")
+        kind = str(g.get("kind") or "other")
+        if kind not in KINDS:
+            raise ValueError(f"{gid} 的 kind 非法")
+        scope = str(g.get("scope") or "school")
+        if scope not in SCOPES:
+            raise ValueError(f"{gid} 的 scope 非法")
+        mode = str(g.get("filter_mode") or "off")
+        if mode not in FILTER_MODES:
+            raise ValueError(f"{gid} 的发送者过滤模式非法")
+        item = {
+            "name": name, "kind": kind, "scope": scope,
+            "prefilter": _str_list(g.get("prefilter"), "prefilter"),
+            "default_cats": _cats(g.get("default_cats")),
+            "roles": {_clean(r.get("user_id")): {
+                "role": _clean(r.get("role")), "note": _clean(r.get("note"))}
+                for r in (g.get("roles") or []) if _clean(r.get("user_id"))},
+            "sender_filter": {
+                "mode": mode,
+                "whitelist": _str_list(g.get("whitelist"), "whitelist"),
+                "blacklist": _str_list(g.get("blacklist"), "blacklist"),
+                "roles": {"allow": _str_list(g.get("roles_allow"), "roles.allow"),
+                          "deny": _str_list(g.get("roles_deny"), "roles.deny")},
+                "dry_run": bool(g.get("dry_run")),
+                "log_filtered": bool(g.get("log_filtered", True)),
+            },
+        }
+        course = _clean(g.get("course"))
+        if course:
+            item["course"] = course
+        out[gid] = item
+    prior = {}
+    for r in data.get("role_prior") or []:
+        role = _clean(r.get("role"))
+        if role:
+            prior[role] = _cats(r.get("cats"))
+    return {"groups": out, "role_prior": prior}
+
+
+def _build_colleges(payload: list) -> dict:
+    out, seen = [], set()
+    for c in payload or []:
+        key, name = _clean(c.get("key")), _clean(c.get("name"))
+        url = _require_http(_clean(c.get("list")), "学院列表页")
+        if not key or not name or not url:
+            raise ValueError("学院需要 key / name / list")
+        if key in seen:
+            raise ValueError(f"学院 key 重复：{key}")
+        seen.add(key)
+        out.append({"key": key, "name": name, "list": url,
+                    "prefilter": _str_list(c.get("prefilter"), "prefilter")})
+    return {"colleges": out}
+
+
+def _build_tree(payload: dict) -> dict:
+    cats = {str(c.get("cat")): {"label": _clean(c.get("label")),
+                                "criteria": _clean(c.get("criteria"))}
+            for c in payload.get("categories") or []}
+    missing = [c for c in CATS if c not in cats]
+    if missing:
+        raise ValueError(f"JEV 类别缺失：{missing}")
+    th = payload.get("thresholds") or {}
+    is_info = float(th.get("is_info_below", 0.6))
+    margin = float(th.get("low_conf_margin", 0.15))
+    if not 0 <= is_info <= 1 or not 0 <= margin <= 1:
+        raise ValueError("JEV 阈值需在 0–1 之间")
+    root = payload.get("root") or {}
+    chars = int(root.get("state_max_chars") or 1500)
+    if not 200 <= chars <= 5000:
+        raise ValueError("state_max_chars 需在 200–5000")
+    branches = []
+    for b in payload.get("branches") or []:
+        bcats = _cats(b.get("cats"))
+        if not bcats:
+            raise ValueError("JEV 分支至少选择一个类别")
+        item = {"when": {"cat": bcats},
+                "questions": _str_list(b.get("questions"), "questions")}
+        note = _clean(b.get("course_noul_when"))
+        if note:
+            item["course_noul_when"] = note
+        branches.append(item)
+    ex = payload.get("extract") or {}
+    fields = {cat: _str_list((ex.get("fields") or {}).get(cat), "fields")
+              for cat in CATS}
+    return {
+        "categories": cats,
+        "cat2_policy": _clean(payload.get("cat2_policy")),
+        "thresholds": {"is_info_below": is_info, "low_conf_margin": margin},
+        "root": {"call": _clean(root.get("call")) or "jev",
+                 "questions": _str_list(root.get("questions"), "questions"),
+                 "drop_if": {"is_info_below": float(root.get("is_info_below", is_info)),
+                             "cat_in": _cats(root.get("drop_cats"))},
+                 "state_max_chars": chars},
+        "branches": branches,
+        "extract": {"trigger": _clean(ex.get("trigger")),
+                    "call": _clean(ex.get("call")) or "chat",
+                    "fields": fields,
+                    "fallback": _clean(ex.get("fallback"))},
+    }
+
+
+def _build_classification(payload: dict) -> dict:
+    rules = []
+    for r in payload.get("rules") or []:
+        cat = str(r.get("cat") or "")
+        if cat not in CATS:
+            raise ValueError(f"规则类别非法：{cat}")
+        action = str(r.get("action") or "know")
+        if action not in ACTIONS:
+            raise ValueError(f"规则动作非法：{action}")
+        keywords = _str_list(r.get("keywords"), "keywords")
+        if not keywords:
+            raise ValueError(f"{cat} 规则的关键词不能为空")
+        rules.append({"cat": cat, "priority": int(r.get("priority") or 0),
+                      "urg": int(r.get("urg") or 0), "action": action,
+                      "keywords": keywords,
+                      "exclude": _str_list(r.get("exclude"), "exclude")})
+    if not rules:
+        raise ValueError("至少保留一条分类规则")
+
+    source_cats = {}
+    for row in payload.get("source_categories") or []:
+        source = _clean(row.get("source"))
+        cats = _cats(row.get("cats"))
+        if not source or not cats:
+            raise ValueError("来源白名单需要来源名与至少一个类别")
+        source_cats[source] = cats
+    group_cats = {}
+    for row in payload.get("group_categories") or []:
+        group = _clean(row.get("group"))
+        cats = _cats(row.get("cats"))
+        if not group or not cats:
+            raise ValueError("频道白名单需要频道名与至少一个类别")
+        group_cats[group] = cats
+    prefix = {}
+    for row in payload.get("prefix_categories") or []:
+        name, cat = _clean(row.get("prefix")), str(row.get("cat") or "")
+        if not name or cat not in CATS:
+            raise ValueError("栏目前缀映射非法")
+        prefix[name] = cat
+    fb = payload.get("fallback") or {}
+    if str(fb.get("cat")) not in CATS:
+        raise ValueError("默认类别非法")
+    return {
+        "version": int(payload.get("version") or 1),
+        "fallback": {"cat": str(fb.get("cat")), "urg": int(fb.get("urg") or 0),
+                     "action": str(fb.get("action") or "know")},
+        "source_categories": source_cats,
+        "group_categories": group_cats,
+        "overrides": {"notice_title": _str_list(payload.get("notice_title"), "notice_title"),
+                      "news_title": _str_list(payload.get("news_title"), "news_title")},
+        "prefix_categories": prefix,
+        "rules": rules,
+    }
 
 
 def save_settings(env_path: Path, config_dir: Path, payload: dict) -> dict:
@@ -423,24 +720,29 @@ def save_settings(env_path: Path, config_dir: Path, payload: dict) -> dict:
             raise ValueError(f"{sid} 的扫描间隔需在 60–86400 秒")
         src_changes[sid] = {"enabled": bool(item.get("enabled")), "interval": interval}
 
-    # 高级 YAML：先全部解析成功再写
-    raw_writes: list[tuple[Path, str]] = []
-    for name, text in (payload.get("raw") or {}).items():
-        if name not in RAW_FILES:
-            raise ValueError(f"不支持编辑的文件：{name}")
-        try:
-            yaml.safe_load(text or "")
-        except yaml.YAMLError as e:
-            raise ValueError(f"{name} YAML 解析失败：{e}")
-        raw_writes.append((config_dir / name, text or ""))
+    # 复杂 YAML：先构建并校验，再与其它文件一起落盘
+    complex_writes: list[tuple[Path, str]] = []
+    if payload.get("groups") is not None:
+        complex_writes.append((config_dir / "groups.yml", _dump_with_header(
+            config_dir / "groups.yml", _build_groups(payload))))
+    if payload.get("colleges") is not None:
+        complex_writes.append((config_dir / "colleges.yml", _dump_with_header(
+            config_dir / "colleges.yml", _build_colleges(payload.get("colleges")))))
+    if payload.get("tree") is not None:
+        complex_writes.append((config_dir / "tree.yml", _dump_with_header(
+            config_dir / "tree.yml", _build_tree(payload.get("tree")))))
+    if payload.get("classification") is not None:
+        complex_writes.append((config_dir / "classification.yml", _dump_with_header(
+            config_dir / "classification.yml",
+            _build_classification(payload.get("classification")))))
 
     # ---- 全部校验通过后落盘 ----
     settings_io.update_env(env_path, updates)
     settings_io.update_web_sources(config_dir / "web-sources.yml", src_changes)
     for path, text in writes:
         settings_io.write_text(path, text)
-    for path, text in raw_writes:
+    for path, text in complex_writes:
         settings_io.write_text(path, text)
 
     return {"updated": ["env", "web-sources.yml"] +
-            [p.name for p, _ in writes] + [p.name for p, _ in raw_writes]}
+            [p.name for p, _ in writes] + [p.name for p, _ in complex_writes]}

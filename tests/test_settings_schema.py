@@ -66,7 +66,48 @@ def _payload():
             "labor": {"location_whitelist": ["九龙湖"], "category_blacklist": ["讲座"]},
             "seu_lectures": {"keyword": "AI"},
         },
-        "raw": {"groups.yml": "groups:\n  '1':\n    name: 测试群\n"},
+        "groups": {
+            "groups": [{
+                "id": "1", "name": "测试群", "kind": "course", "course": "马原",
+                "scope": "course", "prefilter": ["作业"],
+                "default_cats": ["homework", "exam"],
+                "roles": [{"user_id": "10001", "role": "课程老师", "note": ""}],
+                "filter_mode": "off", "whitelist": [], "blacklist": [],
+                "roles_allow": [], "roles_deny": [],
+                "dry_run": False, "log_filtered": True,
+            }],
+            "role_prior": [{"role": "课程老师", "cats": ["homework"]}],
+        },
+        "colleges": [{"key": "cs", "name": "计算机学院",
+                      "list": "https://cs.seu.edu.cn/list.htm",
+                      "prefilter": ["通知"]}],
+        "tree": {
+            "categories": [{"cat": c, "label": c, "criteria": c}
+                           for c in ("homework", "exam", "competition", "research",
+                                     "exchange", "lecture", "task", "notice", "chat")],
+            "thresholds": {"is_info_below": 0.6, "low_conf_margin": 0.15},
+            "cat2_policy": "同 cat = 无次类",
+            "root": {"call": "jev", "questions": ["is_info"],
+                     "is_info_below": 0.6, "drop_cats": ["chat"],
+                     "state_max_chars": 1500},
+            "branches": [{"cats": ["homework"], "questions": ["channel"],
+                          "course_noul_when": ""}],
+            "extract": {"trigger": "x", "call": "chat",
+                        "fields": {"homework": ["deadline"]}, "fallback": "y"},
+        },
+        "classification": {
+            "version": 1,
+            "fallback": {"cat": "notice", "urg": 1, "action": "know"},
+            "source_categories": [{"source": "web_crawl",
+                                   "cats": ["notice", "task"]}],
+            "group_categories": [{"group": "web-lecture",
+                                  "cats": ["lecture", "notice"]}],
+            "notice_title": ["公示"], "news_title": ["荣获"],
+            "prefix_categories": [{"prefix": "讲座", "cat": "lecture"}],
+            "rules": [{"cat": "competition", "priority": 90, "urg": 2,
+                       "action": "signup", "keywords": ["竞赛"],
+                       "exclude": ["公示"]}],
+        },
     }
 
 
@@ -94,7 +135,24 @@ def test_full_save(tmp_path):
     assert labor["filters"]["location_whitelist"] == ["九龙湖"]
 
     assert "keyword: AI" in (cfg / "seu-lectures.yml").read_text(encoding="utf-8")
-    assert "测试群" in (cfg / "groups.yml").read_text(encoding="utf-8")
+
+    groups = yaml.safe_load((cfg / "groups.yml").read_text(encoding="utf-8"))
+    assert groups["groups"]["1"]["name"] == "测试群"
+    assert groups["groups"]["1"]["kind"] == "course"
+    assert groups["groups"]["1"]["sender_filter"]["mode"] == "off"
+    assert groups["role_prior"]["课程老师"] == ["homework"]
+
+    colleges = yaml.safe_load((cfg / "colleges.yml").read_text(encoding="utf-8"))
+    assert colleges["colleges"][0]["key"] == "cs"
+
+    tree = yaml.safe_load((cfg / "tree.yml").read_text(encoding="utf-8"))
+    assert tree["categories"]["homework"]["criteria"] == "homework"
+    assert tree["branches"][0]["when"]["cat"] == ["homework"]
+
+    cls = yaml.safe_load((cfg / "classification.yml").read_text(encoding="utf-8"))
+    assert cls["rules"][0]["cat"] == "competition"
+    assert cls["source_categories"]["web_crawl"] == ["notice", "task"]
+    assert cls["prefix_categories"]["讲座"] == "lecture"
 
     # 采集源 enabled/interval
     src = yaml.safe_load((cfg / "web-sources.yml").read_text(encoding="utf-8"))
@@ -102,11 +160,11 @@ def test_full_save(tmp_path):
     assert by_id["labor"]["enabled"] is True and by_id["labor"]["interval"] == 600
 
 
-def test_invalid_raw_yaml_rejected_without_writes(tmp_path):
+def test_invalid_groups_rejected_without_writes(tmp_path):
     cfg = _mk(tmp_path)
     before = (tmp_path / ".env").read_text(encoding="utf-8")
     body = _payload()
-    body["raw"] = {"groups.yml": "groups: [broken"}
+    body["groups"] = {"groups": [{"id": "", "name": ""}], "role_prior": []}
     with pytest.raises(ValueError):
         settings_schema.save_settings(tmp_path / ".env", cfg, body)
     assert (tmp_path / ".env").read_text(encoding="utf-8") == before

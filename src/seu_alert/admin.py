@@ -254,6 +254,16 @@ details.cfg-section summary{cursor:pointer;font-weight:700;font-size:14px;list-s
 details.cfg-section summary::-webkit-details-marker{display:none}
 details.cfg-section summary::before{content:"▸ ";color:var(--accent)}
 details.cfg-section[open] summary::before{content:"▾ "}
+.group-card{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:var(--panel2)}
+.group-card summary{cursor:pointer;font-weight:700;font-size:13px;list-style:none}
+.group-card summary::-webkit-details-marker{display:none}
+.group-card summary::before{content:"▸ ";color:var(--accent)}
+.group-card[open] summary::before{content:"▾ "}
+.prior-row{display:grid;grid-template-columns:150px 1fr 34px;gap:8px;align-items:center;margin-bottom:6px}
+.college-row{display:grid;grid-template-columns:80px 1fr 1.4fr 1fr 34px;gap:8px;align-items:center;margin-bottom:6px}
+.rule-row{display:grid;grid-template-columns:110px 80px 60px 100px 1fr 1fr 34px;gap:6px;align-items:center;margin-bottom:6px}
+.rule-row input,.rule-row select,.prior-row input,.college-row input{padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--panel2);color:var(--text);font-size:12px;min-width:0}
+.cfg-section h3{font-size:12.5px;color:var(--muted);margin:14px 0 8px;font-weight:700}
 .settings-bar{position:sticky;bottom:0;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:12px 0 2px;background:linear-gradient(180deg,transparent,var(--bg) 40%);z-index:5}
 .dirty-badge{font-size:11px;color:var(--yellow);margin-right:auto;opacity:0;transition:opacity .2s}
 .dirty-badge.show{opacity:1}
@@ -531,11 +541,30 @@ details.cfg-section[open] summary::before{content:"▾ "}
             </div>
           </section>
 
-          <details class="cfg-section">
-            <summary>🧾 高级 YAML（groups / colleges / tree / classification）</summary>
-            <div class="sub" style="margin:8px 0">保存前会校验 YAML；这些文件结构复杂，用原文编辑。</div>
-            <div id="sRawEditors"></div>
-          </details>
+          <section class="cfg-section" id="sec-groups">
+            <h2>👥 群画像 <small>groups.yml · 群号 / 类型 / 类别先验 / 角色 / 发送者过滤</small></h2>
+            <div id="sGroups"></div>
+            <button class="btn btn-ghost" style="margin-top:8px" onclick="addGroup()">＋ 添加群</button>
+            <h2 style="margin-top:16px">🎭 角色先验 <small>role_prior：角色 → 类别</small></h2>
+            <div id="sRolePrior"></div>
+            <button class="btn btn-ghost" style="margin-top:8px" onclick="addRolePrior()">＋ 添加角色</button>
+          </section>
+
+          <section class="cfg-section" id="sec-colleges">
+            <h2>🏫 学院采集 <small>colleges.yml · 33 个学院列表页</small></h2>
+            <div id="sColleges"></div>
+            <button class="btn btn-ghost" style="margin-top:8px" onclick="addCollege()">＋ 添加学院</button>
+          </section>
+
+          <section class="cfg-section" id="sec-tree">
+            <h2>🌳 JEV 分类树 <small>tree.yml · 类别定义 / 阈值 / 分支 / 提取字段</small></h2>
+            <div id="sTree"></div>
+          </section>
+
+          <section class="cfg-section" id="sec-cls">
+            <h2>🧠 规则分类树 <small>classification.yml · 规则 / 覆盖词 / 来源与频道白名单</small></h2>
+            <div id="sCls"></div>
+          </section>
 
           <div class="settings-bar">
             <span class="dirty-badge" id="dirtyBadge">● 有未保存的修改</span>
@@ -771,6 +800,29 @@ function renderSubs(){
 
 /* ═══ 配置页（全量配置） ═══ */
 let settingsData=null, settingsDirty=false;
+const CATS=["homework","exam","competition","research","exchange","lecture","task","notice","chat"];
+const CATL={homework:"作业",exam:"考试",competition:"竞赛",research:"科研",exchange:"交流",lecture:"讲座",task:"任务",notice:"通知",chat:"闲聊"};
+const KINDS=["course","grade","cadre","class","program","club","other"];
+const KIND_L={course:"课程群",grade:"年级群",cadre:"班干部群",class:"班级群",program:"项目群",club:"社团群",other:"其他"};
+const SCOPES=["course","grade","class","school"];
+const SCOPE_L={course:"课程",grade:"年级",class:"班级",school:"全校"};
+const ACTIONS=["submit","signup","attend","know"];
+const ACTION_L={submit:"提交",signup:"报名",attend:"参加",know:"知晓"};
+const FILTER_MODES=["off","whitelist","blacklist"];
+const FILTER_L={off:"关闭",whitelist:"白名单",blacklist:"黑名单"};
+
+function catBoxes(attr, selected){
+  const sel=Array.isArray(selected)?selected:[];
+  return '<div class="ctl">'+CATS.map(c=>
+    `<label class="opt"><input type="checkbox" ${attr} value="${c}" ${sel.includes(c)?"checked":""}> ${CATL[c]}</label>`
+  ).join("")+'</div>';
+}
+function optList(attr, items, value, labels){
+  return `<select ${attr}>`+items.map(x=>
+    `<option value="${x}" ${x===value?"selected":""}>${esc((labels&&labels[x])||x)}</option>`
+  ).join("")+`</select>`;
+}
+function tags(arr){return (arr||[]).join(",")}
 
 function setDirty(v){settingsDirty=v;$("dirtyBadge").classList.toggle("show",v)}
 
@@ -872,16 +924,194 @@ function renderLs(d){
   ).join("");
 }
 
-function renderRaw(d){
-  $("sRawEditors").innerHTML=Object.entries(d.raw||{}).map(([name,text])=>
-    `<div style="margin-top:12px"><b class="mono">${esc(name)}</b>`+
-    `<textarea class="yaml-editor" data-raw="${esc(name)}">${esc(text)}</textarea></div>`
-  ).join("");
+function groupRoleRow(r){
+  return `<div class="list-row" data-g-role><input data-g-role-id placeholder="user_id" value="${esc(r.user_id||"")}">`+
+    `<input data-g-role-name placeholder="角色" value="${esc(r.role||"")}">`+
+    `<input data-g-role-note placeholder="备注" value="${esc(r.note||"")}">`+
+    `<button class="del" onclick="delRow(this)">×</button></div>`;
 }
+
+function groupCard(g){
+  g=g||{};
+  const kind=g.kind||"other", scope=g.scope||"school", mode=g.filter_mode||"off";
+  return `<details class="group-card" data-group>`+
+    `<summary>${esc(g.name||"(未命名)")} · ${esc(g.id||"新群")}</summary>`+
+    '<div class="cfg-row"><div class="cfg-label">群号 / 群名</div><div class="ctl">'+
+      `<input data-g-id placeholder="群号" value="${esc(g.id||"")}" style="width:150px">`+
+      `<input data-g-name placeholder="群名" value="${esc(g.name||"")}" style="min-width:220px"></div></div>`+
+    '<div class="cfg-row"><div class="cfg-label">类型 / 范围</div><div class="ctl">'+
+      optList("data-g-kind",KINDS,kind,KIND_L)+optList("data-g-scope",SCOPES,scope,SCOPE_L)+
+      `<input data-g-course placeholder="绑定课程（course）" value="${esc(g.course||"")}" style="min-width:160px"></div></div>`+
+    '<div class="cfg-row"><div class="cfg-label">预筛词<small>逗号分隔</small></div><div class="ctl">'+
+      `<input data-g-prefilter value="${esc(tags(g.prefilter))}" style="min-width:440px"></div></div>`+
+    '<div class="cfg-row"><div class="cfg-label">默认类别</div>'+catBoxes("data-g-cats",g.default_cats)+'</div>'+
+    '<div class="cfg-row"><div class="cfg-label">角色表<small>user_id → 角色/备注</small></div><div class="ctl" style="display:block">'+
+      `<div data-g-roles>${(g.roles||[]).map(groupRoleRow).join("")}</div>`+
+      '<button class="btn btn-ghost" onclick="addGroupRole(this)">＋ 角色</button></div></div>'+
+    '<div class="cfg-row"><div class="cfg-label">发送者过滤</div><div class="ctl">'+
+      optList("data-g-mode",FILTER_MODES,mode,FILTER_L)+
+      `<input data-g-white placeholder="白名单 user_id" value="${esc(tags(g.whitelist))}" style="min-width:170px">`+
+      `<input data-g-black placeholder="黑名单 user_id" value="${esc(tags(g.blacklist))}" style="min-width:170px"></div></div>`+
+    '<div class="cfg-row"><div class="cfg-label">角色白/黑名单</div><div class="ctl">'+
+      `<input data-g-allow placeholder="allow 角色" value="${esc(tags(g.roles_allow))}" style="min-width:170px">`+
+      `<input data-g-deny placeholder="deny 角色" value="${esc(tags(g.roles_deny))}" style="min-width:170px">`+
+      `<label class="opt"><input type="checkbox" data-g-dry ${g.dry_run?"checked":""}> dry-run</label>`+
+      `<label class="opt"><input type="checkbox" data-g-log ${g.log_filtered!==false?"checked":""}> 记录过滤日志</label></div></div>`+
+    '<div style="text-align:right"><button class="btn btn-ghost" onclick="delGroup(this)">删除该群</button></div>'+
+  '</details>';
+}
+
+function priorRow(r){
+  return `<div class="prior-row" data-prior><input data-prior-role placeholder="角色名" value="${esc(r.role||"")}">`+
+    catBoxes("data-prior-cats",r.cats)+'<button class="del" onclick="delRow(this)">×</button></div>';
+}
+
+function renderGroups(d){
+  const g=d.groups||{};
+  $("sGroups").innerHTML=(g.groups||[]).map(groupCard).join("")||'<div class="sub">暂无群画像</div>';
+  $("sRolePrior").innerHTML=(g.role_prior||[]).map(priorRow).join("")||'<div class="sub">暂无角色先验</div>';
+}
+
+function collegeRow(c){
+  return `<div class="college-row" data-college>`+
+    `<input data-college-key placeholder="key" value="${esc(c.key||"")}">`+
+    `<input data-college-name placeholder="学院名" value="${esc(c.name||"")}">`+
+    `<input data-college-list placeholder="列表页 URL" value="${esc(c.list||"")}">`+
+    `<input data-college-pre placeholder="预筛词，逗号" value="${esc(tags(c.prefilter))}">`+
+    `<button class="del" onclick="delRow(this)">×</button></div>`;
+}
+
+function renderColleges(d){
+  $("sColleges").innerHTML=(d.colleges||[]).map(collegeRow).join("")||'<div class="sub">暂无学院</div>';
+}
+
+function branchRow(b){
+  b=b||{};
+  return `<div class="group-card" data-branch>`+
+    '<div class="cfg-row"><div class="cfg-label">触发类别</div>'+catBoxes("data-branch-cats",b.cats)+'</div>'+
+    '<div class="cfg-row"><div class="cfg-label">问题 / 课程确认</div><div class="ctl">'+
+      `<input data-branch-q placeholder="channel, exam_type" value="${esc(tags(b.questions))}" style="min-width:320px">`+
+      `<input data-branch-note placeholder="course_noul_when（可选）" value="${esc(b.course_noul_when||"")}" style="min-width:240px"></div></div>`+
+    '<div style="text-align:right"><button class="btn btn-ghost" onclick="delBranch(this)">删除分支</button></div></div>';
+}
+
+function renderTree(d){
+  const t=d.tree||{}, th=t.thresholds||{}, root=t.root||{}, ex=t.extract||{};
+  $("sTree").innerHTML=
+    '<h3>类别定义</h3>'+(t.categories||[]).map(c=>
+      `<div class="cfg-row" data-tree-cat="${c.cat}"><div class="cfg-label">${CATL[c.cat]}<small>${c.cat}</small></div><div class="ctl">`+
+      `<input data-tree-label value="${esc(c.label)}" style="width:150px">`+
+      `<input data-tree-criteria value="${esc(c.criteria)}" style="flex:1;min-width:320px"></div></div>`).join("")+
+    '<h3>阈值</h3><div class="cfg-row"><div class="cfg-label">is_info 丢弃 / low_conf 差值</div><div class="ctl">'+
+      `<input id="sTreeIsInfo" type="number" min="0" max="1" step="0.05" value="${th.is_info_below??0.6}" style="width:100px">`+
+      `<input id="sTreeMargin" type="number" min="0" max="1" step="0.05" value="${th.low_conf_margin??0.15}" style="width:100px"></div></div>`+
+    '<div class="cfg-row"><div class="cfg-label">cat2 策略</div><div class="ctl">'+
+      `<input id="sTreePolicy" value="${esc(t.cat2_policy||"")}" style="min-width:560px"></div></div>`+
+    '<h3>根调用</h3><div class="cfg-row"><div class="cfg-label">call / questions</div><div class="ctl">'+
+      `<input id="sTreeCall" value="${esc(root.call||"jev")}" style="width:100px">`+
+      `<input id="sTreeQuestions" value="${esc(tags(root.questions))}" style="min-width:380px" placeholder="is_info,cat,cat2,urg,has_ddl,action"></div></div>`+
+    '<div class="cfg-row"><div class="cfg-label">丢弃阈值 / 截断 / drop cats</div><div class="ctl">'+
+      `<input id="sTreeRootInfo" type="number" min="0" max="1" step="0.05" value="${root.is_info_below??0.6}" style="width:90px">`+
+      `<input id="sTreeMaxChars" type="number" min="200" max="5000" value="${root.state_max_chars??1500}" style="width:100px">`+
+      catBoxes("data-tree-drop",root.drop_cats)+'</div></div>'+
+    '<h3>分支</h3><div id="sTreeBranches">'+(t.branches||[]).map(branchRow).join("")+'</div>'+
+    '<button class="btn btn-ghost" onclick="addBranch()">＋ 添加分支</button>'+
+    '<h3>提取字段</h3><div id="sTreeFields">'+CATS.map(c=>
+      `<div class="cfg-row" data-field-row="${c}"><div class="cfg-label">${CATL[c]}<small>${c}</small></div><div class="ctl">`+
+      `<input data-field-list value="${esc(tags((ex.fields||{})[c]))}" style="min-width:460px" placeholder="deadline, place"></div></div>`).join("")+'</div>'+
+    '<div class="cfg-row"><div class="cfg-label">触发条件 / 回落</div><div class="ctl">'+
+      `<input id="sTreeTrigger" value="${esc(ex.trigger||"")}" style="min-width:360px">`+
+      `<input id="sTreeFallback" value="${esc(ex.fallback||"")}" style="min-width:320px"></div></div>`;
+}
+
+function ruleRow(r){
+  r=r||{cat:"notice",priority:10,urg:1,action:"know"};
+  return `<div class="rule-row" data-rule>`+
+    optList("data-rule-cat",CATS,r.cat,CATL)+
+    `<input data-rule-prio type="number" value="${r.priority}" title="priority">`+
+    `<input data-rule-urg type="number" min="0" max="3" value="${r.urg}" title="urg">`+
+    optList("data-rule-action",ACTIONS,r.action,ACTION_L)+
+    `<input data-rule-kw placeholder="关键词，逗号" value="${esc(tags(r.keywords))}">`+
+    `<input data-rule-ex placeholder="排除词，逗号" value="${esc(tags(r.exclude))}">`+
+    '<button class="del" onclick="delRow(this)">×</button></div>';
+}
+function sourceRow(s){
+  return `<div class="prior-row" data-source><input data-source-name placeholder="来源" value="${esc(s.source||"")}">`+
+    catBoxes("data-source-cats",s.cats)+'<button class="del" onclick="delRow(this)">×</button></div>';
+}
+function groupCatRow(g){
+  return `<div class="prior-row" data-gcat><input data-gcat-name placeholder="频道 id" value="${esc(g.group||"")}">`+
+    catBoxes("data-gcat-cats",g.cats)+'<button class="del" onclick="delRow(this)">×</button></div>';
+}
+function prefixRow(p){
+  return `<div class="prior-row" data-prefix><input data-prefix-name placeholder="栏目前缀" value="${esc(p.prefix||"")}">`+
+    optList("data-prefix-cat",CATS,p.cat,CATL)+'<button class="del" onclick="delRow(this)">×</button></div>';
+}
+
+function renderCls(d){
+  const c=d.classification||{}, fb=c.fallback||{};
+  $("sCls").innerHTML=
+    '<h3>规则（priority 高者优先）</h3><div id="sClsRules">'+(c.rules||[]).map(ruleRow).join("")+'</div>'+
+    '<button class="btn btn-ghost" onclick="addRule()">＋ 添加规则</button>'+
+    '<h3>来源白名单</h3><div id="sClsSources">'+(c.source_categories||[]).map(sourceRow).join("")+'</div>'+
+    '<button class="btn btn-ghost" onclick="addSource()">＋ 添加来源</button>'+
+    '<h3>频道白名单</h3><div id="sClsGroups">'+(c.group_categories||[]).map(groupCatRow).join("")+'</div>'+
+    '<button class="btn btn-ghost" onclick="addGroupCat()">＋ 添加频道</button>'+
+    '<h3>标题覆盖</h3><div class="cfg-row"><div class="cfg-label">公示/名单类</div><div class="ctl">'+
+      `<input id="sClsNotice" value="${esc(tags(c.notice_title))}" style="min-width:620px"></div></div>`+
+    '<div class="cfg-row"><div class="cfg-label">新闻/报道类</div><div class="ctl">'+
+      `<input id="sClsNews" value="${esc(tags(c.news_title))}" style="min-width:620px"></div></div>`+
+    '<h3>栏目前缀</h3><div id="sClsPrefix">'+(c.prefix_categories||[]).map(prefixRow).join("")+'</div>'+
+    '<button class="btn btn-ghost" onclick="addPrefix()">＋ 添加前缀</button>'+
+    '<h3>默认类别</h3><div class="cfg-row"><div class="cfg-label">fallback</div><div class="ctl">'+
+      optList('id="sClsFbCat"',CATS,fb.cat||"notice",CATL)+
+      `<input id="sClsFbUrg" type="number" min="0" max="3" value="${fb.urg??1}" style="width:80px">`+
+      optList('id="sClsFbAction"',ACTIONS,fb.action||"know",ACTION_L)+'</div></div>';
+}
+
+function addGroup(){
+  $("sGroups").insertAdjacentHTML("afterbegin",groupCard({id:"",name:"",kind:"other",scope:"school",filter_mode:"off",default_cats:[],roles:[],prefilter:[]}));
+  setDirty(true);
+}
+function addGroupRole(btn){
+  btn.parentElement.querySelector("[data-g-roles]").insertAdjacentHTML("beforeend",groupRoleRow({}));
+  setDirty(true);
+}
+function addRolePrior(){
+  $("sRolePrior").insertAdjacentHTML("beforeend",priorRow({role:"",cats:[]}));
+  setDirty(true);
+}
+function addCollege(){
+  $("sColleges").insertAdjacentHTML("beforeend",collegeRow({key:"",name:"",list:"",prefilter:[]}));
+  setDirty(true);
+}
+function addBranch(){
+  $("sTreeBranches").insertAdjacentHTML("beforeend",branchRow({cats:[],questions:[],course_noul_when:""}));
+  setDirty(true);
+}
+function addRule(){
+  $("sClsRules").insertAdjacentHTML("beforeend",ruleRow({}));
+  setDirty(true);
+}
+function addSource(){
+  $("sClsSources").insertAdjacentHTML("beforeend",sourceRow({source:"",cats:[]}));
+  setDirty(true);
+}
+function addGroupCat(){
+  $("sClsGroups").insertAdjacentHTML("beforeend",groupCatRow({group:"",cats:[]}));
+  setDirty(true);
+}
+function addPrefix(){
+  $("sClsPrefix").insertAdjacentHTML("beforeend",prefixRow({prefix:"",cat:"notice"}));
+  setDirty(true);
+}
+function delGroup(btn){btn.closest("details[data-group]").remove();setDirty(true)}
+function delBranch(btn){btn.closest("div[data-branch]").remove();setDirty(true)}
 
 function fillSettings(d){
   settingsData=d;
-  renderEnv(d); renderSources(d); renderWechat(d); renderJwc(d); renderLs(d); renderRaw(d);
+  renderEnv(d); renderSources(d); renderWechat(d); renderJwc(d); renderLs(d);
+  renderGroups(d); renderColleges(d); renderTree(d); renderCls(d);
   const l=d.yaml?.labor||{}, lec=d.yaml?.seu_lectures||{};
   $("sLaborLoc").value=(l.location_whitelist||[]).join(",");
   $("sLaborCat").value=(l.category_blacklist||[]).join(",");
@@ -949,11 +1179,90 @@ function collectSettings(){
     },
     seu_lectures:{keyword:$("sLectureKeyword").value.trim()},
   };
-  const raw={};
-  document.querySelectorAll("#sRawEditors [data-raw]").forEach(el=>{
-    raw[el.dataset.raw]=el.value;
-  });
-  return {env,sources,yaml,raw};
+  const sp=v=>String(v||"").split(/[,，]/).map(x=>x.trim()).filter(Boolean);
+  const groups=[...document.querySelectorAll("#sGroups details[data-group]")].map(g=>({
+    id:g.querySelector("[data-g-id]").value.trim(),
+    name:g.querySelector("[data-g-name]").value.trim(),
+    kind:g.querySelector("[data-g-kind]").value,
+    course:g.querySelector("[data-g-course]").value.trim(),
+    scope:g.querySelector("[data-g-scope]").value,
+    prefilter:sp(g.querySelector("[data-g-prefilter]").value),
+    default_cats:[...g.querySelectorAll("[data-g-cats]:checked")].map(e=>e.value),
+    roles:[...g.querySelectorAll("[data-g-role]")].map(r=>({
+      user_id:r.querySelector("[data-g-role-id]").value.trim(),
+      role:r.querySelector("[data-g-role-name]").value.trim(),
+      note:r.querySelector("[data-g-role-note]").value.trim(),
+    })).filter(r=>r.user_id),
+    filter_mode:g.querySelector("[data-g-mode]").value,
+    whitelist:sp(g.querySelector("[data-g-white]").value),
+    blacklist:sp(g.querySelector("[data-g-black]").value),
+    roles_allow:sp(g.querySelector("[data-g-allow]").value),
+    roles_deny:sp(g.querySelector("[data-g-deny]").value),
+    dry_run:g.querySelector("[data-g-dry]").checked,
+    log_filtered:g.querySelector("[data-g-log]").checked,
+  })).filter(g=>g.id&&g.name);
+  const role_prior=[...document.querySelectorAll("#sRolePrior [data-prior]")].map(r=>({
+    role:r.querySelector("[data-prior-role]").value.trim(),
+    cats:[...r.querySelectorAll("[data-prior-cats]:checked")].map(e=>e.value),
+  })).filter(r=>r.role);
+  const colleges=[...document.querySelectorAll("#sColleges [data-college]")].map(r=>({
+    key:r.querySelector("[data-college-key]").value.trim(),
+    name:r.querySelector("[data-college-name]").value.trim(),
+    list:r.querySelector("[data-college-list]").value.trim(),
+    prefilter:sp(r.querySelector("[data-college-pre]").value),
+  })).filter(c=>c.key&&c.name&&c.list);
+  const tree={
+    categories:[...document.querySelectorAll("#sTree [data-tree-cat]")].map(r=>({
+      cat:r.dataset.treeCat,
+      label:r.querySelector("[data-tree-label]").value.trim(),
+      criteria:r.querySelector("[data-tree-criteria]").value.trim(),
+    })),
+    thresholds:{is_info_below:Number($("sTreeIsInfo").value),
+                low_conf_margin:Number($("sTreeMargin").value)},
+    cat2_policy:$("sTreePolicy").value.trim(),
+    root:{call:$("sTreeCall").value.trim(),
+          questions:sp($("sTreeQuestions").value),
+          is_info_below:Number($("sTreeRootInfo").value),
+          drop_cats:[...document.querySelectorAll("#sTree [data-tree-drop]:checked")].map(e=>e.value),
+          state_max_chars:Number($("sTreeMaxChars").value)},
+    branches:[...document.querySelectorAll("#sTreeBranches [data-branch]")].map(b=>({
+      cats:[...b.querySelectorAll("[data-branch-cats]:checked")].map(e=>e.value),
+      questions:sp(b.querySelector("[data-branch-q]").value),
+      course_noul_when:b.querySelector("[data-branch-note]").value.trim(),
+    })),
+    extract:{trigger:$("sTreeTrigger").value.trim(), call:"chat",
+             fields:Object.fromEntries([...document.querySelectorAll("#sTreeFields [data-field-row]")].map(r=>
+               [r.dataset.fieldRow, sp(r.querySelector("[data-field-list]").value)])),
+             fallback:$("sTreeFallback").value.trim()},
+  };
+  const classification={
+    version:settingsData?.classification?.version||1,
+    fallback:{cat:$("sClsFbCat").value, urg:Number($("sClsFbUrg").value),
+              action:$("sClsFbAction").value},
+    rules:[...document.querySelectorAll("#sClsRules [data-rule]")].map(r=>({
+      cat:r.querySelector("[data-rule-cat]").value,
+      priority:Number(r.querySelector("[data-rule-prio]").value),
+      urg:Number(r.querySelector("[data-rule-urg]").value),
+      action:r.querySelector("[data-rule-action]").value,
+      keywords:sp(r.querySelector("[data-rule-kw]").value),
+      exclude:sp(r.querySelector("[data-rule-ex]").value),
+    })),
+    source_categories:[...document.querySelectorAll("#sClsSources [data-source]")].map(r=>({
+      source:r.querySelector("[data-source-name]").value.trim(),
+      cats:[...r.querySelectorAll("[data-source-cats]:checked")].map(e=>e.value),
+    })).filter(r=>r.source),
+    group_categories:[...document.querySelectorAll("#sClsGroups [data-gcat]")].map(r=>({
+      group:r.querySelector("[data-gcat-name]").value.trim(),
+      cats:[...r.querySelectorAll("[data-gcat-cats]:checked")].map(e=>e.value),
+    })).filter(r=>r.group),
+    notice_title:sp($("sClsNotice").value),
+    news_title:sp($("sClsNews").value),
+    prefix_categories:[...document.querySelectorAll("#sClsPrefix [data-prefix]")].map(r=>({
+      prefix:r.querySelector("[data-prefix-name]").value.trim(),
+      cat:r.querySelector("[data-prefix-cat]").value,
+    })).filter(r=>r.prefix),
+  };
+  return {env,sources,yaml,groups:{groups,role_prior},colleges,tree,classification};
 }
 
 async function saveSettings(){
