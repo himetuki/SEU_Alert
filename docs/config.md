@@ -87,6 +87,45 @@ extract:                               # L4 · Chat 小模型，按需触发
   fallback: "重试1次 → 规则结果 → 见原文 + low_conf 进复核队列"
 ```
 
+## classification.yml（本地规则分类树，与 JEV 独立）
+
+`CLASSIFIER=stub` 时使用；不花模型调用。与 `tree.yml`（JEV 分类）是两份独立配置。
+
+```yaml
+rules:
+  - cat: competition                   # 9 类之一
+    priority: 90                       # 同分时的优先级
+    urg: 2
+    action: signup
+    keywords: [竞赛, 大赛, 数学建模]    # 命中数 ×100 + priority
+    exclude: [公示, 名单, 获奖]         # 命中即整条规则作废（只看标题）
+overrides:
+  notice_title: [公示, 名单, 获奖]      # 标题命中 → 强制 notice
+  news_title: [顺利举办, 荣获, 开幕]     # 新闻/报道标题 → 强制 notice
+prefix_categories:                     # 标题开头【讲座】【国际交流】等直判
+  讲座: lecture
+  国际交流: exchange
+source_categories:                     # 来源白名单：网站不可能有“作业”
+  web_crawl: [notice, exam, competition, research, exchange, lecture, task]
+  qq_group: [homework, exam, competition, research, exchange, lecture, task, notice, chat]
+group_categories:                      # 频道级进一步收紧（优先于来源）
+  web-lecture: [lecture, task, notice]
+  web-labor: [task, lecture, notice]
+fallback: { cat: notice, urg: 1, action: know }
+```
+
+判分：**标题命中 ×200 > 正文命中 ×100**；标题命中存在时不再看正文。
+`web_crawl` 通知只按标题分类（正文常是新闻噪音），QQ 消息才回退正文。
+命中类别若不在来源/频道白名单内，直接跳过该规则，最终落到白名单内的 `notice`。
+配置按 mtime 缓存，改完重启后台生效。
+
+历史信息流重分类：
+
+```bash
+python scripts/reclassify_items.py            # 预览（默认只看标题）
+python scripts/reclassify_items.py --apply    # 写回 items.cat/cat2
+```
+
 ## 订阅 schema（用户侧）
 
 ```yaml

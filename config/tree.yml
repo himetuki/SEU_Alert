@@ -1,5 +1,23 @@
-# 分类树（tree.yml）——题干与阈值占位，P4 用金标准集校准。
-# 9 类定义与完整题干见 docs/classification.md。
+# 分类树（tree.yml）——JEV 分类配置，与本地规则树 config/classification.yml 相互独立。
+# 9 类定义与完整题干见 docs/classification.md；P4 用金标准集校准题干与阈值。
+
+# JEV 类别定义（choice 选项的 criteria 直接来自这里）
+categories:
+  homework:    {label: 作业,     criteria: "课程作业、实验、报告、习题提交；有提交物且归属课程"}
+  exam:        {label: 考试,     criteria: "考试安排、补考、缓考、考场考点、成绩绩点"}
+  competition: {label: 竞赛,     criteria: "学科竞赛、创业大赛、招新选拔；有评选/排名性质"}
+  research:    {label: 科研,     criteria: "SRTP/大创/国省创等项目流程：立项、开题、中期、结题"}
+  exchange:    {label: 国际交流, criteria: "国际交流、访学、交换、国际会议、涉外奖学金"}
+  lecture:     {label: 讲座活动, criteria: "参加型活动：讲座、宣讲、报告会、演出、运动会"}
+  task:        {label: 事务任务, criteria: "信息收集、填表、接龙、截图上报、报名、评审材料"}
+  notice:      {label: 通知,     criteria: "公示、名单、获奖结果、安排、停水停电、放假、调课"}
+  chat:        {label: 闲聊,     criteria: "寒暄、灌水、表情包、与校园信息无关"}
+
+cat2_policy: "与 cat 相同 = 无次类别；跨界消息（如竞赛宣讲会）填第二类别"
+
+thresholds:
+  is_info_below: 0.6                   # 低于则丢弃
+  low_conf_margin: 0.15                # 前两名概率差小于此值 → low_conf 进复核
 
 root:                                  # L2 · JEV 根调用
   call: jev
