@@ -936,12 +936,12 @@ async function refreshAll(){
   if(st.ok)state.st=st;
   $("dot").style.background=st.running?"var(--accent)":"var(--danger)";
   $("dotTxt").textContent=st.running?"运行中":"已停止";
-  $("deliverMode").textContent=st.deliver_mode||"—";
   const its=await api("/api/items?limit=30");
   if(its.ok)state.items=its.items||[];
   const sb=await api("/api/subs");
   if(sb.ok)state.subs=sb.subs||[];
-  renderDashboard();renderSources();renderStream();renderReminders();renderSubs();
+  [renderDashboard,renderSources,renderStream,renderReminders,renderSubs]
+    .forEach(fn=>{try{fn()}catch(e){console.error(fn.name,e)}});
 }
 $("btnRefresh").addEventListener("click",()=>{refreshAll();toast("已刷新")});
 
