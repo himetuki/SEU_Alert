@@ -9,11 +9,11 @@ from pathlib import Path
 import httpx
 import pytest
 
-from qq_relay.adapters.web.seu_lectures import (
+from seu_alert.adapters.web.seu_lectures import (
     lecture_to_notice,
     parse_lectures,
 )
-from qq_relay.adapters.web.wechat_mp import (
+from seu_alert.adapters.web.wechat_mp import (
     build_notice_text,
     parse_mp_article,
     parse_sogou_list,
@@ -30,7 +30,7 @@ class FakeChat:
         self.enabled = enabled
 
     async def complete(self, system: str, user: str, image_b64=None):
-        from qq_relay.pipeline.llm import ChatResult
+        from seu_alert.pipeline.llm import ChatResult
         return ChatResult(text=self.reply, model="fake", latency_ms=1)
 
 
@@ -225,7 +225,7 @@ class TestLectureParsing:
 
 class TestLectureScan:
     def test_scan_with_cookie(self, tmp_path):
-        from qq_relay.adapters.web.seu_lectures import scan as lecture_scan
+        from seu_alert.adapters.web.seu_lectures import scan as lecture_scan
 
         cfg = tmp_path / "seu-lectures.yml"
         cfg.write_text("keyword: \"\"\n", encoding="utf-8")
@@ -236,7 +236,7 @@ class TestLectureScan:
             return httpx.Response(200, json=LECTURE_PAYLOAD)
 
         client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-        import qq_relay.adapters.web.cas as cas
+        import seu_alert.adapters.web.cas as cas
         old = cas.parse_cookie_env
         cas.parse_cookie_env = lambda raw: {"JSESSIONID": "x"}
         try:

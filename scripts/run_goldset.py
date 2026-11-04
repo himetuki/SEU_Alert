@@ -20,10 +20,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from qq_relay.config import CATS  # noqa: E402
-from qq_relay.contracts import RawEvent  # noqa: E402
-from qq_relay.pipeline.classifier_stub import classify_stub  # noqa: E402
-from qq_relay.pipeline.prefilter import Deduper, Prefilter, Stage  # noqa: E402
+from seu_alert.config import CATS  # noqa: E402
+from seu_alert.contracts import RawEvent  # noqa: E402
+from seu_alert.pipeline.classifier_stub import classify_stub  # noqa: E402
+from seu_alert.pipeline.prefilter import Deduper, Prefilter, Stage  # noqa: E402
 
 DROP = "__DROP__"
 
@@ -77,7 +77,7 @@ def get_classifier(name: str):
         return classify_stub
     if name == "tree":
         try:
-            from qq_relay.pipeline.tree import TreeClassifier  # P2 落地后启用
+            from seu_alert.pipeline.tree import TreeClassifier  # P2 落地后启用
         except ImportError as e:
             raise SystemExit(
                 "tree 分类器尚未实现（P2）；现在请用 --classifier stub") from e

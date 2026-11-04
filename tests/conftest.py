@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from qq_relay.config import (
+from seu_alert.config import (
     GroupsConfig,
     Settings,
     SubscriptionsConfig,

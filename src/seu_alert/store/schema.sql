@@ -1,4 +1,4 @@
--- qq-relay SQLite schema（P0 建表；python -m qq_relay.store.db 初始化）
+-- seu_alert SQLite schema（P0 建表；python -m seu_alert.store.db 初始化）
 -- 设计口径见 docs/config.md 与 docs/architecture.md 数据契约。
 
 CREATE TABLE IF NOT EXISTS events (          -- RawEvent 落库（预筛前的原始事件）

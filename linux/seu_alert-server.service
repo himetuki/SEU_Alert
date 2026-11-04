@@ -1,0 +1,33 @@
+# QQ消息集散 · Linux 服务器版 systemd unit
+#
+# 部署步骤（产物目录 dist/seu_alert-portable-server/）：
+#   1) 把整个目录放到服务器，例如 /opt/seu_alert-server
+#   2) 按实际路径修改下方 WorkingDirectory / ExecStart / EnvironmentFile
+#   3) cp seu_alert-server.service /etc/systemd/system/
+#   4) sudo systemctl daemon-reload
+#   5) sudo systemctl enable --now seu_alert-server
+#   6) sudo journalctl -u seu_alert-server -f   # 看日志
+#
+# 建议专用系统用户：sudo useradd -r -s /usr/sbin/nologin seu_alert
+# 并把目录属主改为该用户：sudo chown -R seu_alert:seu_alert /opt/seu_alert-server
+
+[Unit]
+Description=QQ消息集散 服务器版（seu_alert-server）
+Documentation=file:///opt/seu_alert-server/LINUX-README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# WorkingDirectory / ExecStart / EnvironmentFile 按实际部署路径修改
+WorkingDirectory=/opt/seu_alert-server
+EnvironmentFile=-/opt/seu_alert-server/.env
+ExecStart=/opt/seu_alert-server/seu_alert-server
+Restart=on-failure
+RestartSec=5
+# 日志走 journald（systemctl status / journalctl -u）
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

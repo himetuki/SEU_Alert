@@ -6,7 +6,7 @@ PyInstaller one-dir 打包本文件；运行期数据/配置目录 = 二进制�
 """
 import os
 
-from qq_relay.admin import main
+from seu_alert.admin import main
 
 if __name__ == "__main__":
     main(

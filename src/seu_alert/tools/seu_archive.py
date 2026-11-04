@@ -10,7 +10,7 @@
 
 用法（Windows 直接跑）：
 
-    .venv\\Scripts\\python -m qq_relay.tools.seu_archive --once
+    .venv\\Scripts\\python -m seu_alert.tools.seu_archive --once
     # 默认 root=seu-projects-test/SEU-Monitor/store，config=config/jwc.yml
 
 之后后台的 seu-monitor 源（enabled: true）会在下一轮扫描（或点「立即扫描」）
@@ -68,7 +68,7 @@ def write_archive(root: Path, notices: list[WebNotice]) -> int:
             "url": n.url,
             "date": datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S"),
             "fetched_at": datetime.now().isoformat(timespec="seconds"),
-            "source": "qq_relay.tools.seu_archive (Windows native)",
+            "source": "seu_alert.tools.seu_archive (Windows native)",
             "attachments": [],
         }
         (folder / "meta.json").write_text(
@@ -91,7 +91,7 @@ async def generate(root: Path, config: Path, max_articles: int = 15) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
-        prog="python -m qq_relay.tools.seu_archive",
+        prog="python -m seu_alert.tools.seu_archive",
         description="Windows 原生生成 SEU-Monitor 兼容归档（无需 Go/WSL）")
     ap.add_argument("--once", action="store_true",
                     help="抓取一轮并写归档（默认行为）")

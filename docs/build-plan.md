@@ -37,7 +37,7 @@ P2 与 P3 无相互依赖，可并行。关键路径：P0→P1→P2→P4→P5。
 1. 建项目骨架：目录结构（src/ 布局，见 config.md 代码骨架）+ `.gitignore` + `.env.example` + `requirements.txt` + `pyproject.toml`
 2. Python venv **建在项目内**（`.venv/`）；`PIP_CACHE_DIR` 也指向项目内（避免 pip 缓存落到系统临时目录）
 3. 安装 NapCat（Win11，解包到项目 `napcat/`）：配置 OneBot 11 反向 WS（`ws://127.0.0.1:3001` + token）→ 扫码登录小号
-4. 冒烟模块 `python -m qq_relay.smoke`：起反向 WS 服务等 NapCat 连入，实时打印所有群消息事件，原始日志存 `data/logs/`
+4. 冒烟模块 `python -m seu_alert.smoke`：起反向 WS 服务等 NapCat 连入，实时打印所有群消息事件，原始日志存 `data/logs/`
 5. SQLite 建表：`events / items / users / subs / deliveries / labels / audit / model_calls / filtered_log`
 6. 配置加载器：YAML → dataclass + 校验（未知 cat、缺字段直接报错，不带病启动）
 
@@ -57,16 +57,16 @@ P2 与 P3 无相互依赖，可并行。关键路径：P0→P1→P2→P4→P5。
 
 **步骤**（✅ = 已落地，2026-10-25）：
 
-1. ✅ `src/qq_relay/adapters/onebot.py`：反向 WS **服务端**（NapCat 来连我们；重连由 NapCat 侧负责）、事件解析（群消息 + 私聊 + action 调用 + token 鉴权 + 自身回声过滤）
-2. ✅ `src/qq_relay/adapters/base.py` + `contracts.py`：RawEvent 归一 + ClassifiedEvent 契约（P0 已建）
-3. ✅ `src/qq_relay/pipeline/prefilter.py`：**发送者过滤（默认 off）→ 内容去重 → 关键词预筛（通用词 ∪ 画像词）**，顺序严格遵守（ADR-008）
-4. ✅ `src/qq_relay/pipeline/classifier_stub.py`：关键词规则假分类器 → ClassifiedEvent（只用于打通管道与制造流量）
-5. ✅ `src/qq_relay/pipeline/matcher.py`：订阅匹配（群 × cat/cat2 × 关键词 × 免打扰，OR 语义，跨午夜免打扰）
-6. ✅ `src/qq_relay/deliver/base.py` + `file.py`：测试期分发——`data/outbox/<用户QQ>/` 下每条推送一个 txt（Digest 写 `digest-<date>.txt`，重名加序号防覆盖），文案与 QQ 推送同模板；`deliver/qq.py` 后置
-7. ✅ `src/qq_relay/store/queries.py`：events / items / deliveries / filtered_log / labels / 去重映射 读写
-8. ✅ `src/qq_relay/botcmd.py`：`/sub /unsub /sub list /mute /digest` + 负反馈（原子写 subscriptions.yml）
-9. ✅ `src/qq_relay/main.py`：装配启动 + 看门狗 stub（NapCat 掉线告警）
-10. ✅ `src/qq_relay/pipeline/runner.py`：管道编排 + **fan-in**（同通知多群只分类一次，新群命中用户才补收）
+1. ✅ `src/seu_alert/adapters/onebot.py`：反向 WS **服务端**（NapCat 来连我们；重连由 NapCat 侧负责）、事件解析（群消息 + 私聊 + action 调用 + token 鉴权 + 自身回声过滤）
+2. ✅ `src/seu_alert/adapters/base.py` + `contracts.py`：RawEvent 归一 + ClassifiedEvent 契约（P0 已建）
+3. ✅ `src/seu_alert/pipeline/prefilter.py`：**发送者过滤（默认 off）→ 内容去重 → 关键词预筛（通用词 ∪ 画像词）**，顺序严格遵守（ADR-008）
+4. ✅ `src/seu_alert/pipeline/classifier_stub.py`：关键词规则假分类器 → ClassifiedEvent（只用于打通管道与制造流量）
+5. ✅ `src/seu_alert/pipeline/matcher.py`：订阅匹配（群 × cat/cat2 × 关键词 × 免打扰，OR 语义，跨午夜免打扰）
+6. ✅ `src/seu_alert/deliver/base.py` + `file.py`：测试期分发——`data/outbox/<用户QQ>/` 下每条推送一个 txt（Digest 写 `digest-<date>.txt`，重名加序号防覆盖），文案与 QQ 推送同模板；`deliver/qq.py` 后置
+7. ✅ `src/seu_alert/store/queries.py`：events / items / deliveries / filtered_log / labels / 去重映射 读写
+8. ✅ `src/seu_alert/botcmd.py`：`/sub /unsub /sub list /mute /digest` + 负反馈（原子写 subscriptions.yml）
+9. ✅ `src/seu_alert/main.py`：装配启动 + 看门狗 stub（NapCat 掉线告警）
+10. ✅ `src/seu_alert/pipeline/runner.py`：管道编排 + **fan-in**（同通知多群只分类一次，新群命中用户才补收）
 
 **方案要点**：
 
@@ -87,9 +87,9 @@ P2 与 P3 无相互依赖，可并行。关键路径：P0→P1→P2→P4→P5。
 **步骤**：
 
 1. **连通性测试先行**（ADR-017）：chat 客户端最小请求（空 system + 一条 user、无 reasoning 字段）验证 200；JEV 最小 `/v1/decision`（一道 noul）验证。**不过就不往下走**
-2. `src/qq_relay/pipeline/jev.py`：有界并发队列（默认并发 2-4）+ 指数退避（429）+ traceId 留档 + state 截断 1500 字 + 内容 hash 缓存 + 超时幂等（不无条件重试）
-3. `src/qq_relay/pipeline/chat_client.py`（L4）：Chat Completion、JSON 输出契约、回落链（重试 1 次 → 正则 → 见原文 + low_conf）
-4. `src/qq_relay/pipeline/tree.py`：按 tree.yml 驱动——根调用 6 题 → drop_if → 分支（**先实现 homework/exam**）→ 提取触发器（**正则先行**：dateparser/chrono）→ ClassifiedEvent
+2. `src/seu_alert/pipeline/jev.py`：有界并发队列（默认并发 2-4）+ 指数退避（429）+ traceId 留档 + state 截断 1500 字 + 内容 hash 缓存 + 超时幂等（不无条件重试）
+3. `src/seu_alert/pipeline/chat_client.py`（L4）：Chat Completion、JSON 输出契约、回落链（重试 1 次 → 正则 → 见原文 + low_conf）
+4. `src/seu_alert/pipeline/tree.py`：按 tree.yml 驱动——根调用 6 题 → drop_if → 分支（**先实现 homework/exam**）→ 提取触发器（**正则先行**：dateparser/chrono）→ ClassifiedEvent
 5. `config/groups.yml` + `config/tree.yml` 初稿落盘（题干、画像示例、阈值占位）——✅ 已落盘（P0/P1）
 6. 金标准 harness：`goldset.jsonl` 加载 → 跑树 → 混淆矩阵 + 每类 P/R + low_conf 清单 + L4 触发率 + 调用/token 统计报表
 7. 单元测试：分类器契约（字段完整）、降级链（模拟非法 JSON → 重试 → 兜底）、缓存命中、预筛顺序（P1 已带入）
@@ -173,7 +173,7 @@ P2 与 P3 无相互依赖，可并行。关键路径：P0→P1→P2→P4→P5。
 | 项 | 状态 |
 |---|---|
 | 投稿提取栈（`pipeline/extract_stack.py` + `ocr.py` + `llm.py`） | ✅ OCR 专用协议（讯飞/通用 HTTP）→ 视觉模型（Chat Completion）→ 大模型（可选）→ 小模型（备用）四级降级；JEV 只管分类 |
-| 用户投稿入口（`adapters/user_report.py` + `python -m qq_relay.submit`） | ✅ 本地 CLI + 程序化 intake；submissions 表全链路留档 |
+| 用户投稿入口（`adapters/user_report.py` + `python -m seu_alert.submit`） | ✅ 本地 CLI + 程序化 intake；submissions 表全链路留档 |
 | PushPlus 分发（`deliver/pushplus.py` + MultiDeliverer） | ✅ 每用户 token（users 表）+ 全局兜底；DELIVER_MODE 逗号组合 |
 | 临期提醒调度（`pipeline/reminder.py`） | ✅ 截止前 24h/3h 多轮（REMINDER_OFFSETS 可配）；reminders 表 + runner reminder_hook |
 | 核验数据层（votes 表 + `/confirm` `/report`） | ✅ 3 人确认标 verified；报错转人工 |

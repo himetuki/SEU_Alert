@@ -15,7 +15,7 @@ from typing import Optional
 import yaml
 from dotenv import load_dotenv
 
-# 源码树项目根（src/qq_relay/config.py → 仓库根）
+# 源码树项目根（src/seu_alert/config.py → 仓库根）
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 

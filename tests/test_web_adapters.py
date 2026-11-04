@@ -7,9 +7,9 @@ import json
 import time
 from pathlib import Path
 
-from qq_relay.adapters.web import SCANNERS, WebPoller, WebSource
-from qq_relay.adapters.web.seu_monitor import scan as scan_monitor
-from qq_relay.adapters.web.seudaily import scan as scan_seudaily
+from seu_alert.adapters.web import SCANNERS, WebPoller, WebSource
+from seu_alert.adapters.web.seu_monitor import scan as scan_monitor
+from seu_alert.adapters.web.seudaily import scan as scan_seudaily
 
 SHA = "a" * 64
 
@@ -119,10 +119,10 @@ class TestWebIntoPipeline:
     """端到端：web 通知 → 预筛 → 假分类器 → 匹配 → outbox 文件。"""
 
     def test_web_notice_reaches_outbox(self, tmp_path, settings, groups_cfg):
-        from qq_relay.config import Subscription, SubscriptionsConfig
-        from qq_relay.deliver.file import FileDeliverer
-        from qq_relay.pipeline.runner import Runner
-        from qq_relay.store import db as store_db
+        from seu_alert.config import Subscription, SubscriptionsConfig
+        from seu_alert.deliver.file import FileDeliverer
+        from seu_alert.pipeline.runner import Runner
+        from seu_alert.store import db as store_db
 
         async def scenario():
             web_root = tmp_path / "webroot"

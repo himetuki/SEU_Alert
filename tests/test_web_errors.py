@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from qq_relay.adapters.web.errors import friendly_error
-from qq_relay.adapters.web.seu_lectures import LectureError
+from seu_alert.adapters.web.errors import friendly_error
+from seu_alert.adapters.web.seu_lectures import LectureError
 
 
 class ConnectError(Exception):

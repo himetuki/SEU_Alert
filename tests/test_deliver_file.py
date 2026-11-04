@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import asyncio
 
-from qq_relay.contracts import ClassifiedEvent
-from qq_relay.deliver.base import render_push
-from qq_relay.deliver.file import FileDeliverer
+from seu_alert.contracts import ClassifiedEvent
+from seu_alert.deliver.base import render_push
+from seu_alert.deliver.file import FileDeliverer
 
 
 def _item() -> ClassifiedEvent:

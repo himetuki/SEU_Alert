@@ -5,7 +5,7 @@ Windows 平台专用的构建源码集中在此目录，**产物仍输出到项�
 | 文件 | 作用 |
 |---|---|
 | `build_portable.ps1` | PyInstaller one-dir 打包脚本：产出 `dist/seu_alert-portable-win/` 与 `dist/seu_alert-portable-win.zip` |
-| `portable_entry.py` | 便携版入口：启动后台管理（`qq_relay.admin.main(open_browser=True)`） |
+| `portable_entry.py` | 便携版入口：启动后台管理（`seu_alert.admin.main(open_browser=True)`） |
 
 ## 本地构建
 
@@ -16,7 +16,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File win\build_portable.ps1
 ```
 
 脚本优先用项目内 `.venv\Scripts\python.exe`，找不到则回退到 `python`（CI 走这条）。
-产物 `dist\seu_alert-portable-win\` 整个文件夹（或 zip）发给使用者，双击 `qq-relay.exe` 即可。
+产物 `dist\seu_alert-portable-win\` 整个文件夹（或 zip）发给使用者，双击 `seu_alert.exe` 即可。
 
 > ⚠️ **`build_portable.ps1` 必须保留 UTF-8 BOM**（文件头 `EF BB BF`）。脚本内含中文字符串，
 > Windows PowerShell 5.1 会把**无 BOM 的 UTF-8** 按 ANSI 解析，导致语法错误、构建失败。

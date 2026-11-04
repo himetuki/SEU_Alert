@@ -4,9 +4,9 @@ Linux 服务器版：**无头二进制**（PyInstaller one-dir）+ **systemd uni
 
 | 文件 | 作用 |
 |---|---|
-| `server_entry.py` | 服务器入口：`qq_relay.admin.main(host=0.0.0.0, open_browser=False)`，可用 `ADMIN_HOST`/`ADMIN_PORT` 覆盖 |
+| `server_entry.py` | 服务器入口：`seu_alert.admin.main(host=0.0.0.0, open_browser=False)`，可用 `ADMIN_HOST`/`ADMIN_PORT` 覆盖 |
 | `build_server.sh` | PyInstaller one-dir 打包脚本：产出 `dist/seu_alert-portable-server/` 与 `dist/seu_alert-portable-server.tar.gz` |
-| `qq-relay-server.service` | systemd unit（部署时按实际路径修改） |
+| `seu_alert-server.service` | systemd unit（部署时按实际路径修改） |
 
 ## 与 Windows 便携版的区别
 
@@ -28,15 +28,15 @@ bash linux/build_server.sh
 ## 服务器部署
 
 ```bash
-sudo mkdir -p /opt/qq-relay-server
-sudo cp -r dist/seu_alert-portable-server/* /opt/qq-relay-server/
-sudo useradd -r -s /usr/sbin/nologin qqrelay
-sudo chown -R qqrelay:qqrelay /opt/qq-relay-server
-# 编辑 /opt/qq-relay-server/qq-relay-server.service 里的路径
-sudo cp /opt/qq-relay-server/qq-relay-server.service /etc/systemd/system/
+sudo mkdir -p /opt/seu_alert-server
+sudo cp -r dist/seu_alert-portable-server/* /opt/seu_alert-server/
+sudo useradd -r -s /usr/sbin/nologin seu_alert
+sudo chown -R seu_alert:seu_alert /opt/seu_alert-server
+# 编辑 /opt/seu_alert-server/seu_alert-server.service 里的路径
+sudo cp /opt/seu_alert-server/seu_alert-server.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now qq-relay-server
-sudo journalctl -u qq-relay-server -f
+sudo systemctl enable --now seu_alert-server
+sudo journalctl -u seu_alert-server -f
 ```
 
 后台管理入口 `http://<服务器IP>:8000`；`.env` 填 PushPlus token / 讲座·劳动教育 CAS 账号。

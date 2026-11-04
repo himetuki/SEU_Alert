@@ -132,7 +132,7 @@ sources:
     name: 教务处通知（SEU-Monitor）
     root: seu-projects-test/SEU-Monitor/store     # 相对项目根；绝对路径亦可
     interval: 900                # 秒，≥60
-    enabled: true                # 已启用；归档由 qq_relay.tools.seu_archive 生成（Windows 原生）
+    enabled: true                # 已启用；归档由 seu_alert.tools.seu_archive 生成（Windows 原生）
   - id: seudaily
     kind: seudaily               # SEUdaily 网页库：metadata/*.json + files/<host>/<section>/<notice>/*.md
     name: SEUdaily 网页库
@@ -143,7 +143,7 @@ sources:
 **kind 取值**：`jwc`（教务处直采）/ `seu_monitor` / `seudaily` / `seu_colleges` / `labor` / `wechat_mp` / `seu_lectures`。
 **enabled**：省略或 `true` 参与轮询；`false` 则不启动该源的 poller，后台页面标注「已停用」。
 
-语义（ADR-022/029）：首次扫描全量 backfill，之后增量；`web_seen` 表持久化已见 key；扫描失败只记日志不拖垮管道。web 群是**站点级**合成群（`web-jwc` / `web-cse`，kind=web、scope=school），订阅与普通群一致（`/sub 群 教务处 类别 通知 考试`）。SEUdaily 的 metadata 无发布日期，ts 用抓取时间（文件 mtime）。教务处直采不需要任何外部程序；SEU-Monitor 归档用 Windows 原生生成器：`.venv\Scripts\python -m qq_relay.tools.seu_archive --once`（无需 Go/WSL）。
+语义（ADR-022/029）：首次扫描全量 backfill，之后增量；`web_seen` 表持久化已见 key；扫描失败只记日志不拖垮管道。web 群是**站点级**合成群（`web-jwc` / `web-cse`，kind=web、scope=school），订阅与普通群一致（`/sub 群 教务处 类别 通知 考试`）。SEUdaily 的 metadata 无发布日期，ts 用抓取时间（文件 mtime）。教务处直采不需要任何外部程序；SEU-Monitor 归档用 Windows 原生生成器：`.venv\Scripts\python -m seu_alert.tools.seu_archive --once`（无需 Go/WSL）。
 
 ## 教务处直采（jwc.yml，ADR-029）
 
@@ -264,15 +264,15 @@ set PIP_CACHE_DIR=<项目根>\.pipcache          # pip 缓存也进项目，不�
 .venv\Scripts\python -m pip install -r requirements.txt
 .venv\Scripts\python -m pip install -e .      # 可编辑安装
 set PYTHONIOENCODING=utf-8                    # Windows 控制台中文输出
-.venv\Scripts\python -m qq_relay.store.db     # 初始化 SQLite schema
-.venv\Scripts\python -m qq_relay.smoke        # P0 冒烟（--seconds/--forever）
+.venv\Scripts\python -m seu_alert.store.db     # 初始化 SQLite schema
+.venv\Scripts\python -m seu_alert.smoke        # P0 冒烟（--seconds/--forever）
 .venv\Scripts\python -m pytest                # 测试
 ```
 
 ## 代码骨架（src/ 布局，P0 已落地部分标 ✅）
 
 ```
-src/qq_relay/
+src/seu_alert/
 ├── __init__.py
 ├── config.py          # ✅ 配置加载 + dataclass 校验（P3 扩为单一配置管理器）
 ├── contracts.py       # ✅ RawEvent / ClassifiedEvent 数据契约
